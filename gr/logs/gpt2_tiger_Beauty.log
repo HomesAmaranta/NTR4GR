@@ -401,3 +401,6 @@
 2026-08-24 08:36:03,174 - INFO - No improvement in validation loss. Early stop counter: 10
 2026-08-24 08:36:03,174 - INFO - Early stopping triggered.
 2026-08-24 08:36:03,175 - INFO - Loading best model for final testing...
+2026-08-24 08:39:23,603 - INFO - Final Epoch: 74
+2026-08-24 08:39:23,605 - INFO - Final Test Recalls: {'Recall@5': 0.0066337901659213935, 'Recall@10': 0.011340278288741224, 'Recall@20': 0.01917869355449605}
+2026-08-24 08:39:23,605 - INFO - Final Test NDCGs: {'NDCG@5': 0.004198761888711749, 'NDCG@10': 0.005688287459649625, 'NDCG@20': 0.007651893055274315}
