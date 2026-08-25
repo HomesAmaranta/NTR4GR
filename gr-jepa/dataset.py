@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-def process_data(file_path, mode, max_len, PAD_TOKEN=0, max_seq_len=None):
+def process_data(file_path, mode, max_len, PAD_TOKEN=0):
     """
     Process parquet data based on mode ('train' or 'evaluation').
 
@@ -23,15 +23,14 @@ def process_data(file_path, mode, max_len, PAD_TOKEN=0, max_seq_len=None):
     data['sequence'] = data['history'].apply(lambda x: list(x)) + data['target'].apply(lambda x: [x])
 
     if mode == 'train':
-        # Keep one full sequence per user. The dataloader builds NTP masks.
+        # Sliding window processing
         processed_data = []
         for row in data.itertuples(index=False):
             sequence = row.sequence
-            if max_seq_len is not None and len(sequence) > max_seq_len:
-                sequence = sequence[-max_seq_len:]
-            if len(sequence) > 1:
+            for i in range(1, len(sequence)):
                 processed_data.append({
-                    'sequence': sequence
+                    'history': sequence[:i],
+                    'target': sequence[i]
                 })
     elif mode == 'evaluation':
         # Use the last item as target and the rest as history
@@ -45,10 +44,9 @@ def process_data(file_path, mode, max_len, PAD_TOKEN=0, max_seq_len=None):
     else:
         raise ValueError("Mode must be 'train' or 'evaluation'.")
 
-    # Evaluation keeps the original single-target format for beam search.
-    if mode == 'evaluation':
-        for item in processed_data:
-            item['history'] = pad_or_truncate(item['history'], max_len)
+    # Apply padding or truncation
+    for item in processed_data:
+        item['history'] = pad_or_truncate(item['history'], max_len)
 
     return processed_data
 
@@ -90,8 +88,15 @@ def item2code(code_path, codebook_size=256):
 
     return item_to_code, code_to_item
 
+def load_item_embeddings(item_emb_path):
+    data = pd.read_parquet(item_emb_path)
+    return {
+        int(row.ItemID): np.asarray(row.embedding, dtype=np.float32)
+        for row in data.itertuples(index=False)
+    }
+
 class GenRecDataset(Dataset):
-    def __init__(self, dataset_path, code_path, mode, max_len, PAD_TOKEN=0, max_seq_len=None):
+    def __init__(self, dataset_path, code_path, mode, max_len, PAD_TOKEN=0, item_emb_path=None):
         """
         Initialize the GenRecDataset.
         Args:
@@ -105,10 +110,10 @@ class GenRecDataset(Dataset):
         self.code_path = code_path
         self.mode = mode
         self.max_len = max_len
-        self.max_seq_len = max_seq_len
         self.PAD_TOKEN = PAD_TOKEN
         # Load item-to-code mapping
         self.item_to_code, self.code_to_item = item2code(code_path)
+        self.item_embeddings = load_item_embeddings(item_emb_path) if item_emb_path else None
         # Process the dataset
         self.data = self._prepare_data()
         
@@ -120,25 +125,18 @@ class GenRecDataset(Dataset):
         """
         # Process the data using the process_data function
         processed_data = process_data(
-            self.dataset_path,
-            self.mode,
-            self.max_len,
-            self.PAD_TOKEN,
-            self.max_seq_len,
+            self.dataset_path, self.mode, self.max_len, self.PAD_TOKEN
         )
         # Convert items to codes
         for item in processed_data:
-            if self.mode == 'train':
-                item['sequence'] = [
-                    self.item_to_code.get(x, np.array([self.PAD_TOKEN]*4))
-                    for x in item['sequence']
-                ]
-            else:
-                item['history'] = [
-                    self.item_to_code.get(x, np.array([self.PAD_TOKEN]*4))
-                    for x in item['history']
-                ]
-                item['target'] = self.item_to_code.get(item['target'], np.array([self.PAD_TOKEN]*4))
+            target_item = item['target']
+            item['history'] = [self.item_to_code.get(x, np.array([self.PAD_TOKEN]*4)) for x in item['history']]
+            item['target'] = self.item_to_code.get(item['target'], np.array([self.PAD_TOKEN]*4))
+            if self.item_embeddings is not None:
+                target_item = int(target_item)
+                if target_item not in self.item_embeddings:
+                    raise KeyError(f"Missing item embedding for target item id: {target_item}")
+                item['target_item_emb'] = self.item_embeddings[target_item]
         return processed_data
     
     def __getitem__(self, index):

@@ -1,0 +1,888 @@
+2026-08-24 19:59:20,383 - INFO - Configuration: {'batch_size': 256, 'infer_size': 96, 'num_epochs': 200, 'lr': 0.0001, 'device': 'cuda', 'num_layers': 4, 'num_decoder_layers': 4, 'd_model': 128, 'd_ff': 1024, 'num_heads': 6, 'd_kv': 64, 'dropout_rate': 0.1, 'vocab_size': 1025, 'pad_token_id': 0, 'eos_token_id': 0, 'feed_forward_proj': 'relu', 'max_len': 20, 'dataset_path': '../data/Beauty', 'code_path': '../data/Beauty/Beauty_t5_rqvae.npy', 'item_emb_path': '../data/Beauty/item_emb.parquet', 'item_emb_dim': 768, 'mse_loss_weight': 5.0, 'mse_loss_mode': 'token', 'align_loss_type': 'mse', 'early_stop_metric': 'ce', 'mode': 'train', 'model_type': 'causal', 'log_path': './logs/causal_tiger_Beauty_mse5_token.log', 'seed': 2025, 'save_path': './ckpt/causal_tiger_Beauty_mse5_token.pth', 'early_stop': 10, 'topk_list': [5, 10, 20], 'beam_size': 30}
+2026-08-24 19:59:20,410 - INFO - #Embedding parameters: 131200
+#Non-embedding parameters: 4557952
+#Total trainable parameters: 4689152
+
+2026-08-24 19:59:24,420 - INFO - Epoch 1/200
+2026-08-24 19:59:52,352 - INFO - Training loss: 5.3933259745052355
+2026-08-24 19:59:54,668 - INFO - Validation total loss: 4.621851742011795
+2026-08-24 19:59:54,668 - INFO - Validation CE loss: 4.6022440026246425
+2026-08-24 19:59:54,668 - INFO - Validation MSE align loss: 0.003921545846107948
+2026-08-24 19:59:54,668 - INFO - Early stop metric (ce): 4.6022440026246425
+2026-08-24 19:59:54,720 - INFO - Best validation ce loss: 4.6022440026246425
+2026-08-24 19:59:54,720 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 19:59:54,720 - INFO - Epoch 2/200
+2026-08-24 20:00:17,801 - INFO - Training loss: 4.628704025587683
+2026-08-24 20:00:20,176 - INFO - Validation total loss: 4.3209706069062195
+2026-08-24 20:00:20,176 - INFO - Validation CE loss: 4.2990565965104
+2026-08-24 20:00:20,176 - INFO - Validation MSE align loss: 0.004382802062575973
+2026-08-24 20:00:20,176 - INFO - Early stop metric (ce): 4.2990565965104
+2026-08-24 20:00:20,236 - INFO - Best validation ce loss: 4.2990565965104
+2026-08-24 20:00:20,236 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:00:20,236 - INFO - Epoch 3/200
+2026-08-24 20:00:55,537 - INFO - Training loss: 4.280672885100666
+2026-08-24 20:01:00,322 - INFO - Validation total loss: 4.039305881369267
+2026-08-24 20:01:00,322 - INFO - Validation CE loss: 4.012857056482667
+2026-08-24 20:01:00,322 - INFO - Validation MSE align loss: 0.005289763398068785
+2026-08-24 20:01:00,322 - INFO - Early stop metric (ce): 4.012857056482667
+2026-08-24 20:01:00,384 - INFO - Best validation ce loss: 4.012857056482667
+2026-08-24 20:01:00,384 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:01:00,384 - INFO - Epoch 4/200
+2026-08-24 20:01:45,072 - INFO - Training loss: 3.9350916824452145
+2026-08-24 20:01:49,866 - INFO - Validation total loss: 3.7827015260770085
+2026-08-24 20:01:49,867 - INFO - Validation CE loss: 3.763010866140603
+2026-08-24 20:01:49,867 - INFO - Validation MSE align loss: 0.003938132092604502
+2026-08-24 20:01:49,867 - INFO - Early stop metric (ce): 3.763010866140603
+2026-08-24 20:01:49,926 - INFO - Best validation ce loss: 3.763010866140603
+2026-08-24 20:01:49,926 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:01:49,926 - INFO - Epoch 5/200
+2026-08-24 20:02:34,629 - INFO - Training loss: 3.649811927446595
+2026-08-24 20:02:39,387 - INFO - Validation total loss: 3.5637076954984868
+2026-08-24 20:02:39,387 - INFO - Validation CE loss: 3.5522294566355037
+2026-08-24 20:02:39,387 - INFO - Validation MSE align loss: 0.0022956484882760584
+2026-08-24 20:02:39,387 - INFO - Early stop metric (ce): 3.5522294566355037
+2026-08-24 20:02:39,459 - INFO - Best validation ce loss: 3.5522294566355037
+2026-08-24 20:02:39,459 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:02:39,459 - INFO - Epoch 6/200
+2026-08-24 20:03:24,346 - INFO - Training loss: 3.4300864489625864
+2026-08-24 20:03:29,310 - INFO - Validation total loss: 3.3917311762535522
+2026-08-24 20:03:29,310 - INFO - Validation CE loss: 3.3853685006563246
+2026-08-24 20:03:29,310 - INFO - Validation MSE align loss: 0.0012725349500687401
+2026-08-24 20:03:29,310 - INFO - Early stop metric (ce): 3.3853685006563246
+2026-08-24 20:03:29,382 - INFO - Best validation ce loss: 3.3853685006563246
+2026-08-24 20:03:29,382 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:03:29,383 - INFO - Epoch 7/200
+2026-08-24 20:04:14,257 - INFO - Training loss: 3.26312038917022
+2026-08-24 20:04:19,207 - INFO - Validation total loss: 3.2447488573999363
+2026-08-24 20:04:19,207 - INFO - Validation CE loss: 3.241467726588761
+2026-08-24 20:04:19,207 - INFO - Validation MSE align loss: 0.000656227034100935
+2026-08-24 20:04:19,207 - INFO - Early stop metric (ce): 3.241467726588761
+2026-08-24 20:04:19,276 - INFO - Best validation ce loss: 3.241467726588761
+2026-08-24 20:04:19,276 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:04:19,276 - INFO - Epoch 8/200
+2026-08-24 20:05:04,179 - INFO - Training loss: 3.130590075184863
+2026-08-24 20:05:09,108 - INFO - Validation total loss: 3.129657732059004
+2026-08-24 20:05:09,109 - INFO - Validation CE loss: 3.127871597273667
+2026-08-24 20:05:09,109 - INFO - Validation MSE align loss: 0.000357225874055161
+2026-08-24 20:05:09,109 - INFO - Early stop metric (ce): 3.127871597273667
+2026-08-24 20:05:09,175 - INFO - Best validation ce loss: 3.127871597273667
+2026-08-24 20:05:09,175 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:05:09,175 - INFO - Epoch 9/200
+2026-08-24 20:05:53,890 - INFO - Training loss: 3.0270161345775026
+2026-08-24 20:05:58,837 - INFO - Validation total loss: 3.0328251430405055
+2026-08-24 20:05:58,837 - INFO - Validation CE loss: 3.031609062984778
+2026-08-24 20:05:58,838 - INFO - Validation MSE align loss: 0.00024321547043889506
+2026-08-24 20:05:58,838 - INFO - Early stop metric (ce): 3.031609062984778
+2026-08-24 20:05:58,905 - INFO - Best validation ce loss: 3.031609062984778
+2026-08-24 20:05:58,906 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:05:58,906 - INFO - Epoch 10/200
+2026-08-24 20:06:43,719 - INFO - Training loss: 2.938677717739506
+2026-08-24 20:06:48,615 - INFO - Validation total loss: 2.9516873707587115
+2026-08-24 20:06:48,615 - INFO - Validation CE loss: 2.9506437445914795
+2026-08-24 20:06:48,615 - INFO - Validation MSE align loss: 0.00020872504183574872
+2026-08-24 20:06:48,615 - INFO - Early stop metric (ce): 2.9506437445914795
+2026-08-24 20:06:48,682 - INFO - Best validation ce loss: 2.9506437445914795
+2026-08-24 20:06:48,682 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:06:48,682 - INFO - Epoch 11/200
+2026-08-24 20:07:33,542 - INFO - Training loss: 2.8671639308855226
+2026-08-24 20:07:38,412 - INFO - Validation total loss: 2.8843740710884718
+2026-08-24 20:07:38,412 - INFO - Validation CE loss: 2.8833864528222146
+2026-08-24 20:07:38,412 - INFO - Validation MSE align loss: 0.00019752342804023286
+2026-08-24 20:07:38,412 - INFO - Early stop metric (ce): 2.8833864528222146
+2026-08-24 20:07:38,479 - INFO - Best validation ce loss: 2.8833864528222146
+2026-08-24 20:07:38,479 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:07:38,479 - INFO - Epoch 12/200
+2026-08-24 20:08:23,482 - INFO - Training loss: 2.8028242527742795
+2026-08-24 20:08:28,496 - INFO - Validation total loss: 2.8226686879800624
+2026-08-24 20:08:28,496 - INFO - Validation CE loss: 2.8216906678523115
+2026-08-24 20:08:28,496 - INFO - Validation MSE align loss: 0.0001956053974897333
+2026-08-24 20:08:28,496 - INFO - Early stop metric (ce): 2.8216906678523115
+2026-08-24 20:08:28,557 - INFO - Best validation ce loss: 2.8216906678523115
+2026-08-24 20:08:28,557 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:08:28,557 - INFO - Epoch 13/200
+2026-08-24 20:09:13,409 - INFO - Training loss: 2.7486254723619394
+2026-08-24 20:09:18,305 - INFO - Validation total loss: 2.770309377637544
+2026-08-24 20:09:18,305 - INFO - Validation CE loss: 2.7693338972304513
+2026-08-24 20:09:18,305 - INFO - Validation MSE align loss: 0.0001950980077423715
+2026-08-24 20:09:18,305 - INFO - Early stop metric (ce): 2.7693338972304513
+2026-08-24 20:09:18,372 - INFO - Best validation ce loss: 2.7693338972304513
+2026-08-24 20:09:18,372 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:09:18,372 - INFO - Epoch 14/200
+2026-08-24 20:10:03,131 - INFO - Training loss: 2.7008298705060194
+2026-08-24 20:10:07,987 - INFO - Validation total loss: 2.722595806797175
+2026-08-24 20:10:07,987 - INFO - Validation CE loss: 2.721624801598905
+2026-08-24 20:10:07,987 - INFO - Validation MSE align loss: 0.00019420086974008288
+2026-08-24 20:10:07,987 - INFO - Early stop metric (ce): 2.721624801598905
+2026-08-24 20:10:08,053 - INFO - Best validation ce loss: 2.721624801598905
+2026-08-24 20:10:08,054 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:10:08,054 - INFO - Epoch 15/200
+2026-08-24 20:10:52,908 - INFO - Training loss: 2.6596331800468236
+2026-08-24 20:10:57,834 - INFO - Validation total loss: 2.6837195628702384
+2026-08-24 20:10:57,834 - INFO - Validation CE loss: 2.682744367951487
+2026-08-24 20:10:57,834 - INFO - Validation MSE align loss: 0.0001950397338796119
+2026-08-24 20:10:57,834 - INFO - Early stop metric (ce): 2.682744367951487
+2026-08-24 20:10:57,908 - INFO - Best validation ce loss: 2.682744367951487
+2026-08-24 20:10:57,908 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:10:57,909 - INFO - Epoch 16/200
+2026-08-24 20:11:42,804 - INFO - Training loss: 2.619529286247283
+2026-08-24 20:11:47,717 - INFO - Validation total loss: 2.650130106144197
+2026-08-24 20:11:47,717 - INFO - Validation CE loss: 2.6491529527140276
+2026-08-24 20:11:47,717 - INFO - Validation MSE align loss: 0.00019543094869279364
+2026-08-24 20:11:47,717 - INFO - Early stop metric (ce): 2.6491529527140276
+2026-08-24 20:11:47,793 - INFO - Best validation ce loss: 2.6491529527140276
+2026-08-24 20:11:47,793 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:11:47,793 - INFO - Epoch 17/200
+2026-08-24 20:12:32,786 - INFO - Training loss: 2.585918136607812
+2026-08-24 20:12:37,716 - INFO - Validation total loss: 2.6190534569163177
+2026-08-24 20:12:37,716 - INFO - Validation CE loss: 2.618072360370292
+2026-08-24 20:12:37,716 - INFO - Validation MSE align loss: 0.0001962183177263312
+2026-08-24 20:12:37,716 - INFO - Early stop metric (ce): 2.618072360370292
+2026-08-24 20:12:37,786 - INFO - Best validation ce loss: 2.618072360370292
+2026-08-24 20:12:37,786 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:12:37,786 - INFO - Epoch 18/200
+2026-08-24 20:13:23,091 - INFO - Training loss: 2.555705888725904
+2026-08-24 20:13:28,008 - INFO - Validation total loss: 2.5868862033401947
+2026-08-24 20:13:28,008 - INFO - Validation CE loss: 2.5859078644682922
+2026-08-24 20:13:28,008 - INFO - Validation MSE align loss: 0.00019566675485961155
+2026-08-24 20:13:28,008 - INFO - Early stop metric (ce): 2.5859078644682922
+2026-08-24 20:13:28,070 - INFO - Best validation ce loss: 2.5859078644682922
+2026-08-24 20:13:28,071 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:13:28,071 - INFO - Epoch 19/200
+2026-08-24 20:14:12,891 - INFO - Training loss: 2.526986730237879
+2026-08-24 20:14:17,716 - INFO - Validation total loss: 2.562948957533284
+2026-08-24 20:14:17,716 - INFO - Validation CE loss: 2.561960636801986
+2026-08-24 20:14:17,716 - INFO - Validation MSE align loss: 0.00019766464038770007
+2026-08-24 20:14:17,716 - INFO - Early stop metric (ce): 2.561960636801986
+2026-08-24 20:14:17,774 - INFO - Best validation ce loss: 2.561960636801986
+2026-08-24 20:14:17,774 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:14:17,774 - INFO - Epoch 20/200
+2026-08-24 20:15:02,445 - INFO - Training loss: 2.5002649136554407
+2026-08-24 20:15:07,203 - INFO - Validation total loss: 2.538954852476652
+2026-08-24 20:15:07,203 - INFO - Validation CE loss: 2.5379639976526023
+2026-08-24 20:15:07,203 - INFO - Validation MSE align loss: 0.00019816996694828259
+2026-08-24 20:15:07,203 - INFO - Early stop metric (ce): 2.5379639976526023
+2026-08-24 20:15:07,263 - INFO - Best validation ce loss: 2.5379639976526023
+2026-08-24 20:15:07,263 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:15:07,264 - INFO - Epoch 21/200
+2026-08-24 20:15:51,883 - INFO - Training loss: 2.4760651542055006
+2026-08-24 20:15:56,692 - INFO - Validation total loss: 2.5160081007961552
+2026-08-24 20:15:56,692 - INFO - Validation CE loss: 2.5150194597858215
+2026-08-24 20:15:56,692 - INFO - Validation MSE align loss: 0.00019772794321748976
+2026-08-24 20:15:56,692 - INFO - Early stop metric (ce): 2.5150194597858215
+2026-08-24 20:15:56,753 - INFO - Best validation ce loss: 2.5150194597858215
+2026-08-24 20:15:56,753 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:15:56,753 - INFO - Epoch 22/200
+2026-08-24 20:16:41,536 - INFO - Training loss: 2.4543536391239686
+2026-08-24 20:16:46,379 - INFO - Validation total loss: 2.4955225077821463
+2026-08-24 20:16:46,379 - INFO - Validation CE loss: 2.4945222584474753
+2026-08-24 20:16:46,379 - INFO - Validation MSE align loss: 0.00020005141417126177
+2026-08-24 20:16:46,379 - INFO - Early stop metric (ce): 2.4945222584474753
+2026-08-24 20:16:46,438 - INFO - Best validation ce loss: 2.4945222584474753
+2026-08-24 20:16:46,438 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:16:46,438 - INFO - Epoch 23/200
+2026-08-24 20:17:31,251 - INFO - Training loss: 2.433265224968877
+2026-08-24 20:17:36,019 - INFO - Validation total loss: 2.478999927320194
+2026-08-24 20:17:36,019 - INFO - Validation CE loss: 2.478008501519461
+2026-08-24 20:17:36,019 - INFO - Validation MSE align loss: 0.00019828480804017285
+2026-08-24 20:17:36,019 - INFO - Early stop metric (ce): 2.478008501519461
+2026-08-24 20:17:36,079 - INFO - Best validation ce loss: 2.478008501519461
+2026-08-24 20:17:36,079 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:17:36,079 - INFO - Epoch 24/200
+2026-08-24 20:18:20,757 - INFO - Training loss: 2.4155634279844826
+2026-08-24 20:18:25,733 - INFO - Validation total loss: 2.4603395630873326
+2026-08-24 20:18:25,733 - INFO - Validation CE loss: 2.4593356412879386
+2026-08-24 20:18:25,733 - INFO - Validation MSE align loss: 0.00020078375535595428
+2026-08-24 20:18:25,733 - INFO - Early stop metric (ce): 2.4593356412879386
+2026-08-24 20:18:25,800 - INFO - Best validation ce loss: 2.4593356412879386
+2026-08-24 20:18:25,800 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:18:25,800 - INFO - Epoch 25/200
+2026-08-24 20:19:10,750 - INFO - Training loss: 2.3989535537675195
+2026-08-24 20:19:15,723 - INFO - Validation total loss: 2.45049344930526
+2026-08-24 20:19:15,724 - INFO - Validation CE loss: 2.4494828272275146
+2026-08-24 20:19:15,724 - INFO - Validation MSE align loss: 0.0002021254544933786
+2026-08-24 20:19:15,724 - INFO - Early stop metric (ce): 2.4494828272275146
+2026-08-24 20:19:15,789 - INFO - Best validation ce loss: 2.4494828272275146
+2026-08-24 20:19:15,789 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:19:15,789 - INFO - Epoch 26/200
+2026-08-24 20:20:00,634 - INFO - Training loss: 2.383404295268226
+2026-08-24 20:20:05,573 - INFO - Validation total loss: 2.433624281392077
+2026-08-24 20:20:05,573 - INFO - Validation CE loss: 2.43261200419823
+2026-08-24 20:20:05,573 - INFO - Validation MSE align loss: 0.00020245602579243769
+2026-08-24 20:20:05,573 - INFO - Early stop metric (ce): 2.43261200419823
+2026-08-24 20:20:05,641 - INFO - Best validation ce loss: 2.43261200419823
+2026-08-24 20:20:05,641 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:20:05,641 - INFO - Epoch 27/200
+2026-08-24 20:20:50,394 - INFO - Training loss: 2.368576659302767
+2026-08-24 20:20:55,284 - INFO - Validation total loss: 2.419988994434668
+2026-08-24 20:20:55,284 - INFO - Validation CE loss: 2.418979048217315
+2026-08-24 20:20:55,284 - INFO - Validation MSE align loss: 0.00020198905096057595
+2026-08-24 20:20:55,284 - INFO - Early stop metric (ce): 2.418979048217315
+2026-08-24 20:20:55,353 - INFO - Best validation ce loss: 2.418979048217315
+2026-08-24 20:20:55,353 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:20:55,353 - INFO - Epoch 28/200
+2026-08-24 20:21:40,141 - INFO - Training loss: 2.353540370436494
+2026-08-24 20:21:45,016 - INFO - Validation total loss: 2.410245422129979
+2026-08-24 20:21:45,017 - INFO - Validation CE loss: 2.4092365365171635
+2026-08-24 20:21:45,017 - INFO - Validation MSE align loss: 0.00020177634986259378
+2026-08-24 20:21:45,017 - INFO - Early stop metric (ce): 2.4092365365171635
+2026-08-24 20:21:45,084 - INFO - Best validation ce loss: 2.4092365365171635
+2026-08-24 20:21:45,084 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:21:45,084 - INFO - Epoch 29/200
+2026-08-24 20:22:29,762 - INFO - Training loss: 2.3379206397654015
+2026-08-24 20:22:34,664 - INFO - Validation total loss: 2.3975341821433136
+2026-08-24 20:22:34,664 - INFO - Validation CE loss: 2.39651941485671
+2026-08-24 20:22:34,664 - INFO - Validation MSE align loss: 0.00020295260277978453
+2026-08-24 20:22:34,664 - INFO - Early stop metric (ce): 2.39651941485671
+2026-08-24 20:22:34,731 - INFO - Best validation ce loss: 2.39651941485671
+2026-08-24 20:22:34,731 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:22:34,731 - INFO - Epoch 30/200
+2026-08-24 20:23:19,770 - INFO - Training loss: 2.326429618471791
+2026-08-24 20:23:24,684 - INFO - Validation total loss: 2.3904538594602003
+2026-08-24 20:23:24,684 - INFO - Validation CE loss: 2.3894414415686938
+2026-08-24 20:23:24,684 - INFO - Validation MSE align loss: 0.0002024829252887829
+2026-08-24 20:23:24,684 - INFO - Early stop metric (ce): 2.3894414415686938
+2026-08-24 20:23:24,746 - INFO - Best validation ce loss: 2.3894414415686938
+2026-08-24 20:23:24,746 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:23:24,747 - INFO - Epoch 31/200
+2026-08-24 20:24:09,739 - INFO - Training loss: 2.3123326375790607
+2026-08-24 20:24:14,686 - INFO - Validation total loss: 2.3768272870599967
+2026-08-24 20:24:14,686 - INFO - Validation CE loss: 2.3758109347503074
+2026-08-24 20:24:14,686 - INFO - Validation MSE align loss: 0.00020327010777051451
+2026-08-24 20:24:14,686 - INFO - Early stop metric (ce): 2.3758109347503074
+2026-08-24 20:24:14,750 - INFO - Best validation ce loss: 2.3758109347503074
+2026-08-24 20:24:14,750 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:24:14,750 - INFO - Epoch 32/200
+2026-08-24 20:24:59,698 - INFO - Training loss: 2.3016749221527157
+2026-08-24 20:25:04,654 - INFO - Validation total loss: 2.370224145860631
+2026-08-24 20:25:04,654 - INFO - Validation CE loss: 2.3692002956447684
+2026-08-24 20:25:04,654 - INFO - Validation MSE align loss: 0.00020476985588377988
+2026-08-24 20:25:04,654 - INFO - Early stop metric (ce): 2.3692002956447684
+2026-08-24 20:25:04,721 - INFO - Best validation ce loss: 2.3692002956447684
+2026-08-24 20:25:04,721 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:25:04,722 - INFO - Epoch 33/200
+2026-08-24 20:25:49,708 - INFO - Training loss: 2.291009055037443
+2026-08-24 20:25:54,578 - INFO - Validation total loss: 2.35949597696378
+2026-08-24 20:25:54,578 - INFO - Validation CE loss: 2.358483262839747
+2026-08-24 20:25:54,578 - INFO - Validation MSE align loss: 0.00020254293632545697
+2026-08-24 20:25:54,578 - INFO - Early stop metric (ce): 2.358483262839747
+2026-08-24 20:25:54,642 - INFO - Best validation ce loss: 2.358483262839747
+2026-08-24 20:25:54,642 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:25:54,643 - INFO - Epoch 34/200
+2026-08-24 20:26:39,553 - INFO - Training loss: 2.2828967483127163
+2026-08-24 20:26:44,490 - INFO - Validation total loss: 2.355645021143901
+2026-08-24 20:26:44,490 - INFO - Validation CE loss: 2.354605498743671
+2026-08-24 20:26:44,490 - INFO - Validation MSE align loss: 0.0002079049521025926
+2026-08-24 20:26:44,490 - INFO - Early stop metric (ce): 2.354605498743671
+2026-08-24 20:26:44,558 - INFO - Best validation ce loss: 2.354605498743671
+2026-08-24 20:26:44,558 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:26:44,559 - INFO - Epoch 35/200
+2026-08-24 20:27:29,278 - INFO - Training loss: 2.2708626772179215
+2026-08-24 20:27:34,171 - INFO - Validation total loss: 2.348276557840503
+2026-08-24 20:27:34,171 - INFO - Validation CE loss: 2.347247988369332
+2026-08-24 20:27:34,171 - INFO - Validation MSE align loss: 0.00020571446947827376
+2026-08-24 20:27:34,171 - INFO - Early stop metric (ce): 2.347247988369332
+2026-08-24 20:27:34,233 - INFO - Best validation ce loss: 2.347247988369332
+2026-08-24 20:27:34,233 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:27:34,234 - INFO - Epoch 36/200
+2026-08-24 20:28:19,143 - INFO - Training loss: 2.2603239192109164
+2026-08-24 20:28:24,020 - INFO - Validation total loss: 2.34553181306487
+2026-08-24 20:28:24,021 - INFO - Validation CE loss: 2.344499893454523
+2026-08-24 20:28:24,021 - INFO - Validation MSE align loss: 0.00020638356810183836
+2026-08-24 20:28:24,021 - INFO - Early stop metric (ce): 2.344499893454523
+2026-08-24 20:28:24,090 - INFO - Best validation ce loss: 2.344499893454523
+2026-08-24 20:28:24,090 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:28:24,090 - INFO - Epoch 37/200
+2026-08-24 20:29:08,893 - INFO - Training loss: 2.2537624056701064
+2026-08-24 20:29:13,649 - INFO - Validation total loss: 2.3313654395132106
+2026-08-24 20:29:13,649 - INFO - Validation CE loss: 2.3303323917634495
+2026-08-24 20:29:13,649 - INFO - Validation MSE align loss: 0.00020660988779392796
+2026-08-24 20:29:13,649 - INFO - Early stop metric (ce): 2.3303323917634495
+2026-08-24 20:29:13,718 - INFO - Best validation ce loss: 2.3303323917634495
+2026-08-24 20:29:13,718 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:29:13,718 - INFO - Epoch 38/200
+2026-08-24 20:29:58,287 - INFO - Training loss: 2.242071674491645
+2026-08-24 20:30:03,076 - INFO - Validation total loss: 2.329848704931562
+2026-08-24 20:30:03,076 - INFO - Validation CE loss: 2.3288199814604074
+2026-08-24 20:30:03,076 - INFO - Validation MSE align loss: 0.00020574471778875863
+2026-08-24 20:30:03,076 - INFO - Early stop metric (ce): 2.3288199814604074
+2026-08-24 20:30:03,148 - INFO - Best validation ce loss: 2.3288199814604074
+2026-08-24 20:30:03,148 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:30:03,148 - INFO - Epoch 39/200
+2026-08-24 20:30:47,841 - INFO - Training loss: 2.2350238802831925
+2026-08-24 20:30:52,629 - INFO - Validation total loss: 2.319074625109398
+2026-08-24 20:30:52,629 - INFO - Validation CE loss: 2.3180306842910374
+2026-08-24 20:30:52,629 - INFO - Validation MSE align loss: 0.00020878909586912795
+2026-08-24 20:30:52,629 - INFO - Early stop metric (ce): 2.3180306842910374
+2026-08-24 20:30:52,700 - INFO - Best validation ce loss: 2.3180306842910374
+2026-08-24 20:30:52,700 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:30:52,700 - INFO - Epoch 40/200
+2026-08-24 20:31:37,443 - INFO - Training loss: 2.225901170927263
+2026-08-24 20:31:42,231 - INFO - Validation total loss: 2.314343066174585
+2026-08-24 20:31:42,231 - INFO - Validation CE loss: 2.3133052526113813
+2026-08-24 20:31:42,231 - INFO - Validation MSE align loss: 0.00020756267207023155
+2026-08-24 20:31:42,231 - INFO - Early stop metric (ce): 2.3133052526113813
+2026-08-24 20:31:42,299 - INFO - Best validation ce loss: 2.3133052526113813
+2026-08-24 20:31:42,300 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:31:42,300 - INFO - Epoch 41/200
+2026-08-24 20:32:27,079 - INFO - Training loss: 2.2187238588407348
+2026-08-24 20:32:31,940 - INFO - Validation total loss: 2.308344386677885
+2026-08-24 20:32:31,940 - INFO - Validation CE loss: 2.3072875441399767
+2026-08-24 20:32:31,940 - INFO - Validation MSE align loss: 0.00021136880444078967
+2026-08-24 20:32:31,940 - INFO - Early stop metric (ce): 2.3072875441399767
+2026-08-24 20:32:32,012 - INFO - Best validation ce loss: 2.3072875441399767
+2026-08-24 20:32:32,012 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:32:32,012 - INFO - Epoch 42/200
+2026-08-24 20:33:16,675 - INFO - Training loss: 2.2108212607380016
+2026-08-24 20:33:21,440 - INFO - Validation total loss: 2.303962289519576
+2026-08-24 20:33:21,440 - INFO - Validation CE loss: 2.3029336151646955
+2026-08-24 20:33:21,440 - INFO - Validation MSE align loss: 0.00020573544453393844
+2026-08-24 20:33:21,440 - INFO - Early stop metric (ce): 2.3029336151646955
+2026-08-24 20:33:21,505 - INFO - Best validation ce loss: 2.3029336151646955
+2026-08-24 20:33:21,505 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:33:21,505 - INFO - Epoch 43/200
+2026-08-24 20:34:06,315 - INFO - Training loss: 2.203037428948666
+2026-08-24 20:34:11,099 - INFO - Validation total loss: 2.301245449950255
+2026-08-24 20:34:11,099 - INFO - Validation CE loss: 2.3001885419239816
+2026-08-24 20:34:11,099 - INFO - Validation MSE align loss: 0.00021138155360480315
+2026-08-24 20:34:11,099 - INFO - Early stop metric (ce): 2.3001885419239816
+2026-08-24 20:34:11,167 - INFO - Best validation ce loss: 2.3001885419239816
+2026-08-24 20:34:11,167 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:34:11,167 - INFO - Epoch 44/200
+2026-08-24 20:34:55,885 - INFO - Training loss: 2.19810692206431
+2026-08-24 20:35:00,675 - INFO - Validation total loss: 2.297264796981484
+2026-08-24 20:35:00,675 - INFO - Validation CE loss: 2.2962195341167533
+2026-08-24 20:35:00,675 - INFO - Validation MSE align loss: 0.00020905274178586948
+2026-08-24 20:35:00,675 - INFO - Early stop metric (ce): 2.2962195341167533
+2026-08-24 20:35:00,748 - INFO - Best validation ce loss: 2.2962195341167533
+2026-08-24 20:35:00,748 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:35:00,749 - INFO - Epoch 45/200
+2026-08-24 20:35:45,343 - INFO - Training loss: 2.1910772203007562
+2026-08-24 20:35:50,155 - INFO - Validation total loss: 2.2974215188251543
+2026-08-24 20:35:50,156 - INFO - Validation CE loss: 2.2963717193562587
+2026-08-24 20:35:50,156 - INFO - Validation MSE align loss: 0.0002099593538968812
+2026-08-24 20:35:50,156 - INFO - Early stop metric (ce): 2.2963717193562587
+2026-08-24 20:35:50,156 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 20:35:50,156 - INFO - Epoch 46/200
+2026-08-24 20:36:34,895 - INFO - Training loss: 2.1847420485567026
+2026-08-24 20:36:39,703 - INFO - Validation total loss: 2.288299322639924
+2026-08-24 20:36:39,703 - INFO - Validation CE loss: 2.2872336156378488
+2026-08-24 20:36:39,703 - INFO - Validation MSE align loss: 0.00021314107120444783
+2026-08-24 20:36:39,703 - INFO - Early stop metric (ce): 2.2872336156378488
+2026-08-24 20:36:39,767 - INFO - Best validation ce loss: 2.2872336156378488
+2026-08-24 20:36:39,768 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:36:39,768 - INFO - Epoch 47/200
+2026-08-24 20:37:24,678 - INFO - Training loss: 2.1779469710843573
+2026-08-24 20:37:29,471 - INFO - Validation total loss: 2.2870149658473267
+2026-08-24 20:37:29,471 - INFO - Validation CE loss: 2.2859421886599627
+2026-08-24 20:37:29,471 - INFO - Validation MSE align loss: 0.00021455575825192848
+2026-08-24 20:37:29,471 - INFO - Early stop metric (ce): 2.2859421886599627
+2026-08-24 20:37:29,538 - INFO - Best validation ce loss: 2.2859421886599627
+2026-08-24 20:37:29,538 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:37:29,538 - INFO - Epoch 48/200
+2026-08-24 20:38:14,496 - INFO - Training loss: 2.171845775170085
+2026-08-24 20:38:19,307 - INFO - Validation total loss: 2.28518699269438
+2026-08-24 20:38:19,307 - INFO - Validation CE loss: 2.284136446760448
+2026-08-24 20:38:19,307 - INFO - Validation MSE align loss: 0.000210109419679537
+2026-08-24 20:38:19,307 - INFO - Early stop metric (ce): 2.284136446760448
+2026-08-24 20:38:19,376 - INFO - Best validation ce loss: 2.284136446760448
+2026-08-24 20:38:19,376 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:38:19,376 - INFO - Epoch 49/200
+2026-08-24 20:39:04,329 - INFO - Training loss: 2.1651504248496622
+2026-08-24 20:39:09,189 - INFO - Validation total loss: 2.2849187620719613
+2026-08-24 20:39:09,189 - INFO - Validation CE loss: 2.2838765428813232
+2026-08-24 20:39:09,189 - INFO - Validation MSE align loss: 0.00020844358868413312
+2026-08-24 20:39:09,189 - INFO - Early stop metric (ce): 2.2838765428813232
+2026-08-24 20:39:09,251 - INFO - Best validation ce loss: 2.2838765428813232
+2026-08-24 20:39:09,251 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:39:09,251 - INFO - Epoch 50/200
+2026-08-24 20:39:54,321 - INFO - Training loss: 2.1584218102670367
+2026-08-24 20:39:59,161 - INFO - Validation total loss: 2.277010491989201
+2026-08-24 20:39:59,161 - INFO - Validation CE loss: 2.275949439777325
+2026-08-24 20:39:59,161 - INFO - Validation MSE align loss: 0.00021221075533507512
+2026-08-24 20:39:59,161 - INFO - Early stop metric (ce): 2.275949439777325
+2026-08-24 20:39:59,224 - INFO - Best validation ce loss: 2.275949439777325
+2026-08-24 20:39:59,224 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:39:59,224 - INFO - Epoch 51/200
+2026-08-24 20:40:44,091 - INFO - Training loss: 2.1523951672394452
+2026-08-24 20:40:48,900 - INFO - Validation total loss: 2.273729755131472
+2026-08-24 20:40:48,900 - INFO - Validation CE loss: 2.2726611359436624
+2026-08-24 20:40:48,900 - INFO - Validation MSE align loss: 0.00021372471117642368
+2026-08-24 20:40:48,900 - INFO - Early stop metric (ce): 2.2726611359436624
+2026-08-24 20:40:48,959 - INFO - Best validation ce loss: 2.2726611359436624
+2026-08-24 20:40:48,959 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:40:48,959 - INFO - Epoch 52/200
+2026-08-24 20:41:33,787 - INFO - Training loss: 2.14641524891909
+2026-08-24 20:41:38,635 - INFO - Validation total loss: 2.2683967300750667
+2026-08-24 20:41:38,635 - INFO - Validation CE loss: 2.2673313008869154
+2026-08-24 20:41:38,635 - INFO - Validation MSE align loss: 0.00021308590139636107
+2026-08-24 20:41:38,635 - INFO - Early stop metric (ce): 2.2673313008869154
+2026-08-24 20:41:38,699 - INFO - Best validation ce loss: 2.2673313008869154
+2026-08-24 20:41:38,699 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:41:38,700 - INFO - Epoch 53/200
+2026-08-24 20:42:23,560 - INFO - Training loss: 2.142535140078355
+2026-08-24 20:42:28,388 - INFO - Validation total loss: 2.270948383941159
+2026-08-24 20:42:28,389 - INFO - Validation CE loss: 2.2698900469382943
+2026-08-24 20:42:28,389 - INFO - Validation MSE align loss: 0.0002116662650114293
+2026-08-24 20:42:28,389 - INFO - Early stop metric (ce): 2.2698900469382943
+2026-08-24 20:42:28,389 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 20:42:28,389 - INFO - Epoch 54/200
+2026-08-24 20:43:13,180 - INFO - Training loss: 2.1366496318045294
+2026-08-24 20:43:18,073 - INFO - Validation total loss: 2.2647741674865265
+2026-08-24 20:43:18,073 - INFO - Validation CE loss: 2.2636970209973053
+2026-08-24 20:43:18,073 - INFO - Validation MSE align loss: 0.0002154271714034582
+2026-08-24 20:43:18,073 - INFO - Early stop metric (ce): 2.2636970209973053
+2026-08-24 20:43:18,134 - INFO - Best validation ce loss: 2.2636970209973053
+2026-08-24 20:43:18,134 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:43:18,135 - INFO - Epoch 55/200
+2026-08-24 20:44:03,065 - INFO - Training loss: 2.1309789342639047
+2026-08-24 20:44:07,910 - INFO - Validation total loss: 2.2587092761829686
+2026-08-24 20:44:07,910 - INFO - Validation CE loss: 2.2576461969015424
+2026-08-24 20:44:07,910 - INFO - Validation MSE align loss: 0.0002126161307231383
+2026-08-24 20:44:07,910 - INFO - Early stop metric (ce): 2.2576461969015424
+2026-08-24 20:44:07,971 - INFO - Best validation ce loss: 2.2576461969015424
+2026-08-24 20:44:07,971 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:44:07,972 - INFO - Epoch 56/200
+2026-08-24 20:44:52,807 - INFO - Training loss: 2.126322319303505
+2026-08-24 20:44:57,635 - INFO - Validation total loss: 2.2589318015544713
+2026-08-24 20:44:57,635 - INFO - Validation CE loss: 2.257872320551729
+2026-08-24 20:44:57,635 - INFO - Validation MSE align loss: 0.00021189633135328093
+2026-08-24 20:44:57,635 - INFO - Early stop metric (ce): 2.257872320551729
+2026-08-24 20:44:57,635 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 20:44:57,636 - INFO - Epoch 57/200
+2026-08-24 20:45:42,657 - INFO - Training loss: 2.1202748452643014
+2026-08-24 20:45:47,543 - INFO - Validation total loss: 2.2556252116297446
+2026-08-24 20:45:47,544 - INFO - Validation CE loss: 2.254539382304245
+2026-08-24 20:45:47,544 - INFO - Validation MSE align loss: 0.0002171649095325535
+2026-08-24 20:45:47,544 - INFO - Early stop metric (ce): 2.254539382304245
+2026-08-24 20:45:47,608 - INFO - Best validation ce loss: 2.254539382304245
+2026-08-24 20:45:47,608 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:45:47,608 - INFO - Epoch 58/200
+2026-08-24 20:46:32,377 - INFO - Training loss: 2.116026122978225
+2026-08-24 20:46:37,303 - INFO - Validation total loss: 2.254010277244666
+2026-08-24 20:46:37,303 - INFO - Validation CE loss: 2.252938481359523
+2026-08-24 20:46:37,303 - INFO - Validation MSE align loss: 0.00021435865330961512
+2026-08-24 20:46:37,303 - INFO - Early stop metric (ce): 2.252938481359523
+2026-08-24 20:46:37,367 - INFO - Best validation ce loss: 2.252938481359523
+2026-08-24 20:46:37,367 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:46:37,367 - INFO - Epoch 59/200
+2026-08-24 20:47:22,147 - INFO - Training loss: 2.110359544188132
+2026-08-24 20:47:27,040 - INFO - Validation total loss: 2.2520172232722007
+2026-08-24 20:47:27,040 - INFO - Validation CE loss: 2.2509571477578945
+2026-08-24 20:47:27,040 - INFO - Validation MSE align loss: 0.00021201417413680082
+2026-08-24 20:47:27,040 - INFO - Early stop metric (ce): 2.2509571477578945
+2026-08-24 20:47:27,099 - INFO - Best validation ce loss: 2.2509571477578945
+2026-08-24 20:47:27,099 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:47:27,100 - INFO - Epoch 60/200
+2026-08-24 20:48:11,952 - INFO - Training loss: 2.106173201757646
+2026-08-24 20:48:16,856 - INFO - Validation total loss: 2.247941732406616
+2026-08-24 20:48:16,856 - INFO - Validation CE loss: 2.2468523170815007
+2026-08-24 20:48:16,856 - INFO - Validation MSE align loss: 0.00021788239314934327
+2026-08-24 20:48:16,856 - INFO - Early stop metric (ce): 2.2468523170815007
+2026-08-24 20:48:16,917 - INFO - Best validation ce loss: 2.2468523170815007
+2026-08-24 20:48:16,917 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:48:16,917 - INFO - Epoch 61/200
+2026-08-24 20:49:01,680 - INFO - Training loss: 2.1018308173821594
+2026-08-24 20:49:06,459 - INFO - Validation total loss: 2.2461018004642535
+2026-08-24 20:49:06,459 - INFO - Validation CE loss: 2.2450087213720886
+2026-08-24 20:49:06,459 - INFO - Validation MSE align loss: 0.00021861531110200632
+2026-08-24 20:49:06,459 - INFO - Early stop metric (ce): 2.2450087213720886
+2026-08-24 20:49:06,526 - INFO - Best validation ce loss: 2.2450087213720886
+2026-08-24 20:49:06,526 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:49:06,527 - INFO - Epoch 62/200
+2026-08-24 20:49:51,146 - INFO - Training loss: 2.097422215493273
+2026-08-24 20:49:55,983 - INFO - Validation total loss: 2.247841283487148
+2026-08-24 20:49:55,983 - INFO - Validation CE loss: 2.246769452299683
+2026-08-24 20:49:55,983 - INFO - Validation MSE align loss: 0.00021436548053113097
+2026-08-24 20:49:55,983 - INFO - Early stop metric (ce): 2.246769452299683
+2026-08-24 20:49:55,983 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 20:49:55,983 - INFO - Epoch 63/200
+2026-08-24 20:50:41,261 - INFO - Training loss: 2.092129560064249
+2026-08-24 20:50:46,099 - INFO - Validation total loss: 2.2413696874364764
+2026-08-24 20:50:46,099 - INFO - Validation CE loss: 2.2402905210404946
+2026-08-24 20:50:46,099 - INFO - Validation MSE align loss: 0.00021583213046934583
+2026-08-24 20:50:46,099 - INFO - Early stop metric (ce): 2.2402905210404946
+2026-08-24 20:50:46,169 - INFO - Best validation ce loss: 2.2402905210404946
+2026-08-24 20:50:46,169 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:50:46,169 - INFO - Epoch 64/200
+2026-08-24 20:51:31,155 - INFO - Training loss: 2.088075088851647
+2026-08-24 20:51:35,993 - INFO - Validation total loss: 2.2405275024569598
+2026-08-24 20:51:35,993 - INFO - Validation CE loss: 2.2394478858284685
+2026-08-24 20:51:35,994 - INFO - Validation MSE align loss: 0.0002159227731002119
+2026-08-24 20:51:35,994 - INFO - Early stop metric (ce): 2.2394478858284685
+2026-08-24 20:51:36,064 - INFO - Best validation ce loss: 2.2394478858284685
+2026-08-24 20:51:36,064 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:51:36,064 - INFO - Epoch 65/200
+2026-08-24 20:52:21,645 - INFO - Training loss: 2.084955604391803
+2026-08-24 20:52:26,496 - INFO - Validation total loss: 2.242358617516546
+2026-08-24 20:52:26,496 - INFO - Validation CE loss: 2.2412590995878623
+2026-08-24 20:52:26,496 - INFO - Validation MSE align loss: 0.00021990365030237998
+2026-08-24 20:52:26,496 - INFO - Early stop metric (ce): 2.2412590995878623
+2026-08-24 20:52:26,496 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 20:52:26,497 - INFO - Epoch 66/200
+2026-08-24 20:53:11,491 - INFO - Training loss: 2.079100706697902
+2026-08-24 20:53:16,336 - INFO - Validation total loss: 2.238229730610172
+2026-08-24 20:53:16,336 - INFO - Validation CE loss: 2.237149853051476
+2026-08-24 20:53:16,336 - INFO - Validation MSE align loss: 0.0002159753675315761
+2026-08-24 20:53:16,337 - INFO - Early stop metric (ce): 2.237149853051476
+2026-08-24 20:53:16,403 - INFO - Best validation ce loss: 2.237149853051476
+2026-08-24 20:53:16,403 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:53:16,403 - INFO - Epoch 67/200
+2026-08-24 20:54:01,069 - INFO - Training loss: 2.0757291720535043
+2026-08-24 20:54:05,948 - INFO - Validation total loss: 2.2388722113785313
+2026-08-24 20:54:05,948 - INFO - Validation CE loss: 2.237781809123289
+2026-08-24 20:54:05,948 - INFO - Validation MSE align loss: 0.0002180811228473419
+2026-08-24 20:54:05,948 - INFO - Early stop metric (ce): 2.237781809123289
+2026-08-24 20:54:05,948 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 20:54:05,948 - INFO - Epoch 68/200
+2026-08-24 20:54:51,460 - INFO - Training loss: 2.0718660612050663
+2026-08-24 20:54:56,260 - INFO - Validation total loss: 2.2359292645311153
+2026-08-24 20:54:56,261 - INFO - Validation CE loss: 2.2348381710666443
+2026-08-24 20:54:56,261 - INFO - Validation MSE align loss: 0.00021821884161097202
+2026-08-24 20:54:56,261 - INFO - Early stop metric (ce): 2.2348381710666443
+2026-08-24 20:54:56,331 - INFO - Best validation ce loss: 2.2348381710666443
+2026-08-24 20:54:56,332 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:54:56,332 - INFO - Epoch 69/200
+2026-08-24 20:55:41,211 - INFO - Training loss: 2.066539438318186
+2026-08-24 20:55:45,985 - INFO - Validation total loss: 2.23317951552346
+2026-08-24 20:55:45,985 - INFO - Validation CE loss: 2.232103720243397
+2026-08-24 20:55:45,985 - INFO - Validation MSE align loss: 0.0002151585368028854
+2026-08-24 20:55:45,985 - INFO - Early stop metric (ce): 2.232103720243397
+2026-08-24 20:55:46,052 - INFO - Best validation ce loss: 2.232103720243397
+2026-08-24 20:55:46,052 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:55:46,052 - INFO - Epoch 70/200
+2026-08-24 20:56:30,885 - INFO - Training loss: 2.0620974759183506
+2026-08-24 20:56:35,601 - INFO - Validation total loss: 2.234529180076501
+2026-08-24 20:56:35,601 - INFO - Validation CE loss: 2.2334450089368696
+2026-08-24 20:56:35,601 - INFO - Validation MSE align loss: 0.00021683568937570064
+2026-08-24 20:56:35,601 - INFO - Early stop metric (ce): 2.2334450089368696
+2026-08-24 20:56:35,601 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 20:56:35,601 - INFO - Epoch 71/200
+2026-08-24 20:57:20,213 - INFO - Training loss: 2.0603408143214215
+2026-08-24 20:57:24,963 - INFO - Validation total loss: 2.2354136198886985
+2026-08-24 20:57:24,963 - INFO - Validation CE loss: 2.2343162942853607
+2026-08-24 20:57:24,963 - INFO - Validation MSE align loss: 0.00021946511740742307
+2026-08-24 20:57:24,963 - INFO - Early stop metric (ce): 2.2343162942853607
+2026-08-24 20:57:24,963 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-24 20:57:24,963 - INFO - Epoch 72/200
+2026-08-24 20:58:09,599 - INFO - Training loss: 2.0530349468442717
+2026-08-24 20:58:14,330 - INFO - Validation total loss: 2.2311529417406337
+2026-08-24 20:58:14,330 - INFO - Validation CE loss: 2.2300546077187993
+2026-08-24 20:58:14,330 - INFO - Validation MSE align loss: 0.00021966613843875173
+2026-08-24 20:58:14,330 - INFO - Early stop metric (ce): 2.2300546077187993
+2026-08-24 20:58:14,393 - INFO - Best validation ce loss: 2.2300546077187993
+2026-08-24 20:58:14,394 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:58:14,394 - INFO - Epoch 73/200
+2026-08-24 20:58:59,224 - INFO - Training loss: 2.0523694354736386
+2026-08-24 20:59:03,974 - INFO - Validation total loss: 2.2323216870107365
+2026-08-24 20:59:03,974 - INFO - Validation CE loss: 2.2312399051731746
+2026-08-24 20:59:03,974 - INFO - Validation MSE align loss: 0.0002163559337778121
+2026-08-24 20:59:03,974 - INFO - Early stop metric (ce): 2.2312399051731746
+2026-08-24 20:59:03,974 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 20:59:03,974 - INFO - Epoch 74/200
+2026-08-24 20:59:48,678 - INFO - Training loss: 2.047490751233082
+2026-08-24 20:59:53,489 - INFO - Validation total loss: 2.226572653766354
+2026-08-24 20:59:53,489 - INFO - Validation CE loss: 2.225476729511703
+2026-08-24 20:59:53,489 - INFO - Validation MSE align loss: 0.000219184553733819
+2026-08-24 20:59:53,489 - INFO - Early stop metric (ce): 2.225476729511703
+2026-08-24 20:59:53,550 - INFO - Best validation ce loss: 2.225476729511703
+2026-08-24 20:59:53,550 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 20:59:53,550 - INFO - Epoch 75/200
+2026-08-24 21:00:38,245 - INFO - Training loss: 2.041822811276996
+2026-08-24 21:00:42,982 - INFO - Validation total loss: 2.228239277913335
+2026-08-24 21:00:42,982 - INFO - Validation CE loss: 2.2271394560777065
+2026-08-24 21:00:42,982 - INFO - Validation MSE align loss: 0.00021996324570387873
+2026-08-24 21:00:42,982 - INFO - Early stop metric (ce): 2.2271394560777065
+2026-08-24 21:00:42,982 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 21:00:42,983 - INFO - Epoch 76/200
+2026-08-24 21:01:27,657 - INFO - Training loss: 2.0389082339023337
+2026-08-24 21:01:32,336 - INFO - Validation total loss: 2.224405338324191
+2026-08-24 21:01:32,336 - INFO - Validation CE loss: 2.2233125605808306
+2026-08-24 21:01:32,336 - INFO - Validation MSE align loss: 0.00021855406315253784
+2026-08-24 21:01:32,336 - INFO - Early stop metric (ce): 2.2233125605808306
+2026-08-24 21:01:32,399 - INFO - Best validation ce loss: 2.2233125605808306
+2026-08-24 21:01:32,399 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 21:01:32,400 - INFO - Epoch 77/200
+2026-08-24 21:02:16,775 - INFO - Training loss: 2.0354587500661263
+2026-08-24 21:02:21,567 - INFO - Validation total loss: 2.2261559559040314
+2026-08-24 21:02:21,567 - INFO - Validation CE loss: 2.225065536253442
+2026-08-24 21:02:21,567 - INFO - Validation MSE align loss: 0.00021808390282524167
+2026-08-24 21:02:21,567 - INFO - Early stop metric (ce): 2.225065536253442
+2026-08-24 21:02:21,567 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 21:02:21,567 - INFO - Epoch 78/200
+2026-08-24 21:03:06,294 - INFO - Training loss: 2.032793003761351
+2026-08-24 21:03:11,090 - INFO - Validation total loss: 2.2270301472987226
+2026-08-24 21:03:11,090 - INFO - Validation CE loss: 2.2259351250439754
+2026-08-24 21:03:11,090 - INFO - Validation MSE align loss: 0.00021900521649263576
+2026-08-24 21:03:11,090 - INFO - Early stop metric (ce): 2.2259351250439754
+2026-08-24 21:03:11,090 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-24 21:03:11,090 - INFO - Epoch 79/200
+2026-08-24 21:03:55,686 - INFO - Training loss: 2.0273149774232264
+2026-08-24 21:04:00,425 - INFO - Validation total loss: 2.226199848457467
+2026-08-24 21:04:00,425 - INFO - Validation CE loss: 2.2251007075985103
+2026-08-24 21:04:00,425 - INFO - Validation MSE align loss: 0.0002198286279346474
+2026-08-24 21:04:00,425 - INFO - Early stop metric (ce): 2.2251007075985103
+2026-08-24 21:04:00,425 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-24 21:04:00,425 - INFO - Epoch 80/200
+2026-08-24 21:04:45,176 - INFO - Training loss: 2.024243946669167
+2026-08-24 21:04:49,838 - INFO - Validation total loss: 2.225400576775678
+2026-08-24 21:04:49,838 - INFO - Validation CE loss: 2.224325972053626
+2026-08-24 21:04:49,838 - INFO - Validation MSE align loss: 0.0002149215478713868
+2026-08-24 21:04:49,838 - INFO - Early stop metric (ce): 2.224325972053626
+2026-08-24 21:04:49,838 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-24 21:04:49,838 - INFO - Epoch 81/200
+2026-08-24 21:05:34,702 - INFO - Training loss: 2.0208906679765724
+2026-08-24 21:05:39,569 - INFO - Validation total loss: 2.2262175385020835
+2026-08-24 21:05:39,569 - INFO - Validation CE loss: 2.2251301175023355
+2026-08-24 21:05:39,569 - INFO - Validation MSE align loss: 0.00021748292415258935
+2026-08-24 21:05:39,569 - INFO - Early stop metric (ce): 2.2251301175023355
+2026-08-24 21:05:39,569 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-24 21:05:39,570 - INFO - Epoch 82/200
+2026-08-24 21:06:24,519 - INFO - Training loss: 2.0171924769182614
+2026-08-24 21:06:29,365 - INFO - Validation total loss: 2.2254028473800855
+2026-08-24 21:06:29,365 - INFO - Validation CE loss: 2.224310411915759
+2026-08-24 21:06:29,365 - INFO - Validation MSE align loss: 0.00021848641573291575
+2026-08-24 21:06:29,365 - INFO - Early stop metric (ce): 2.224310411915759
+2026-08-24 21:06:29,365 - INFO - No improvement in validation loss. Early stop counter: 6
+2026-08-24 21:06:29,365 - INFO - Epoch 83/200
+2026-08-24 21:07:14,417 - INFO - Training loss: 2.01402141379939
+2026-08-24 21:07:19,083 - INFO - Validation total loss: 2.2232451346810795
+2026-08-24 21:07:19,083 - INFO - Validation CE loss: 2.222118801825036
+2026-08-24 21:07:19,083 - INFO - Validation MSE align loss: 0.00022526586655869103
+2026-08-24 21:07:19,083 - INFO - Early stop metric (ce): 2.222118801825036
+2026-08-24 21:07:19,144 - INFO - Best validation ce loss: 2.222118801825036
+2026-08-24 21:07:19,144 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 21:07:19,145 - INFO - Epoch 84/200
+2026-08-24 21:08:03,709 - INFO - Training loss: 2.0104018820862826
+2026-08-24 21:08:08,408 - INFO - Validation total loss: 2.218649188336385
+2026-08-24 21:08:08,408 - INFO - Validation CE loss: 2.2175554630582424
+2026-08-24 21:08:08,408 - INFO - Validation MSE align loss: 0.0002187445983110803
+2026-08-24 21:08:08,408 - INFO - Early stop metric (ce): 2.2175554630582424
+2026-08-24 21:08:08,467 - INFO - Best validation ce loss: 2.2175554630582424
+2026-08-24 21:08:08,467 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 21:08:08,467 - INFO - Epoch 85/200
+2026-08-24 21:08:53,221 - INFO - Training loss: 2.006062392826674
+2026-08-24 21:08:57,958 - INFO - Validation total loss: 2.2253396122240714
+2026-08-24 21:08:57,959 - INFO - Validation CE loss: 2.224257521363287
+2026-08-24 21:08:57,959 - INFO - Validation MSE align loss: 0.00021641734979253326
+2026-08-24 21:08:57,959 - INFO - Early stop metric (ce): 2.224257521363287
+2026-08-24 21:08:57,959 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 21:08:57,959 - INFO - Epoch 86/200
+2026-08-24 21:09:42,669 - INFO - Training loss: 2.004452931973721
+2026-08-24 21:09:47,452 - INFO - Validation total loss: 2.219884901599311
+2026-08-24 21:09:47,453 - INFO - Validation CE loss: 2.21880678557531
+2026-08-24 21:09:47,453 - INFO - Validation MSE align loss: 0.00021562294081720832
+2026-08-24 21:09:47,453 - INFO - Early stop metric (ce): 2.21880678557531
+2026-08-24 21:09:47,453 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-24 21:09:47,453 - INFO - Epoch 87/200
+2026-08-24 21:10:32,145 - INFO - Training loss: 1.9985539419177905
+2026-08-24 21:10:36,873 - INFO - Validation total loss: 2.2198046108172176
+2026-08-24 21:10:36,873 - INFO - Validation CE loss: 2.218714962701429
+2026-08-24 21:10:36,873 - INFO - Validation MSE align loss: 0.00021793061588559092
+2026-08-24 21:10:36,873 - INFO - Early stop metric (ce): 2.218714962701429
+2026-08-24 21:10:36,873 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-24 21:10:36,874 - INFO - Epoch 88/200
+2026-08-24 21:11:21,407 - INFO - Training loss: 1.9956211960269319
+2026-08-24 21:11:26,150 - INFO - Validation total loss: 2.2192706729209473
+2026-08-24 21:11:26,150 - INFO - Validation CE loss: 2.2181646788069105
+2026-08-24 21:11:26,150 - INFO - Validation MSE align loss: 0.00022119769341634115
+2026-08-24 21:11:26,150 - INFO - Early stop metric (ce): 2.2181646788069105
+2026-08-24 21:11:26,150 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-24 21:11:26,150 - INFO - Epoch 89/200
+2026-08-24 21:12:11,022 - INFO - Training loss: 1.9924277640038428
+2026-08-24 21:12:15,717 - INFO - Validation total loss: 2.220455970375323
+2026-08-24 21:12:15,717 - INFO - Validation CE loss: 2.219359842492787
+2026-08-24 21:12:15,717 - INFO - Validation MSE align loss: 0.00021922435009924
+2026-08-24 21:12:15,717 - INFO - Early stop metric (ce): 2.219359842492787
+2026-08-24 21:12:15,717 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-24 21:12:15,717 - INFO - Epoch 90/200
+2026-08-24 21:13:00,392 - INFO - Training loss: 1.9906566560500327
+2026-08-24 21:13:05,140 - INFO - Validation total loss: 2.223356775971441
+2026-08-24 21:13:05,141 - INFO - Validation CE loss: 2.2222541632058794
+2026-08-24 21:13:05,141 - INFO - Validation MSE align loss: 0.00022052296495031118
+2026-08-24 21:13:05,141 - INFO - Early stop metric (ce): 2.2222541632058794
+2026-08-24 21:13:05,141 - INFO - No improvement in validation loss. Early stop counter: 6
+2026-08-24 21:13:05,141 - INFO - Epoch 91/200
+2026-08-24 21:13:49,854 - INFO - Training loss: 1.9866242494564577
+2026-08-24 21:13:54,624 - INFO - Validation total loss: 2.2186120436426906
+2026-08-24 21:13:54,624 - INFO - Validation CE loss: 2.217524988456857
+2026-08-24 21:13:54,624 - INFO - Validation MSE align loss: 0.00021741052294078046
+2026-08-24 21:13:54,624 - INFO - Early stop metric (ce): 2.217524988456857
+2026-08-24 21:13:54,682 - INFO - Best validation ce loss: 2.217524988456857
+2026-08-24 21:13:54,682 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 21:13:54,683 - INFO - Epoch 92/200
+2026-08-24 21:14:39,227 - INFO - Training loss: 1.9830020065437495
+2026-08-24 21:14:43,985 - INFO - Validation total loss: 2.2290656213596654
+2026-08-24 21:14:43,985 - INFO - Validation CE loss: 2.2279707807328055
+2026-08-24 21:14:43,985 - INFO - Validation MSE align loss: 0.0002189698527779934
+2026-08-24 21:14:43,985 - INFO - Early stop metric (ce): 2.2279707807328055
+2026-08-24 21:14:43,985 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 21:14:43,985 - INFO - Epoch 93/200
+2026-08-24 21:15:29,175 - INFO - Training loss: 1.9812221932967813
+2026-08-24 21:15:34,014 - INFO - Validation total loss: 2.2214261922713514
+2026-08-24 21:15:34,014 - INFO - Validation CE loss: 2.2203467470381906
+2026-08-24 21:15:34,014 - INFO - Validation MSE align loss: 0.00021588965924906387
+2026-08-24 21:15:34,015 - INFO - Early stop metric (ce): 2.2203467470381906
+2026-08-24 21:15:34,015 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-24 21:15:34,015 - INFO - Epoch 94/200
+2026-08-24 21:16:19,007 - INFO - Training loss: 1.9771919616929288
+2026-08-24 21:16:23,880 - INFO - Validation total loss: 2.218415480314918
+2026-08-24 21:16:23,880 - INFO - Validation CE loss: 2.2172983843881173
+2026-08-24 21:16:23,880 - INFO - Validation MSE align loss: 0.00022342037874206007
+2026-08-24 21:16:23,880 - INFO - Early stop metric (ce): 2.2172983843881173
+2026-08-24 21:16:23,947 - INFO - Best validation ce loss: 2.2172983843881173
+2026-08-24 21:16:23,947 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 21:16:23,947 - INFO - Epoch 95/200
+2026-08-24 21:17:09,087 - INFO - Training loss: 1.973163899048757
+2026-08-24 21:17:13,940 - INFO - Validation total loss: 2.221496634728919
+2026-08-24 21:17:13,940 - INFO - Validation CE loss: 2.220389547266162
+2026-08-24 21:17:13,940 - INFO - Validation MSE align loss: 0.0002214182656640067
+2026-08-24 21:17:13,940 - INFO - Early stop metric (ce): 2.220389547266162
+2026-08-24 21:17:13,940 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 21:17:13,940 - INFO - Epoch 96/200
+2026-08-24 21:17:58,847 - INFO - Training loss: 1.9692920618020142
+2026-08-24 21:18:03,603 - INFO - Validation total loss: 2.2197698441697806
+2026-08-24 21:18:03,603 - INFO - Validation CE loss: 2.2186496462433123
+2026-08-24 21:18:03,603 - INFO - Validation MSE align loss: 0.00022403976115320165
+2026-08-24 21:18:03,603 - INFO - Early stop metric (ce): 2.2186496462433123
+2026-08-24 21:18:03,603 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-24 21:18:03,603 - INFO - Epoch 97/200
+2026-08-24 21:18:35,601 - INFO - Training loss: 1.966293759615041
+2026-08-24 21:18:38,371 - INFO - Validation total loss: 2.2220726980160235
+2026-08-24 21:18:38,371 - INFO - Validation CE loss: 2.2209728367850503
+2026-08-24 21:18:38,371 - INFO - Validation MSE align loss: 0.00021997232072788807
+2026-08-24 21:18:38,371 - INFO - Early stop metric (ce): 2.2209728367850503
+2026-08-24 21:18:38,371 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-24 21:18:38,371 - INFO - Epoch 98/200
+2026-08-24 21:19:05,845 - INFO - Training loss: 1.964019700247026
+2026-08-24 21:19:08,612 - INFO - Validation total loss: 2.2250769435080335
+2026-08-24 21:19:08,612 - INFO - Validation CE loss: 2.223984794043676
+2026-08-24 21:19:08,612 - INFO - Validation MSE align loss: 0.00021842934031093437
+2026-08-24 21:19:08,612 - INFO - Early stop metric (ce): 2.223984794043676
+2026-08-24 21:19:08,612 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-24 21:19:08,612 - INFO - Epoch 99/200
+2026-08-24 21:19:36,191 - INFO - Training loss: 1.9615368905698278
+2026-08-24 21:19:38,913 - INFO - Validation total loss: 2.2182448928448264
+2026-08-24 21:19:38,913 - INFO - Validation CE loss: 2.217147666497292
+2026-08-24 21:19:38,913 - INFO - Validation MSE align loss: 0.00021944426838508427
+2026-08-24 21:19:38,913 - INFO - Early stop metric (ce): 2.217147666497292
+2026-08-24 21:19:38,973 - INFO - Best validation ce loss: 2.217147666497292
+2026-08-24 21:19:38,973 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 21:19:38,974 - INFO - Epoch 100/200
+2026-08-24 21:20:06,538 - INFO - Training loss: 1.957940436754709
+2026-08-24 21:20:09,323 - INFO - Validation total loss: 2.216580550558066
+2026-08-24 21:20:09,323 - INFO - Validation CE loss: 2.2154751801183807
+2026-08-24 21:20:09,323 - INFO - Validation MSE align loss: 0.00022107358356635986
+2026-08-24 21:20:09,323 - INFO - Early stop metric (ce): 2.2154751801183807
+2026-08-24 21:20:09,380 - INFO - Best validation ce loss: 2.2154751801183807
+2026-08-24 21:20:09,380 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 21:20:09,381 - INFO - Epoch 101/200
+2026-08-24 21:20:36,964 - INFO - Training loss: 1.9544795341064958
+2026-08-24 21:20:39,736 - INFO - Validation total loss: 2.2188730403589076
+2026-08-24 21:20:39,736 - INFO - Validation CE loss: 2.217771529639739
+2026-08-24 21:20:39,736 - INFO - Validation MSE align loss: 0.0002203018409165038
+2026-08-24 21:20:39,736 - INFO - Early stop metric (ce): 2.217771529639739
+2026-08-24 21:20:39,736 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 21:20:39,737 - INFO - Epoch 102/200
+2026-08-24 21:21:07,346 - INFO - Training loss: 1.952746877642457
+2026-08-24 21:21:10,025 - INFO - Validation total loss: 2.225986950387259
+2026-08-24 21:21:10,025 - INFO - Validation CE loss: 2.2248794326454786
+2026-08-24 21:21:10,025 - INFO - Validation MSE align loss: 0.00022150281366548408
+2026-08-24 21:21:10,025 - INFO - Early stop metric (ce): 2.2248794326454786
+2026-08-24 21:21:10,025 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-24 21:21:10,026 - INFO - Epoch 103/200
+2026-08-24 21:21:37,654 - INFO - Training loss: 1.947802603708631
+2026-08-24 21:21:40,398 - INFO - Validation total loss: 2.2193410647273577
+2026-08-24 21:21:40,398 - INFO - Validation CE loss: 2.218223925823817
+2026-08-24 21:21:40,398 - INFO - Validation MSE align loss: 0.00022343008362042593
+2026-08-24 21:21:40,398 - INFO - Early stop metric (ce): 2.218223925823817
+2026-08-24 21:21:40,398 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-24 21:21:40,399 - INFO - Epoch 104/200
+2026-08-24 21:22:07,874 - INFO - Training loss: 1.9439914029395997
+2026-08-24 21:22:10,820 - INFO - Validation total loss: 2.2198409123482112
+2026-08-24 21:22:10,820 - INFO - Validation CE loss: 2.2187413366055795
+2026-08-24 21:22:10,820 - INFO - Validation MSE align loss: 0.00021991487563729621
+2026-08-24 21:22:10,820 - INFO - Early stop metric (ce): 2.2187413366055795
+2026-08-24 21:22:10,820 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-24 21:22:10,821 - INFO - Epoch 105/200
+2026-08-24 21:22:38,485 - INFO - Training loss: 1.9412325834021957
+2026-08-24 21:22:41,159 - INFO - Validation total loss: 2.2151667805700344
+2026-08-24 21:22:41,159 - INFO - Validation CE loss: 2.2140477895736694
+2026-08-24 21:22:41,159 - INFO - Validation MSE align loss: 0.0002237992637112233
+2026-08-24 21:22:41,159 - INFO - Early stop metric (ce): 2.2140477895736694
+2026-08-24 21:22:41,225 - INFO - Best validation ce loss: 2.2140477895736694
+2026-08-24 21:22:41,225 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_mse5_token.pth
+2026-08-24 21:22:41,225 - INFO - Epoch 106/200
+2026-08-24 21:23:08,730 - INFO - Training loss: 1.9385078062343226
+2026-08-24 21:23:11,395 - INFO - Validation total loss: 2.223031038890069
+2026-08-24 21:23:11,395 - INFO - Validation CE loss: 2.2219190577069066
+2026-08-24 21:23:11,395 - INFO - Validation MSE align loss: 0.00022239653908751522
+2026-08-24 21:23:11,396 - INFO - Early stop metric (ce): 2.2219190577069066
+2026-08-24 21:23:11,396 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-24 21:23:11,396 - INFO - Epoch 107/200
+2026-08-24 21:23:38,896 - INFO - Training loss: 1.9350786285641592
+2026-08-24 21:23:41,550 - INFO - Validation total loss: 2.2228307258417677
+2026-08-24 21:23:41,550 - INFO - Validation CE loss: 2.2217058219623156
+2026-08-24 21:23:41,550 - INFO - Validation MSE align loss: 0.00022498147673065505
+2026-08-24 21:23:41,550 - INFO - Early stop metric (ce): 2.2217058219623156
+2026-08-24 21:23:41,550 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-24 21:23:41,550 - INFO - Epoch 108/200
+2026-08-24 21:24:09,105 - INFO - Training loss: 1.932917169095941
+2026-08-24 21:24:11,791 - INFO - Validation total loss: 2.2251299368977033
+2026-08-24 21:24:11,791 - INFO - Validation CE loss: 2.22402198631876
+2026-08-24 21:24:11,791 - INFO - Validation MSE align loss: 0.0002215904293730735
+2026-08-24 21:24:11,791 - INFO - Early stop metric (ce): 2.22402198631876
+2026-08-24 21:24:11,791 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-24 21:24:11,791 - INFO - Epoch 109/200
+2026-08-24 21:24:39,278 - INFO - Training loss: 1.9299577309927587
+2026-08-24 21:24:41,973 - INFO - Validation total loss: 2.2265390193513537
+2026-08-24 21:24:41,973 - INFO - Validation CE loss: 2.225425643470666
+2026-08-24 21:24:41,973 - INFO - Validation MSE align loss: 0.0002226749729977665
+2026-08-24 21:24:41,973 - INFO - Early stop metric (ce): 2.225425643470666
+2026-08-24 21:24:41,973 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-24 21:24:41,973 - INFO - Epoch 110/200
+2026-08-24 21:25:09,492 - INFO - Training loss: 1.9251302819307676
+2026-08-24 21:25:12,178 - INFO - Validation total loss: 2.224665928296265
+2026-08-24 21:25:12,178 - INFO - Validation CE loss: 2.2235534068340908
+2026-08-24 21:25:12,178 - INFO - Validation MSE align loss: 0.00022250480084008508
+2026-08-24 21:25:12,178 - INFO - Early stop metric (ce): 2.2235534068340908
+2026-08-24 21:25:12,178 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-24 21:25:12,179 - INFO - Epoch 111/200
+2026-08-24 21:25:39,724 - INFO - Training loss: 1.9231088873477298
+2026-08-24 21:25:42,440 - INFO - Validation total loss: 2.2275411739881457
+2026-08-24 21:25:42,440 - INFO - Validation CE loss: 2.226429145223593
+2026-08-24 21:25:42,440 - INFO - Validation MSE align loss: 0.00022240600095514224
+2026-08-24 21:25:42,440 - INFO - Early stop metric (ce): 2.226429145223593
+2026-08-24 21:25:42,440 - INFO - No improvement in validation loss. Early stop counter: 6
+2026-08-24 21:25:42,441 - INFO - Epoch 112/200
+2026-08-24 21:26:09,986 - INFO - Training loss: 1.9220599708390143
+2026-08-24 21:26:12,678 - INFO - Validation total loss: 2.224062636686497
+2026-08-24 21:26:12,679 - INFO - Validation CE loss: 2.2229376156442666
+2026-08-24 21:26:12,679 - INFO - Validation MSE align loss: 0.00022500277324000078
+2026-08-24 21:26:12,679 - INFO - Early stop metric (ce): 2.2229376156442666
+2026-08-24 21:26:12,679 - INFO - No improvement in validation loss. Early stop counter: 7
+2026-08-24 21:26:12,679 - INFO - Epoch 113/200
+2026-08-24 21:26:40,212 - INFO - Training loss: 1.9198115157246125
+2026-08-24 21:26:42,894 - INFO - Validation total loss: 2.227050578133743
+2026-08-24 21:26:42,894 - INFO - Validation CE loss: 2.2259318040675873
+2026-08-24 21:26:42,894 - INFO - Validation MSE align loss: 0.00022375538063089688
+2026-08-24 21:26:42,894 - INFO - Early stop metric (ce): 2.2259318040675873
+2026-08-24 21:26:42,894 - INFO - No improvement in validation loss. Early stop counter: 8
+2026-08-24 21:26:42,894 - INFO - Epoch 114/200
+2026-08-24 21:27:10,421 - INFO - Training loss: 1.9161157851553148
+2026-08-24 21:27:13,074 - INFO - Validation total loss: 2.222167107168697
+2026-08-24 21:27:13,074 - INFO - Validation CE loss: 2.2210458476144357
+2026-08-24 21:27:13,074 - INFO - Validation MSE align loss: 0.0002242509751453748
+2026-08-24 21:27:13,074 - INFO - Early stop metric (ce): 2.2210458476144357
+2026-08-24 21:27:13,074 - INFO - No improvement in validation loss. Early stop counter: 9
+2026-08-24 21:27:13,075 - INFO - Epoch 115/200
+2026-08-24 21:27:40,639 - INFO - Training loss: 1.9119282149155317
+2026-08-24 21:27:43,376 - INFO - Validation total loss: 2.2275680318922446
+2026-08-24 21:27:43,376 - INFO - Validation CE loss: 2.2264520554071843
+2026-08-24 21:27:43,376 - INFO - Validation MSE align loss: 0.0002231944829916038
+2026-08-24 21:27:43,376 - INFO - Early stop metric (ce): 2.2264520554071843
+2026-08-24 21:27:43,376 - INFO - No improvement in validation loss. Early stop counter: 10
+2026-08-24 21:27:43,376 - INFO - Early stopping triggered.
+2026-08-24 21:27:43,377 - INFO - Loading best model for final testing...
+2026-08-24 22:03:01,455 - INFO - Final Epoch: 105
+2026-08-24 22:03:01,457 - INFO - Final Test Recalls: {'Recall@5': 0.03556100566883456, 'Recall@10': 0.05516220182340288, 'Recall@20': 0.08459642118586491}
+2026-08-24 22:03:01,457 - INFO - Final Test NDCGs: {'NDCG@5': 0.023178597534467094, 'NDCG@10': 0.029432070724338358, 'NDCG@20': 0.03685388984278548}

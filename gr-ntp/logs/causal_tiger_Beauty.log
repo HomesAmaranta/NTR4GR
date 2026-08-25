@@ -506,3 +506,20 @@
 2026-08-24 08:15:29,590 - INFO - Final Epoch: 95
 2026-08-24 08:15:29,592 - INFO - Final Test Recalls: {'Recall@5': 0.037928005756386614, 'Recall@10': 0.058515206478983804, 'Recall@20': 0.0860766559807272}
 2026-08-24 08:15:29,592 - INFO - Final Test NDCGs: {'NDCG@5': 0.0250533443192108, 'NDCG@10': 0.03166224194346835, 'NDCG@20': 0.03858501670778181}
+2026-08-24 08:39:51,698 - INFO - Configuration: {'batch_size': 256, 'infer_size': 96, 'num_epochs': 200, 'lr': 0.0001, 'device': 'cuda', 'num_layers': 4, 'num_decoder_layers': 4, 'd_model': 128, 'd_ff': 1024, 'num_heads': 6, 'd_kv': 64, 'dropout_rate': 0.1, 'vocab_size': 1025, 'pad_token_id': 0, 'eos_token_id': 0, 'feed_forward_proj': 'relu', 'max_len': 20, 'max_seq_len': 200, 'dataset_path': '../data/Beauty', 'code_path': '../data/Beauty/Beauty_t5_rqvae.npy', 'mode': 'train', 'model_type': 'causal', 'log_path': './logs/causal_tiger_Beauty.log', 'seed': 2025, 'save_path': './ckpt/causal_tiger_Beauty.pth', 'early_stop': 10, 'topk_list': [5, 10, 20], 'beam_size': 30}
+2026-08-24 08:39:51,725 - INFO - #Embedding parameters: 131200
+#Non-embedding parameters: 4459648
+#Total trainable parameters: 4590848
+
+2026-08-24 08:44:25,956 - INFO - Configuration: {'batch_size': 256, 'infer_size': 96, 'num_epochs': 200, 'lr': 0.0001, 'device': 'cuda', 'num_layers': 4, 'num_decoder_layers': 4, 'd_model': 128, 'd_ff': 1024, 'num_heads': 6, 'd_kv': 64, 'dropout_rate': 0.1, 'vocab_size': 1025, 'pad_token_id': 0, 'eos_token_id': 0, 'feed_forward_proj': 'relu', 'max_len': 20, 'max_seq_len': 200, 'dataset_path': '../data/Beauty', 'code_path': '../data/Beauty/Beauty_t5_rqvae.npy', 'mode': 'train', 'model_type': 'causal', 'log_path': './logs/causal_tiger_Beauty.log', 'seed': 2025, 'save_path': './ckpt/causal_tiger_Beauty.pth', 'early_stop': 10, 'topk_list': [5, 10, 20], 'beam_size': 30}
+2026-08-24 08:44:25,984 - INFO - #Embedding parameters: 131200
+#Non-embedding parameters: 4459648
+#Total trainable parameters: 4590848
+
+2026-08-24 08:44:28,254 - INFO - Epoch 1/200
+2026-08-24 08:45:27,983 - INFO - Configuration: {'batch_size': 256, 'infer_size': 96, 'num_epochs': 200, 'lr': 0.0001, 'device': 'cuda', 'num_layers': 4, 'num_decoder_layers': 4, 'd_model': 128, 'd_ff': 1024, 'num_heads': 6, 'd_kv': 64, 'dropout_rate': 0.1, 'vocab_size': 1025, 'pad_token_id': 0, 'eos_token_id': 0, 'feed_forward_proj': 'relu', 'max_len': 10, 'max_seq_len': 200, 'dataset_path': '../data/Beauty', 'code_path': '../data/Beauty/Beauty_t5_rqvae.npy', 'mode': 'train', 'model_type': 'causal', 'log_path': './logs/causal_tiger_Beauty.log', 'seed': 2025, 'save_path': './ckpt/causal_tiger_Beauty.pth', 'early_stop': 10, 'topk_list': [5, 10, 20], 'beam_size': 30}
+2026-08-24 08:45:28,010 - INFO - #Embedding parameters: 131200
+#Non-embedding parameters: 4459648
+#Total trainable parameters: 4590848
+
+2026-08-24 08:45:29,895 - INFO - Epoch 1/200
