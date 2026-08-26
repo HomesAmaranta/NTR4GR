@@ -13,11 +13,12 @@ class GenRecDataLoader(DataLoader):
         num_workers (int): Number of subprocesses to use for data loading.
         collate_fn (callable, optional): Function to merge a list of samples to form a mini-batch.
     """
-    def __init__(self, dataset, batch_size=32, shuffle=True, num_workers=4, collate_fn=None):
+    def __init__(self, dataset, batch_size=32, shuffle=True, num_workers=4, collate_fn=None, generator=None, worker_init_fn=None):
         self.max_len = dataset.max_len
         collate_fn = self.collate_fn
         super(GenRecDataLoader, self).__init__(dataset, batch_size=batch_size, shuffle=shuffle,
-                                               num_workers=num_workers, collate_fn=collate_fn)
+                                               num_workers=num_workers, collate_fn=collate_fn,
+                                               generator=generator, worker_init_fn=worker_init_fn)
     
             
     def collate_fn(self, batch, pad_token=0):
@@ -54,6 +55,7 @@ class GenRecDataLoader(DataLoader):
 
     def collate_ntp_fn(self, batch, pad_token=0):
         sequences = [item['sequence'] for item in batch]
+        item_loss_masks = [item['item_loss_mask'] for item in batch]
         code_len = len(sequences[0][0])
         max_items = max(len(sequence) for sequence in sequences)
         max_tokens = max_items * code_len
@@ -65,7 +67,7 @@ class GenRecDataLoader(DataLoader):
         position_ids = []
         window_tokens = self.max_len * code_len
 
-        for sequence in sequences:
+        for sequence, item_loss_mask in zip(sequences, item_loss_masks):
             item_count = len(sequence)
             flat_sequence = [elem for code in sequence for elem in code]
             pad_size = max_tokens - len(flat_sequence)
@@ -78,9 +80,11 @@ class GenRecDataLoader(DataLoader):
                 torch.arange(max_tokens, dtype=torch.int64) % window_tokens
             )
 
+            flat_loss_mask = []
+            for use_loss in item_loss_mask:
+                flat_loss_mask.extend([use_loss] * code_len)
             loss_mask = torch.zeros(max_tokens, dtype=torch.bool)
-            if item_count > 1:
-                loss_mask[code_len:len(flat_sequence)] = True
+            loss_mask[:len(flat_loss_mask)] = torch.tensor(flat_loss_mask, dtype=torch.bool)
             loss_masks.append(loss_mask)
 
             window_mask = torch.zeros((max_tokens, max_tokens), dtype=torch.bool)

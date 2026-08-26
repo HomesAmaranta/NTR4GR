@@ -375,6 +375,7 @@ class CausalTIGER(nn.Module):
 
         hidden_states = self._encode_tokens(model_input_ids, model_attention_mask)
         target_hidden_states = hidden_states[:, -labels.size(1) :, :]
+        self.last_target_hidden_states = target_hidden_states.detach()
         logits = self._lm_logits(target_hidden_states)
         ce_loss = F.cross_entropy(
             logits.reshape(-1, logits.size(-1)),

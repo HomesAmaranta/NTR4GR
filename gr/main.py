@@ -182,7 +182,8 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
                 num_beams=beam_size,
                 prefix_allowed_tokens_fn=constraint_fn
             )
-            preds = preds[:, 1:]  # Exclude the start token
+            if not getattr(model, 'decoder_only_lm', False):
+                preds = preds[:, 1:]  # Exclude the start token
             preds = preds.reshape(input_ids.shape[0], beam_size, -1)  # Reshape to (batch_size, beam_size, seq_len)
             pos_index = calculate_pos_index(preds, labels, maxk=beam_size)
             # print(f"pos_index shape: {pos_index.shape}, pos_index: {pos_index}")
@@ -198,11 +199,20 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
 
 def set_seed(seed):
     """Set random seed for reproducibility."""
+    os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    random.seed(worker_seed)
+    np.random.seed(worker_seed)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TIGER configuration")
@@ -227,6 +237,7 @@ if __name__ == "__main__":
     parser.add_argument('--code_path', type=str, default='../data/Beauty/Beauty_t5_rqvae.npy', help='Path to the item-to-code mapping file')
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'evaluation'], help='Mode of operation')
     parser.add_argument('--model_type', type=str, default='t5', choices=['t5', 'causal', 'gpt2'], help='Model type to train')
+    parser.add_argument('--decoder_only_lm', action='store_true', help='Use pure decoder-only LM training for CausalTIGER without prepending PAD before labels')
     parser.add_argument('--log_path', type=str, default='./logs/tiger.log', help='Path to the log file')
     parser.add_argument('--seed', type=int, default=2025, help='Random seed for reproducibility')
     parser.add_argument('--save_path', type=str, default='./ckpt/tiger.pth', help='Path to save the trained model')
@@ -242,6 +253,7 @@ if __name__ == "__main__":
     )
 
     logging.info(f"Configuration: {config}")
+    set_seed(config['seed'])
     
     # Initialize model
     if config['model_type'] == 'causal':
@@ -252,9 +264,6 @@ if __name__ == "__main__":
         model = TIGER(config)
     print(model.n_parameters)
     logging.info(model.n_parameters)
-
-    # Set random seed for reproducibility
-    set_seed(config['seed'])
     # Check if the device is available
     device = torch.device(config['device'] if torch.cuda.is_available() else 'cpu')
     
@@ -277,15 +286,20 @@ if __name__ == "__main__":
         max_len=config['max_len']
     )
 
-    train_dataloader = GenRecDataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
-    validation_dataloader = GenRecDataLoader(validation_dataset, batch_size=config['infer_size'], shuffle=False)
-    test_dataloader = GenRecDataLoader(test_dataset, batch_size=config['infer_size'], shuffle=False)
+    dataloader_generator = torch.Generator()
+    dataloader_generator.manual_seed(config['seed'])
+    train_dataloader = GenRecDataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True, generator=dataloader_generator, worker_init_fn=seed_worker)
+    validation_dataloader = GenRecDataLoader(validation_dataset, batch_size=config['infer_size'], shuffle=False, worker_init_fn=seed_worker)
+    test_dataloader = GenRecDataLoader(test_dataset, batch_size=config['infer_size'], shuffle=False, worker_init_fn=seed_worker)
 
     print("Building Trie...")
     trie_sequences = []
     for code in list(test_dataset.item_to_code.values()):
         code_list = list(code) if isinstance(code, (np.ndarray, list)) else list(code)
-        trie_sequences.append([config['pad_token_id']] + code_list + [config['eos_token_id']])
+        if config['model_type'] == 'causal' and config['decoder_only_lm']:
+            trie_sequences.append(code_list + [config['eos_token_id']])
+        else:
+            trie_sequences.append([config['pad_token_id']] + code_list + [config['eos_token_id']])
     item_trie = Trie(trie_sequences)
     print("Trie built.")
 

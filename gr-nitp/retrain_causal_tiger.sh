@@ -42,4 +42,5 @@ mkdir -p ./ckpt ./logs
   --lr 1e-4 \
   --early_stop 10 \
   --beam_size 30 \
-  --seed $seed
+  --seed $seed \
+  --decoder_only_lm

@@ -1580,3 +1580,997 @@
 2026-08-24 17:56:50,466 - INFO - Final Epoch: 96
 2026-08-24 17:56:50,466 - INFO - Final Test Recalls: {'Recall@5': 0.03542442932373208, 'Recall@10': 0.05475001588719597, 'Recall@20': 0.08369737375495644}
 2026-08-24 17:56:50,466 - INFO - Final Test NDCGs: {'NDCG@5': 0.02375681023213357, 'NDCG@10': 0.029945223470310412, 'NDCG@20': 0.037237372019532027}
+2026-08-25 18:15:28,996 - INFO - Configuration: {'batch_size': 256, 'infer_size': 96, 'num_epochs': 120, 'lr': 0.001, 'device': 'cuda', 'num_layers': 4, 'num_decoder_layers': 0, 'd_model': 128, 'd_ff': 1024, 'num_heads': 6, 'd_kv': 64, 'dropout_rate': 0.1, 'vocab_size': 1025, 'pad_token_id': 0, 'eos_token_id': 0, 'feed_forward_proj': 'relu', 'max_len': 20, 'dataset_path': '../data/Beauty', 'code_path': '../data/Beauty/Beauty_t5_rqvae.npy', 'item_emb_path': '../data/Beauty/item_emb.parquet', 'item_emb_dim': 768, 'mse_loss_weight': 5.0, 'mse_loss_mode': 'token', 'align_loss_type': 'cos', 'early_stop_metric': 'ce', 'mode': 'train', 'model_type': 'causal', 'log_path': './logs/causal_tiger_Beauty_cos5_token.log', 'tensorboard_dir': None, 'seed': 2025, 'save_path': './ckpt/causal_tiger_Beauty_cos5_token.pth', 'early_stop': 10, 'topk_list': [5, 10, 20], 'beam_size': 30}
+2026-08-25 18:15:29,004 - INFO - TensorBoard dir: ./runs/causal_tiger_Beauty_cos5_token
+2026-08-25 18:15:29,506 - INFO - #Embedding parameters: 131200
+#Non-embedding parameters: 1934784
+#Total trainable parameters: 2065984
+
+2026-08-25 18:15:33,939 - INFO - Epoch 1/120
+2026-08-25 18:15:46,819 - INFO - Training total loss: 4.80022046909258
+2026-08-25 18:15:46,820 - INFO - Training CE loss: 4.324841111550535
+2026-08-25 18:15:46,820 - INFO - Training COS align loss: 0.0950758732014593
+2026-08-25 18:15:46,820 - INFO - Training geometry effective rank: 58.765481087948096
+2026-08-25 18:15:46,820 - INFO - Training geometry avg cosine: 0.7377002056006792
+2026-08-25 18:15:48,834 - INFO - Validation total loss: 3.8686736540732976
+2026-08-25 18:15:48,834 - INFO - Validation CE loss: 3.5145494682082803
+2026-08-25 18:15:48,834 - INFO - Validation COS align loss: 0.07082483875904984
+2026-08-25 18:15:48,834 - INFO - Early stop metric (ce): 3.5145494682082803
+2026-08-25 18:15:48,869 - INFO - Best validation ce loss: 3.5145494682082803
+2026-08-25 18:15:48,869 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:15:48,870 - INFO - Epoch 2/120
+2026-08-25 18:16:01,005 - INFO - Training total loss: 3.696967200546413
+2026-08-25 18:16:01,005 - INFO - Training CE loss: 3.342752577265877
+2026-08-25 18:16:01,005 - INFO - Training COS align loss: 0.07084292556061356
+2026-08-25 18:16:01,005 - INFO - Training geometry effective rank: 56.79836434984021
+2026-08-25 18:16:01,005 - INFO - Training geometry avg cosine: 0.7024756527364486
+2026-08-25 18:16:03,077 - INFO - Validation total loss: 3.487007813392279
+2026-08-25 18:16:03,077 - INFO - Validation CE loss: 3.1580647439915737
+2026-08-25 18:16:03,077 - INFO - Validation COS align loss: 0.06578861720572214
+2026-08-25 18:16:03,077 - INFO - Early stop metric (ce): 3.1580647439915737
+2026-08-25 18:16:03,110 - INFO - Best validation ce loss: 3.1580647439915737
+2026-08-25 18:16:03,110 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:16:03,111 - INFO - Epoch 3/120
+2026-08-25 18:16:15,209 - INFO - Training total loss: 3.396621012965993
+2026-08-25 18:16:15,209 - INFO - Training CE loss: 3.0637636667095736
+2026-08-25 18:16:15,209 - INFO - Training COS align loss: 0.06657146920489894
+2026-08-25 18:16:15,209 - INFO - Training geometry effective rank: 55.56602055738872
+2026-08-25 18:16:15,209 - INFO - Training geometry avg cosine: 0.6917877350335919
+2026-08-25 18:16:17,147 - INFO - Validation total loss: 3.2679950955599675
+2026-08-25 18:16:17,147 - INFO - Validation CE loss: 2.949071595085537
+2026-08-25 18:16:17,147 - INFO - Validation COS align loss: 0.0637847021413975
+2026-08-25 18:16:17,147 - INFO - Early stop metric (ce): 2.949071595085537
+2026-08-25 18:16:17,182 - INFO - Best validation ce loss: 2.949071595085537
+2026-08-25 18:16:17,182 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:16:17,183 - INFO - Epoch 4/120
+2026-08-25 18:16:29,529 - INFO - Training total loss: 3.2134987695671704
+2026-08-25 18:16:29,530 - INFO - Training CE loss: 2.8875395634758796
+2026-08-25 18:16:29,530 - INFO - Training COS align loss: 0.06519184177487741
+2026-08-25 18:16:29,530 - INFO - Training geometry effective rank: 53.20722120559633
+2026-08-25 18:16:29,530 - INFO - Training geometry avg cosine: 0.6850504898375575
+2026-08-25 18:16:31,528 - INFO - Validation total loss: 3.1164049590606036
+2026-08-25 18:16:31,529 - INFO - Validation CE loss: 2.80137436277365
+2026-08-25 18:16:31,529 - INFO - Validation COS align loss: 0.06300612196901838
+2026-08-25 18:16:31,529 - INFO - Early stop metric (ce): 2.80137436277365
+2026-08-25 18:16:31,563 - INFO - Best validation ce loss: 2.80137436277365
+2026-08-25 18:16:31,563 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:16:31,563 - INFO - Epoch 5/120
+2026-08-25 18:16:43,901 - INFO - Training total loss: 3.085909453347499
+2026-08-25 18:16:43,901 - INFO - Training CE loss: 2.7624714509058554
+2026-08-25 18:16:43,901 - INFO - Training COS align loss: 0.06468760109133294
+2026-08-25 18:16:43,901 - INFO - Training geometry effective rank: 50.409808600459115
+2026-08-25 18:16:43,901 - INFO - Training geometry avg cosine: 0.6808267474638349
+2026-08-25 18:16:46,046 - INFO - Validation total loss: 3.009740145932963
+2026-08-25 18:16:46,046 - INFO - Validation CE loss: 2.6956476996384975
+2026-08-25 18:16:46,046 - INFO - Validation COS align loss: 0.06281849089610218
+2026-08-25 18:16:46,046 - INFO - Early stop metric (ce): 2.6956476996384975
+2026-08-25 18:16:46,082 - INFO - Best validation ce loss: 2.6956476996384975
+2026-08-25 18:16:46,082 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:16:46,083 - INFO - Epoch 6/120
+2026-08-25 18:16:58,487 - INFO - Training total loss: 2.988052494794942
+2026-08-25 18:16:58,487 - INFO - Training CE loss: 2.6661804775319675
+2026-08-25 18:16:58,487 - INFO - Training COS align loss: 0.06437440326705517
+2026-08-25 18:16:58,487 - INFO - Training geometry effective rank: 48.394058138479984
+2026-08-25 18:16:58,487 - INFO - Training geometry avg cosine: 0.6761876798093551
+2026-08-25 18:17:00,497 - INFO - Validation total loss: 2.9262523896704415
+2026-08-25 18:17:00,497 - INFO - Validation CE loss: 2.6136898196306353
+2026-08-25 18:17:00,497 - INFO - Validation COS align loss: 0.06251251748703068
+2026-08-25 18:17:00,497 - INFO - Early stop metric (ce): 2.6136898196306353
+2026-08-25 18:17:00,534 - INFO - Best validation ce loss: 2.6136898196306353
+2026-08-25 18:17:00,534 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:17:00,534 - INFO - Epoch 7/120
+2026-08-25 18:17:12,926 - INFO - Training total loss: 2.913067985137613
+2026-08-25 18:17:12,926 - INFO - Training CE loss: 2.5920983905458264
+2026-08-25 18:17:12,926 - INFO - Training COS align loss: 0.06419391877920247
+2026-08-25 18:17:12,926 - INFO - Training geometry effective rank: 46.74853038416762
+2026-08-25 18:17:12,926 - INFO - Training geometry avg cosine: 0.6695945782420236
+2026-08-25 18:17:14,899 - INFO - Validation total loss: 2.871780165786907
+2026-08-25 18:17:14,899 - INFO - Validation CE loss: 2.560612179690676
+2026-08-25 18:17:14,899 - INFO - Validation COS align loss: 0.06223359947040869
+2026-08-25 18:17:14,899 - INFO - Early stop metric (ce): 2.560612179690676
+2026-08-25 18:17:14,937 - INFO - Best validation ce loss: 2.560612179690676
+2026-08-25 18:17:14,937 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:17:14,937 - INFO - Epoch 8/120
+2026-08-25 18:17:27,257 - INFO - Training total loss: 2.855037096873332
+2026-08-25 18:17:27,257 - INFO - Training CE loss: 2.534965650116887
+2026-08-25 18:17:27,258 - INFO - Training COS align loss: 0.0640142892817115
+2026-08-25 18:17:27,258 - INFO - Training geometry effective rank: 46.17667610450477
+2026-08-25 18:17:27,258 - INFO - Training geometry avg cosine: 0.6643346671000528
+2026-08-25 18:17:29,234 - INFO - Validation total loss: 2.8134239681800546
+2026-08-25 18:17:29,235 - INFO - Validation CE loss: 2.50155163118256
+2026-08-25 18:17:29,235 - INFO - Validation COS align loss: 0.06237447082740555
+2026-08-25 18:17:29,235 - INFO - Early stop metric (ce): 2.50155163118256
+2026-08-25 18:17:29,270 - INFO - Best validation ce loss: 2.50155163118256
+2026-08-25 18:17:29,270 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:17:29,270 - INFO - Epoch 9/120
+2026-08-25 18:17:41,557 - INFO - Training total loss: 2.8043484710997646
+2026-08-25 18:17:41,558 - INFO - Training CE loss: 2.484950313772209
+2026-08-25 18:17:41,558 - INFO - Training COS align loss: 0.06387963137274122
+2026-08-25 18:17:41,558 - INFO - Training geometry effective rank: 45.47249749476808
+2026-08-25 18:17:41,558 - INFO - Training geometry avg cosine: 0.6595073806172679
+2026-08-25 18:17:43,507 - INFO - Validation total loss: 2.774863977800623
+2026-08-25 18:17:43,507 - INFO - Validation CE loss: 2.464854542789541
+2026-08-25 18:17:43,507 - INFO - Validation COS align loss: 0.062001890378960214
+2026-08-25 18:17:43,507 - INFO - Early stop metric (ce): 2.464854542789541
+2026-08-25 18:17:43,542 - INFO - Best validation ce loss: 2.464854542789541
+2026-08-25 18:17:43,542 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:17:43,542 - INFO - Epoch 10/120
+2026-08-25 18:17:55,828 - INFO - Training total loss: 2.764987781817811
+2026-08-25 18:17:55,829 - INFO - Training CE loss: 2.4465038725374275
+2026-08-25 18:17:55,829 - INFO - Training COS align loss: 0.06369678125307254
+2026-08-25 18:17:55,829 - INFO - Training geometry effective rank: 45.311305591568406
+2026-08-25 18:17:55,829 - INFO - Training geometry avg cosine: 0.6546172738539106
+2026-08-25 18:17:57,874 - INFO - Validation total loss: 2.7455750084741943
+2026-08-25 18:17:57,874 - INFO - Validation CE loss: 2.4361113171720707
+2026-08-25 18:17:57,874 - INFO - Validation COS align loss: 0.06189273892554091
+2026-08-25 18:17:57,874 - INFO - Early stop metric (ce): 2.4361113171720707
+2026-08-25 18:17:57,908 - INFO - Best validation ce loss: 2.4361113171720707
+2026-08-25 18:17:57,909 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:17:57,909 - INFO - Epoch 11/120
+2026-08-25 18:18:10,089 - INFO - Training total loss: 2.7323578832678295
+2026-08-25 18:18:10,089 - INFO - Training CE loss: 2.4144001405990543
+2026-08-25 18:18:10,090 - INFO - Training COS align loss: 0.06359154890483455
+2026-08-25 18:18:10,090 - INFO - Training geometry effective rank: 45.21815929709705
+2026-08-25 18:18:10,090 - INFO - Training geometry avg cosine: 0.6504587711991039
+2026-08-25 18:18:12,107 - INFO - Validation total loss: 2.7190968355907392
+2026-08-25 18:18:12,107 - INFO - Validation CE loss: 2.4094178569163374
+2026-08-25 18:18:12,107 - INFO - Validation COS align loss: 0.06193579650232209
+2026-08-25 18:18:12,107 - INFO - Early stop metric (ce): 2.4094178569163374
+2026-08-25 18:18:12,140 - INFO - Best validation ce loss: 2.4094178569163374
+2026-08-25 18:18:12,140 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:18:12,141 - INFO - Epoch 12/120
+2026-08-25 18:18:24,333 - INFO - Training total loss: 2.7007925672753776
+2026-08-25 18:18:24,333 - INFO - Training CE loss: 2.383363899553796
+2026-08-25 18:18:24,333 - INFO - Training COS align loss: 0.06348573384581836
+2026-08-25 18:18:24,333 - INFO - Training geometry effective rank: 44.71201564180248
+2026-08-25 18:18:24,333 - INFO - Training geometry avg cosine: 0.6471000987500068
+2026-08-25 18:18:26,305 - INFO - Validation total loss: 2.697290238904339
+2026-08-25 18:18:26,305 - INFO - Validation CE loss: 2.3886919819745893
+2026-08-25 18:18:26,305 - INFO - Validation COS align loss: 0.06171965292083347
+2026-08-25 18:18:26,305 - INFO - Early stop metric (ce): 2.3886919819745893
+2026-08-25 18:18:26,339 - INFO - Best validation ce loss: 2.3886919819745893
+2026-08-25 18:18:26,339 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:18:26,340 - INFO - Epoch 13/120
+2026-08-25 18:18:38,700 - INFO - Training total loss: 2.673319714542493
+2026-08-25 18:18:38,701 - INFO - Training CE loss: 2.356480860060755
+2026-08-25 18:18:38,701 - INFO - Training COS align loss: 0.06336777219512583
+2026-08-25 18:18:38,701 - INFO - Training geometry effective rank: 44.819679453215244
+2026-08-25 18:18:38,701 - INFO - Training geometry avg cosine: 0.642570235385969
+2026-08-25 18:18:40,690 - INFO - Validation total loss: 2.671048204274648
+2026-08-25 18:18:40,690 - INFO - Validation CE loss: 2.3630153657029114
+2026-08-25 18:18:40,690 - INFO - Validation COS align loss: 0.06160656986318433
+2026-08-25 18:18:40,690 - INFO - Early stop metric (ce): 2.3630153657029114
+2026-08-25 18:18:40,727 - INFO - Best validation ce loss: 2.3630153657029114
+2026-08-25 18:18:40,727 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:18:40,727 - INFO - Epoch 14/120
+2026-08-25 18:18:53,094 - INFO - Training total loss: 2.6504387892637737
+2026-08-25 18:18:53,094 - INFO - Training CE loss: 2.334090036640835
+2026-08-25 18:18:53,094 - INFO - Training COS align loss: 0.06326974980562114
+2026-08-25 18:18:53,094 - INFO - Training geometry effective rank: 44.450066818801346
+2026-08-25 18:18:53,094 - INFO - Training geometry avg cosine: 0.640805572271347
+2026-08-25 18:18:55,126 - INFO - Validation total loss: 2.6566071735431196
+2026-08-25 18:18:55,126 - INFO - Validation CE loss: 2.3486666643568372
+2026-08-25 18:18:55,126 - INFO - Validation COS align loss: 0.061588104958186334
+2026-08-25 18:18:55,126 - INFO - Early stop metric (ce): 2.3486666643568372
+2026-08-25 18:18:55,165 - INFO - Best validation ce loss: 2.3486666643568372
+2026-08-25 18:18:55,165 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:18:55,165 - INFO - Epoch 15/120
+2026-08-25 18:19:07,490 - INFO - Training total loss: 2.6318552610011414
+2026-08-25 18:19:07,491 - INFO - Training CE loss: 2.3160592674745195
+2026-08-25 18:19:07,491 - INFO - Training COS align loss: 0.06315919942429093
+2026-08-25 18:19:07,491 - INFO - Training geometry effective rank: 43.87878069154019
+2026-08-25 18:19:07,491 - INFO - Training geometry avg cosine: 0.6388019093743558
+2026-08-25 18:19:09,473 - INFO - Validation total loss: 2.6439348740639095
+2026-08-25 18:19:09,474 - INFO - Validation CE loss: 2.3359450465108194
+2026-08-25 18:19:09,474 - INFO - Validation COS align loss: 0.061597967352478286
+2026-08-25 18:19:09,474 - INFO - Early stop metric (ce): 2.3359450465108194
+2026-08-25 18:19:09,508 - INFO - Best validation ce loss: 2.3359450465108194
+2026-08-25 18:19:09,508 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:19:09,508 - INFO - Epoch 16/120
+2026-08-25 18:19:22,089 - INFO - Training total loss: 2.6122552304880164
+2026-08-25 18:19:22,090 - INFO - Training CE loss: 2.2967886075899293
+2026-08-25 18:19:22,090 - INFO - Training COS align loss: 0.06309332330403161
+2026-08-25 18:19:22,090 - INFO - Training geometry effective rank: 43.51857649213145
+2026-08-25 18:19:22,090 - INFO - Training geometry avg cosine: 0.6381799642445977
+2026-08-25 18:19:24,109 - INFO - Validation total loss: 2.6318744221470385
+2026-08-25 18:19:24,109 - INFO - Validation CE loss: 2.325225816264173
+2026-08-25 18:19:24,109 - INFO - Validation COS align loss: 0.06132972419517746
+2026-08-25 18:19:24,109 - INFO - Early stop metric (ce): 2.325225816264173
+2026-08-25 18:19:24,144 - INFO - Best validation ce loss: 2.325225816264173
+2026-08-25 18:19:24,144 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:19:24,144 - INFO - Epoch 17/120
+2026-08-25 18:19:36,422 - INFO - Training total loss: 2.596079914950211
+2026-08-25 18:19:36,422 - INFO - Training CE loss: 2.281153117172449
+2026-08-25 18:19:36,422 - INFO - Training COS align loss: 0.0629853587670085
+2026-08-25 18:19:36,422 - INFO - Training geometry effective rank: 43.091329771257094
+2026-08-25 18:19:36,422 - INFO - Training geometry avg cosine: 0.6368216613619244
+2026-08-25 18:19:38,418 - INFO - Validation total loss: 2.6139178235131784
+2026-08-25 18:19:38,418 - INFO - Validation CE loss: 2.307246223028126
+2026-08-25 18:19:38,418 - INFO - Validation COS align loss: 0.06133432270631258
+2026-08-25 18:19:38,418 - INFO - Early stop metric (ce): 2.307246223028126
+2026-08-25 18:19:38,454 - INFO - Best validation ce loss: 2.307246223028126
+2026-08-25 18:19:38,454 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:19:38,454 - INFO - Epoch 18/120
+2026-08-25 18:19:50,790 - INFO - Training total loss: 2.578569941483583
+2026-08-25 18:19:50,790 - INFO - Training CE loss: 2.264134970156599
+2026-08-25 18:19:50,790 - INFO - Training COS align loss: 0.06288699394070221
+2026-08-25 18:19:50,790 - INFO - Training geometry effective rank: 42.70591431183574
+2026-08-25 18:19:50,790 - INFO - Training geometry avg cosine: 0.6357048598013035
+2026-08-25 18:19:52,726 - INFO - Validation total loss: 2.605701937695941
+2026-08-25 18:19:52,726 - INFO - Validation CE loss: 2.299039896977306
+2026-08-25 18:19:52,726 - INFO - Validation COS align loss: 0.06133241152047088
+2026-08-25 18:19:52,726 - INFO - Early stop metric (ce): 2.299039896977306
+2026-08-25 18:19:52,760 - INFO - Best validation ce loss: 2.299039896977306
+2026-08-25 18:19:52,760 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:19:52,760 - INFO - Epoch 19/120
+2026-08-25 18:20:05,084 - INFO - Training total loss: 2.5662514885112007
+2026-08-25 18:20:05,084 - INFO - Training CE loss: 2.2521808634472262
+2026-08-25 18:20:05,084 - INFO - Training COS align loss: 0.06281412471129273
+2026-08-25 18:20:05,085 - INFO - Training geometry effective rank: 41.87057568590929
+2026-08-25 18:20:05,085 - INFO - Training geometry avg cosine: 0.6361886989977573
+2026-08-25 18:20:07,094 - INFO - Validation total loss: 2.5936987947496735
+2026-08-25 18:20:07,094 - INFO - Validation CE loss: 2.287479208774321
+2026-08-25 18:20:07,094 - INFO - Validation COS align loss: 0.06124391755320995
+2026-08-25 18:20:07,094 - INFO - Early stop metric (ce): 2.287479208774321
+2026-08-25 18:20:07,129 - INFO - Best validation ce loss: 2.287479208774321
+2026-08-25 18:20:07,129 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:20:07,129 - INFO - Epoch 20/120
+2026-08-25 18:20:19,542 - INFO - Training total loss: 2.552465109045867
+2026-08-25 18:20:19,542 - INFO - Training CE loss: 2.2385967074665114
+2026-08-25 18:20:19,542 - INFO - Training COS align loss: 0.06277367982882934
+2026-08-25 18:20:19,542 - INFO - Training geometry effective rank: 41.483472018854165
+2026-08-25 18:20:19,542 - INFO - Training geometry avg cosine: 0.6362183257531563
+2026-08-25 18:20:21,535 - INFO - Validation total loss: 2.586590273697489
+2026-08-25 18:20:21,535 - INFO - Validation CE loss: 2.2811226363857418
+2026-08-25 18:20:21,535 - INFO - Validation COS align loss: 0.06109352736002386
+2026-08-25 18:20:21,535 - INFO - Early stop metric (ce): 2.2811226363857418
+2026-08-25 18:20:21,568 - INFO - Best validation ce loss: 2.2811226363857418
+2026-08-25 18:20:21,568 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:20:21,568 - INFO - Epoch 21/120
+2026-08-25 18:20:33,836 - INFO - Training total loss: 2.540772894013253
+2026-08-25 18:20:33,837 - INFO - Training CE loss: 2.227313574186095
+2026-08-25 18:20:33,837 - INFO - Training COS align loss: 0.06269186433651104
+2026-08-25 18:20:33,837 - INFO - Training geometry effective rank: 41.081807366604934
+2026-08-25 18:20:33,837 - INFO - Training geometry avg cosine: 0.6363243531392242
+2026-08-25 18:20:35,732 - INFO - Validation total loss: 2.5785417142344134
+2026-08-25 18:20:35,732 - INFO - Validation CE loss: 2.2734064620963492
+2026-08-25 18:20:35,732 - INFO - Validation COS align loss: 0.06102705257644981
+2026-08-25 18:20:35,732 - INFO - Early stop metric (ce): 2.2734064620963492
+2026-08-25 18:20:35,766 - INFO - Best validation ce loss: 2.2734064620963492
+2026-08-25 18:20:35,766 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:20:35,766 - INFO - Epoch 22/120
+2026-08-25 18:20:48,079 - INFO - Training total loss: 2.5302689836182948
+2026-08-25 18:20:48,079 - INFO - Training CE loss: 2.217200022727135
+2026-08-25 18:20:48,079 - INFO - Training COS align loss: 0.06261379176076748
+2026-08-25 18:20:48,079 - INFO - Training geometry effective rank: 40.13142936053443
+2026-08-25 18:20:48,079 - INFO - Training geometry avg cosine: 0.6366851352995936
+2026-08-25 18:20:50,039 - INFO - Validation total loss: 2.5749476569916556
+2026-08-25 18:20:50,039 - INFO - Validation CE loss: 2.269907554843395
+2026-08-25 18:20:50,039 - INFO - Validation COS align loss: 0.06100802283430304
+2026-08-25 18:20:50,039 - INFO - Early stop metric (ce): 2.269907554843395
+2026-08-25 18:20:50,075 - INFO - Best validation ce loss: 2.269907554843395
+2026-08-25 18:20:50,075 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:20:50,075 - INFO - Epoch 23/120
+2026-08-25 18:21:02,384 - INFO - Training total loss: 2.520029030885214
+2026-08-25 18:21:02,384 - INFO - Training CE loss: 2.207267325675905
+2026-08-25 18:21:02,384 - INFO - Training COS align loss: 0.06255234122740155
+2026-08-25 18:21:02,384 - INFO - Training geometry effective rank: 39.3409931242234
+2026-08-25 18:21:02,384 - INFO - Training geometry avg cosine: 0.6387483883460672
+2026-08-25 18:21:04,344 - INFO - Validation total loss: 2.5675723041076006
+2026-08-25 18:21:04,345 - INFO - Validation CE loss: 2.263341822337695
+2026-08-25 18:21:04,345 - INFO - Validation COS align loss: 0.06084609978188773
+2026-08-25 18:21:04,345 - INFO - Early stop metric (ce): 2.263341822337695
+2026-08-25 18:21:04,378 - INFO - Best validation ce loss: 2.263341822337695
+2026-08-25 18:21:04,378 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:21:04,378 - INFO - Epoch 24/120
+2026-08-25 18:21:16,609 - INFO - Training total loss: 2.5100130974550656
+2026-08-25 18:21:16,609 - INFO - Training CE loss: 2.197403523708596
+2026-08-25 18:21:16,609 - INFO - Training COS align loss: 0.0625219151435659
+2026-08-25 18:21:16,610 - INFO - Training geometry effective rank: 39.038547527001526
+2026-08-25 18:21:16,610 - INFO - Training geometry avg cosine: 0.6383538940769226
+2026-08-25 18:21:18,559 - INFO - Validation total loss: 2.558728118311182
+2026-08-25 18:21:18,559 - INFO - Validation CE loss: 2.2536776899779816
+2026-08-25 18:21:18,559 - INFO - Validation COS align loss: 0.06101008802012824
+2026-08-25 18:21:18,559 - INFO - Early stop metric (ce): 2.2536776899779816
+2026-08-25 18:21:18,591 - INFO - Best validation ce loss: 2.2536776899779816
+2026-08-25 18:21:18,592 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:21:18,592 - INFO - Epoch 25/120
+2026-08-25 18:21:30,868 - INFO - Training total loss: 2.500167529870564
+2026-08-25 18:21:30,869 - INFO - Training CE loss: 2.187875246723338
+2026-08-25 18:21:30,869 - INFO - Training COS align loss: 0.06245845672221499
+2026-08-25 18:21:30,869 - INFO - Training geometry effective rank: 38.09108006815038
+2026-08-25 18:21:30,869 - INFO - Training geometry avg cosine: 0.6402996790084393
+2026-08-25 18:21:32,870 - INFO - Validation total loss: 2.5562770356436144
+2026-08-25 18:21:32,870 - INFO - Validation CE loss: 2.2518541577547917
+2026-08-25 18:21:32,870 - INFO - Validation COS align loss: 0.060884577777764314
+2026-08-25 18:21:32,870 - INFO - Early stop metric (ce): 2.2518541577547917
+2026-08-25 18:21:32,907 - INFO - Best validation ce loss: 2.2518541577547917
+2026-08-25 18:21:32,907 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:21:32,907 - INFO - Epoch 26/120
+2026-08-25 18:21:45,248 - INFO - Training total loss: 2.491525502984162
+2026-08-25 18:21:45,248 - INFO - Training CE loss: 2.1794058993632692
+2026-08-25 18:21:45,248 - INFO - Training COS align loss: 0.062423920353099065
+2026-08-25 18:21:45,248 - INFO - Training geometry effective rank: 37.16546271283339
+2026-08-25 18:21:45,248 - INFO - Training geometry avg cosine: 0.6427811436384104
+2026-08-25 18:21:47,143 - INFO - Validation total loss: 2.55433535985169
+2026-08-25 18:21:47,143 - INFO - Validation CE loss: 2.2504334526512246
+2026-08-25 18:21:47,143 - INFO - Validation COS align loss: 0.06078038425404626
+2026-08-25 18:21:47,143 - INFO - Early stop metric (ce): 2.2504334526512246
+2026-08-25 18:21:47,177 - INFO - Best validation ce loss: 2.2504334526512246
+2026-08-25 18:21:47,177 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:21:47,177 - INFO - Epoch 27/120
+2026-08-25 18:21:59,451 - INFO - Training total loss: 2.483420566826015
+2026-08-25 18:21:59,451 - INFO - Training CE loss: 2.1717290270653216
+2026-08-25 18:21:59,451 - INFO - Training COS align loss: 0.06233830767382908
+2026-08-25 18:21:59,451 - INFO - Training geometry effective rank: 36.596912098301985
+2026-08-25 18:21:59,451 - INFO - Training geometry avg cosine: 0.6431335294293059
+2026-08-25 18:22:01,411 - INFO - Validation total loss: 2.5423215683949354
+2026-08-25 18:22:01,412 - INFO - Validation CE loss: 2.2389376992319785
+2026-08-25 18:22:01,412 - INFO - Validation COS align loss: 0.06067677833491641
+2026-08-25 18:22:01,412 - INFO - Early stop metric (ce): 2.2389376992319785
+2026-08-25 18:22:01,449 - INFO - Best validation ce loss: 2.2389376992319785
+2026-08-25 18:22:01,449 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:22:01,449 - INFO - Epoch 28/120
+2026-08-25 18:22:13,840 - INFO - Training total loss: 2.4748590191978423
+2026-08-25 18:22:13,840 - INFO - Training CE loss: 2.163473489683426
+2026-08-25 18:22:13,840 - INFO - Training COS align loss: 0.06227710472006742
+2026-08-25 18:22:13,840 - INFO - Training geometry effective rank: 36.04872910614608
+2026-08-25 18:22:13,840 - INFO - Training geometry avg cosine: 0.6439469014856138
+2026-08-25 18:22:15,954 - INFO - Validation total loss: 2.5365145769242052
+2026-08-25 18:22:15,954 - INFO - Validation CE loss: 2.2331624031066895
+2026-08-25 18:22:15,954 - INFO - Validation COS align loss: 0.060670437475130796
+2026-08-25 18:22:15,954 - INFO - Early stop metric (ce): 2.2331624031066895
+2026-08-25 18:22:15,989 - INFO - Best validation ce loss: 2.2331624031066895
+2026-08-25 18:22:15,989 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:22:15,989 - INFO - Epoch 29/120
+2026-08-25 18:22:28,449 - INFO - Training total loss: 2.4676810911193434
+2026-08-25 18:22:28,450 - INFO - Training CE loss: 2.1564478354695242
+2026-08-25 18:22:28,450 - INFO - Training COS align loss: 0.062246651732967985
+2026-08-25 18:22:28,450 - INFO - Training geometry effective rank: 35.1274262476524
+2026-08-25 18:22:28,450 - INFO - Training geometry avg cosine: 0.6462428958267553
+2026-08-25 18:22:30,363 - INFO - Validation total loss: 2.54003169250079
+2026-08-25 18:22:30,364 - INFO - Validation CE loss: 2.2364098969447253
+2026-08-25 18:22:30,364 - INFO - Validation COS align loss: 0.06072436126004985
+2026-08-25 18:22:30,364 - INFO - Early stop metric (ce): 2.2364098969447253
+2026-08-25 18:22:30,364 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:22:30,364 - INFO - Epoch 30/120
+2026-08-25 18:22:42,685 - INFO - Training total loss: 2.4622189200805784
+2026-08-25 18:22:42,685 - INFO - Training CE loss: 2.1511443913678714
+2026-08-25 18:22:42,685 - INFO - Training COS align loss: 0.06221490599765852
+2026-08-25 18:22:42,685 - INFO - Training geometry effective rank: 34.71252727508545
+2026-08-25 18:22:42,685 - INFO - Training geometry avg cosine: 0.6470267819059499
+2026-08-25 18:22:44,574 - INFO - Validation total loss: 2.5287776448695958
+2026-08-25 18:22:44,574 - INFO - Validation CE loss: 2.225369944592914
+2026-08-25 18:22:44,574 - INFO - Validation COS align loss: 0.06068154235766169
+2026-08-25 18:22:44,574 - INFO - Early stop metric (ce): 2.225369944592914
+2026-08-25 18:22:44,612 - INFO - Best validation ce loss: 2.225369944592914
+2026-08-25 18:22:44,612 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:22:44,612 - INFO - Epoch 31/120
+2026-08-25 18:22:57,015 - INFO - Training total loss: 2.45435615689838
+2026-08-25 18:22:57,015 - INFO - Training CE loss: 2.1435805327233637
+2026-08-25 18:22:57,015 - INFO - Training COS align loss: 0.06215512462627099
+2026-08-25 18:22:57,015 - INFO - Training geometry effective rank: 33.93467379915111
+2026-08-25 18:22:57,015 - INFO - Training geometry avg cosine: 0.648125091415435
+2026-08-25 18:22:59,038 - INFO - Validation total loss: 2.5226322131095524
+2026-08-25 18:22:59,038 - INFO - Validation CE loss: 2.2195936113979684
+2026-08-25 18:22:59,038 - INFO - Validation COS align loss: 0.06060772264464219
+2026-08-25 18:22:59,038 - INFO - Early stop metric (ce): 2.2195936113979684
+2026-08-25 18:22:59,077 - INFO - Best validation ce loss: 2.2195936113979684
+2026-08-25 18:22:59,077 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:22:59,077 - INFO - Epoch 32/120
+2026-08-25 18:23:11,422 - INFO - Training total loss: 2.449826169106747
+2026-08-25 18:23:11,422 - INFO - Training CE loss: 2.1392929734886854
+2026-08-25 18:23:11,422 - INFO - Training COS align loss: 0.06210663775525668
+2026-08-25 18:23:11,422 - INFO - Training geometry effective rank: 33.29507632199892
+2026-08-25 18:23:11,422 - INFO - Training geometry avg cosine: 0.6499985136410605
+2026-08-25 18:23:13,412 - INFO - Validation total loss: 2.5278198007861943
+2026-08-25 18:23:13,412 - INFO - Validation CE loss: 2.2251071638303763
+2026-08-25 18:23:13,412 - INFO - Validation COS align loss: 0.060542530000465625
+2026-08-25 18:23:13,412 - INFO - Early stop metric (ce): 2.2251071638303763
+2026-08-25 18:23:13,413 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:23:13,413 - INFO - Epoch 33/120
+2026-08-25 18:23:25,797 - INFO - Training total loss: 2.4426549195315586
+2026-08-25 18:23:25,797 - INFO - Training CE loss: 2.1321610898823127
+2026-08-25 18:23:25,797 - INFO - Training COS align loss: 0.06209876634731367
+2026-08-25 18:23:25,797 - INFO - Training geometry effective rank: 32.62253365349677
+2026-08-25 18:23:25,797 - INFO - Training geometry avg cosine: 0.6521843200991589
+2026-08-25 18:23:27,777 - INFO - Validation total loss: 2.521432164912572
+2026-08-25 18:23:27,777 - INFO - Validation CE loss: 2.2189040951462773
+2026-08-25 18:23:27,777 - INFO - Validation COS align loss: 0.060505615539305196
+2026-08-25 18:23:27,778 - INFO - Early stop metric (ce): 2.2189040951462773
+2026-08-25 18:23:27,818 - INFO - Best validation ce loss: 2.2189040951462773
+2026-08-25 18:23:27,818 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:23:27,818 - INFO - Epoch 34/120
+2026-08-25 18:23:40,228 - INFO - Training total loss: 2.437582497930712
+2026-08-25 18:23:40,228 - INFO - Training CE loss: 2.1273998511440557
+2026-08-25 18:23:40,228 - INFO - Training COS align loss: 0.06203652877751955
+2026-08-25 18:23:40,228 - INFO - Training geometry effective rank: 32.39136296209195
+2026-08-25 18:23:40,228 - INFO - Training geometry avg cosine: 0.6525315169230509
+2026-08-25 18:23:42,297 - INFO - Validation total loss: 2.5150590055490256
+2026-08-25 18:23:42,297 - INFO - Validation CE loss: 2.2122784745539716
+2026-08-25 18:23:42,297 - INFO - Validation COS align loss: 0.06055610809203381
+2026-08-25 18:23:42,297 - INFO - Early stop metric (ce): 2.2122784745539716
+2026-08-25 18:23:42,334 - INFO - Best validation ce loss: 2.2122784745539716
+2026-08-25 18:23:42,334 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:23:42,334 - INFO - Epoch 35/120
+2026-08-25 18:23:54,642 - INFO - Training total loss: 2.4312949746499264
+2026-08-25 18:23:54,642 - INFO - Training CE loss: 2.121282473148539
+2026-08-25 18:23:54,643 - INFO - Training COS align loss: 0.06200250090328172
+2026-08-25 18:23:54,643 - INFO - Training geometry effective rank: 31.50930363102182
+2026-08-25 18:23:54,643 - INFO - Training geometry avg cosine: 0.6540709361723889
+2026-08-25 18:23:56,612 - INFO - Validation total loss: 2.516135084782547
+2026-08-25 18:23:56,612 - INFO - Validation CE loss: 2.2137080236565914
+2026-08-25 18:23:56,612 - INFO - Validation COS align loss: 0.06048541391356309
+2026-08-25 18:23:56,612 - INFO - Early stop metric (ce): 2.2137080236565914
+2026-08-25 18:23:56,613 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:23:56,613 - INFO - Epoch 36/120
+2026-08-25 18:24:08,989 - INFO - Training total loss: 2.4246101170662313
+2026-08-25 18:24:08,989 - INFO - Training CE loss: 2.114734454145691
+2026-08-25 18:24:08,990 - INFO - Training COS align loss: 0.06197513228260589
+2026-08-25 18:24:08,990 - INFO - Training geometry effective rank: 31.317235816777448
+2026-08-25 18:24:08,990 - INFO - Training geometry avg cosine: 0.6555247952733986
+2026-08-25 18:24:10,943 - INFO - Validation total loss: 2.5123462426304304
+2026-08-25 18:24:10,943 - INFO - Validation CE loss: 2.210250988027057
+2026-08-25 18:24:10,943 - INFO - Validation COS align loss: 0.06041905322300006
+2026-08-25 18:24:10,943 - INFO - Early stop metric (ce): 2.210250988027057
+2026-08-25 18:24:10,980 - INFO - Best validation ce loss: 2.210250988027057
+2026-08-25 18:24:10,980 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:24:10,981 - INFO - Epoch 37/120
+2026-08-25 18:24:23,432 - INFO - Training total loss: 2.421129556017627
+2026-08-25 18:24:23,432 - INFO - Training CE loss: 2.111340378740882
+2026-08-25 18:24:23,432 - INFO - Training COS align loss: 0.06195783510746195
+2026-08-25 18:24:23,432 - INFO - Training geometry effective rank: 30.695320838156377
+2026-08-25 18:24:23,432 - INFO - Training geometry avg cosine: 0.6561145732606896
+2026-08-25 18:24:25,286 - INFO - Validation total loss: 2.5088202989152575
+2026-08-25 18:24:25,287 - INFO - Validation CE loss: 2.2066240852994468
+2026-08-25 18:24:25,287 - INFO - Validation COS align loss: 0.060439245127812985
+2026-08-25 18:24:25,287 - INFO - Early stop metric (ce): 2.2066240852994468
+2026-08-25 18:24:25,329 - INFO - Best validation ce loss: 2.2066240852994468
+2026-08-25 18:24:25,329 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:24:25,329 - INFO - Epoch 38/120
+2026-08-25 18:24:37,686 - INFO - Training total loss: 2.414141474067005
+2026-08-25 18:24:37,686 - INFO - Training CE loss: 2.1045776352808168
+2026-08-25 18:24:37,686 - INFO - Training COS align loss: 0.061912767386158155
+2026-08-25 18:24:37,686 - INFO - Training geometry effective rank: 30.17535541400835
+2026-08-25 18:24:37,686 - INFO - Training geometry avg cosine: 0.6586922012878299
+2026-08-25 18:24:39,659 - INFO - Validation total loss: 2.509299001468609
+2026-08-25 18:24:39,659 - INFO - Validation CE loss: 2.2076063340313956
+2026-08-25 18:24:39,659 - INFO - Validation COS align loss: 0.06033853655720985
+2026-08-25 18:24:39,659 - INFO - Early stop metric (ce): 2.2076063340313956
+2026-08-25 18:24:39,659 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:24:39,660 - INFO - Epoch 39/120
+2026-08-25 18:24:51,971 - INFO - Training total loss: 2.4109189176373906
+2026-08-25 18:24:51,971 - INFO - Training CE loss: 2.101456822588286
+2026-08-25 18:24:51,971 - INFO - Training COS align loss: 0.06189241877789627
+2026-08-25 18:24:51,971 - INFO - Training geometry effective rank: 28.913115675811174
+2026-08-25 18:24:51,971 - INFO - Training geometry avg cosine: 0.6614113901143872
+2026-08-25 18:24:53,878 - INFO - Validation total loss: 2.502346542260166
+2026-08-25 18:24:53,878 - INFO - Validation CE loss: 2.2004691761450705
+2026-08-25 18:24:53,878 - INFO - Validation COS align loss: 0.06037547532069325
+2026-08-25 18:24:53,878 - INFO - Early stop metric (ce): 2.2004691761450705
+2026-08-25 18:24:53,916 - INFO - Best validation ce loss: 2.2004691761450705
+2026-08-25 18:24:53,916 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:24:53,917 - INFO - Epoch 40/120
+2026-08-25 18:25:06,270 - INFO - Training total loss: 2.4079574982016
+2026-08-25 18:25:06,270 - INFO - Training CE loss: 2.0986261314455175
+2026-08-25 18:25:06,270 - INFO - Training COS align loss: 0.061866273559948816
+2026-08-25 18:25:06,270 - INFO - Training geometry effective rank: 28.903117740200653
+2026-08-25 18:25:06,270 - INFO - Training geometry avg cosine: 0.6606778074563245
+2026-08-25 18:25:08,260 - INFO - Validation total loss: 2.5053451931016126
+2026-08-25 18:25:08,260 - INFO - Validation CE loss: 2.203721838959297
+2026-08-25 18:25:08,260 - INFO - Validation COS align loss: 0.06032467246567231
+2026-08-25 18:25:08,260 - INFO - Early stop metric (ce): 2.203721838959297
+2026-08-25 18:25:08,261 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:25:08,261 - INFO - Epoch 41/120
+2026-08-25 18:25:20,555 - INFO - Training total loss: 2.4015712450450497
+2026-08-25 18:25:20,555 - INFO - Training CE loss: 2.0923403589642002
+2026-08-25 18:25:20,555 - INFO - Training COS align loss: 0.06184617601016152
+2026-08-25 18:25:20,555 - INFO - Training geometry effective rank: 28.582920913102562
+2026-08-25 18:25:20,555 - INFO - Training geometry avg cosine: 0.6623223684873099
+2026-08-25 18:25:22,525 - INFO - Validation total loss: 2.5023693168623766
+2026-08-25 18:25:22,525 - INFO - Validation CE loss: 2.200712719700367
+2026-08-25 18:25:22,525 - INFO - Validation COS align loss: 0.060331321325424916
+2026-08-25 18:25:22,526 - INFO - Early stop metric (ce): 2.200712719700367
+2026-08-25 18:25:22,526 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 18:25:22,526 - INFO - Epoch 42/120
+2026-08-25 18:25:34,842 - INFO - Training total loss: 2.3948505583440283
+2026-08-25 18:25:34,843 - INFO - Training CE loss: 2.0859703328822836
+2026-08-25 18:25:34,843 - INFO - Training COS align loss: 0.061776045579390766
+2026-08-25 18:25:34,843 - INFO - Training geometry effective rank: 28.32815471233561
+2026-08-25 18:25:34,843 - INFO - Training geometry avg cosine: 0.6615110228729619
+2026-08-25 18:25:36,838 - INFO - Validation total loss: 2.4999030552196913
+2026-08-25 18:25:36,838 - INFO - Validation CE loss: 2.198468230312986
+2026-08-25 18:25:36,838 - INFO - Validation COS align loss: 0.060286967795294244
+2026-08-25 18:25:36,838 - INFO - Early stop metric (ce): 2.198468230312986
+2026-08-25 18:25:36,875 - INFO - Best validation ce loss: 2.198468230312986
+2026-08-25 18:25:36,875 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:25:36,876 - INFO - Epoch 43/120
+2026-08-25 18:25:49,213 - INFO - Training total loss: 2.3909413981530454
+2026-08-25 18:25:49,214 - INFO - Training CE loss: 2.0821478508325866
+2026-08-25 18:25:49,214 - INFO - Training COS align loss: 0.061758709788786295
+2026-08-25 18:25:49,214 - INFO - Training geometry effective rank: 27.725297311864473
+2026-08-25 18:25:49,214 - INFO - Training geometry avg cosine: 0.6641642219361628
+2026-08-25 18:25:51,140 - INFO - Validation total loss: 2.4957587887800816
+2026-08-25 18:25:51,140 - INFO - Validation CE loss: 2.194303249084898
+2026-08-25 18:25:51,140 - INFO - Validation COS align loss: 0.06029111019019917
+2026-08-25 18:25:51,140 - INFO - Early stop metric (ce): 2.194303249084898
+2026-08-25 18:25:51,178 - INFO - Best validation ce loss: 2.194303249084898
+2026-08-25 18:25:51,178 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:25:51,179 - INFO - Epoch 44/120
+2026-08-25 18:26:03,487 - INFO - Training total loss: 2.386807849435027
+2026-08-25 18:26:03,488 - INFO - Training CE loss: 2.0779862422423605
+2026-08-25 18:26:03,488 - INFO - Training COS align loss: 0.06176432109064629
+2026-08-25 18:26:03,488 - INFO - Training geometry effective rank: 27.40973785415234
+2026-08-25 18:26:03,488 - INFO - Training geometry avg cosine: 0.6663230069648431
+2026-08-25 18:26:05,550 - INFO - Validation total loss: 2.4918720338477596
+2026-08-25 18:26:05,550 - INFO - Validation CE loss: 2.1909151977735526
+2026-08-25 18:26:05,550 - INFO - Validation COS align loss: 0.06019136859623659
+2026-08-25 18:26:05,550 - INFO - Early stop metric (ce): 2.1909151977735526
+2026-08-25 18:26:05,586 - INFO - Best validation ce loss: 2.1909151977735526
+2026-08-25 18:26:05,586 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:26:05,587 - INFO - Epoch 45/120
+2026-08-25 18:26:17,857 - INFO - Training total loss: 2.38341817085845
+2026-08-25 18:26:17,857 - INFO - Training CE loss: 2.074847881664098
+2026-08-25 18:26:17,857 - INFO - Training COS align loss: 0.06171405732863608
+2026-08-25 18:26:17,857 - INFO - Training geometry effective rank: 27.150880164209507
+2026-08-25 18:26:17,857 - INFO - Training geometry avg cosine: 0.667284457136221
+2026-08-25 18:26:19,922 - INFO - Validation total loss: 2.4946586835026228
+2026-08-25 18:26:19,923 - INFO - Validation CE loss: 2.193768968397967
+2026-08-25 18:26:19,923 - INFO - Validation COS align loss: 0.06017794578372153
+2026-08-25 18:26:19,923 - INFO - Early stop metric (ce): 2.193768968397967
+2026-08-25 18:26:19,923 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:26:19,923 - INFO - Epoch 46/120
+2026-08-25 18:26:32,290 - INFO - Training total loss: 2.37903435313748
+2026-08-25 18:26:32,290 - INFO - Training CE loss: 2.0704294869871918
+2026-08-25 18:26:32,290 - INFO - Training COS align loss: 0.061720972047241744
+2026-08-25 18:26:32,290 - INFO - Training geometry effective rank: 26.880517514299324
+2026-08-25 18:26:32,290 - INFO - Training geometry avg cosine: 0.6674412846101397
+2026-08-25 18:26:34,273 - INFO - Validation total loss: 2.48909338707576
+2026-08-25 18:26:34,274 - INFO - Validation CE loss: 2.1880237682694528
+2026-08-25 18:26:34,274 - INFO - Validation COS align loss: 0.06021392703567963
+2026-08-25 18:26:34,274 - INFO - Early stop metric (ce): 2.1880237682694528
+2026-08-25 18:26:34,311 - INFO - Best validation ce loss: 2.1880237682694528
+2026-08-25 18:26:34,311 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:26:34,311 - INFO - Epoch 47/120
+2026-08-25 18:26:46,682 - INFO - Training total loss: 2.378764554684264
+2026-08-25 18:26:46,682 - INFO - Training CE loss: 2.0702727464850312
+2026-08-25 18:26:46,682 - INFO - Training COS align loss: 0.06169836054980059
+2026-08-25 18:26:46,682 - INFO - Training geometry effective rank: 26.53237058958655
+2026-08-25 18:26:46,682 - INFO - Training geometry avg cosine: 0.6669455414152331
+2026-08-25 18:26:48,669 - INFO - Validation total loss: 2.494027161291229
+2026-08-25 18:26:48,669 - INFO - Validation CE loss: 2.1929280338369215
+2026-08-25 18:26:48,670 - INFO - Validation COS align loss: 0.0602198289187681
+2026-08-25 18:26:48,670 - INFO - Early stop metric (ce): 2.1929280338369215
+2026-08-25 18:26:48,670 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:26:48,670 - INFO - Epoch 48/120
+2026-08-25 18:27:00,984 - INFO - Training total loss: 2.3721238546334353
+2026-08-25 18:27:00,984 - INFO - Training CE loss: 2.0637960677480884
+2026-08-25 18:27:00,984 - INFO - Training COS align loss: 0.06166555816561332
+2026-08-25 18:27:00,984 - INFO - Training geometry effective rank: 26.591689124645427
+2026-08-25 18:27:00,984 - INFO - Training geometry avg cosine: 0.6689034851144724
+2026-08-25 18:27:02,999 - INFO - Validation total loss: 2.483914447444703
+2026-08-25 18:27:03,000 - INFO - Validation CE loss: 2.1825875263868997
+2026-08-25 18:27:03,000 - INFO - Validation COS align loss: 0.06026538630923488
+2026-08-25 18:27:03,000 - INFO - Early stop metric (ce): 2.1825875263868997
+2026-08-25 18:27:03,040 - INFO - Best validation ce loss: 2.1825875263868997
+2026-08-25 18:27:03,040 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:27:03,040 - INFO - Epoch 49/120
+2026-08-25 18:27:15,350 - INFO - Training total loss: 2.3677804553555144
+2026-08-25 18:27:15,350 - INFO - Training CE loss: 2.059560637993571
+2026-08-25 18:27:15,350 - INFO - Training COS align loss: 0.061643964469664754
+2026-08-25 18:27:15,350 - INFO - Training geometry effective rank: 26.1196824010708
+2026-08-25 18:27:15,350 - INFO - Training geometry avg cosine: 0.6696291423261398
+2026-08-25 18:27:17,310 - INFO - Validation total loss: 2.4821882421878274
+2026-08-25 18:27:17,310 - INFO - Validation CE loss: 2.181015034601924
+2026-08-25 18:27:17,310 - INFO - Validation COS align loss: 0.060234644126482786
+2026-08-25 18:27:17,310 - INFO - Early stop metric (ce): 2.181015034601924
+2026-08-25 18:27:17,349 - INFO - Best validation ce loss: 2.181015034601924
+2026-08-25 18:27:17,349 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:27:17,349 - INFO - Epoch 50/120
+2026-08-25 18:27:29,644 - INFO - Training total loss: 2.3656513222460616
+2026-08-25 18:27:29,645 - INFO - Training CE loss: 2.057493905612931
+2026-08-25 18:27:29,645 - INFO - Training COS align loss: 0.06163148390643791
+2026-08-25 18:27:29,645 - INFO - Training geometry effective rank: 26.01889179467227
+2026-08-25 18:27:29,645 - INFO - Training geometry avg cosine: 0.6703396441871554
+2026-08-25 18:27:31,541 - INFO - Validation total loss: 2.4931652295231306
+2026-08-25 18:27:31,541 - INFO - Validation CE loss: 2.19242541779776
+2026-08-25 18:27:31,541 - INFO - Validation COS align loss: 0.06014796541484129
+2026-08-25 18:27:31,541 - INFO - Early stop metric (ce): 2.19242541779776
+2026-08-25 18:27:31,542 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:27:31,542 - INFO - Epoch 51/120
+2026-08-25 18:27:43,925 - INFO - Training total loss: 2.3595694489052326
+2026-08-25 18:27:43,925 - INFO - Training CE loss: 2.0515797045444235
+2026-08-25 18:27:43,925 - INFO - Training COS align loss: 0.06159794817638768
+2026-08-25 18:27:43,925 - INFO - Training geometry effective rank: 26.186068542272665
+2026-08-25 18:27:43,925 - INFO - Training geometry avg cosine: 0.6704209670714367
+2026-08-25 18:27:46,009 - INFO - Validation total loss: 2.483708627234201
+2026-08-25 18:27:46,009 - INFO - Validation CE loss: 2.182995757831524
+2026-08-25 18:27:46,009 - INFO - Validation COS align loss: 0.060142576694488525
+2026-08-25 18:27:46,009 - INFO - Early stop metric (ce): 2.182995757831524
+2026-08-25 18:27:46,009 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 18:27:46,010 - INFO - Epoch 52/120
+2026-08-25 18:27:58,266 - INFO - Training total loss: 2.357929761307713
+2026-08-25 18:27:58,266 - INFO - Training CE loss: 2.050092678357655
+2026-08-25 18:27:58,266 - INFO - Training COS align loss: 0.061567417610480166
+2026-08-25 18:27:58,266 - INFO - Training geometry effective rank: 25.64417266103544
+2026-08-25 18:27:58,266 - INFO - Training geometry avg cosine: 0.6717382768016845
+2026-08-25 18:28:00,271 - INFO - Validation total loss: 2.483726310627655
+2026-08-25 18:28:00,271 - INFO - Validation CE loss: 2.1830592324293736
+2026-08-25 18:28:00,271 - INFO - Validation COS align loss: 0.06013341830012113
+2026-08-25 18:28:00,271 - INFO - Early stop metric (ce): 2.1830592324293736
+2026-08-25 18:28:00,272 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 18:28:00,272 - INFO - Epoch 53/120
+2026-08-25 18:28:12,585 - INFO - Training total loss: 2.3531951607433275
+2026-08-25 18:28:12,585 - INFO - Training CE loss: 2.0453581030730605
+2026-08-25 18:28:12,585 - INFO - Training COS align loss: 0.06156741088466422
+2026-08-25 18:28:12,585 - INFO - Training geometry effective rank: 25.40763499115228
+2026-08-25 18:28:12,585 - INFO - Training geometry avg cosine: 0.672604103032717
+2026-08-25 18:28:14,460 - INFO - Validation total loss: 2.4827700490092
+2026-08-25 18:28:14,460 - INFO - Validation CE loss: 2.1820993116485203
+2026-08-25 18:28:14,460 - INFO - Validation COS align loss: 0.06013415018376363
+2026-08-25 18:28:14,460 - INFO - Early stop metric (ce): 2.1820993116485203
+2026-08-25 18:28:14,460 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-25 18:28:14,461 - INFO - Epoch 54/120
+2026-08-25 18:28:26,721 - INFO - Training total loss: 2.3518768980345373
+2026-08-25 18:28:26,722 - INFO - Training CE loss: 2.0442082292838784
+2026-08-25 18:28:26,722 - INFO - Training COS align loss: 0.06153373379651674
+2026-08-25 18:28:26,722 - INFO - Training geometry effective rank: 25.059207764117172
+2026-08-25 18:28:26,722 - INFO - Training geometry avg cosine: 0.6741939602195057
+2026-08-25 18:28:28,573 - INFO - Validation total loss: 2.48330564969599
+2026-08-25 18:28:28,573 - INFO - Validation CE loss: 2.1826494891244455
+2026-08-25 18:28:28,573 - INFO - Validation COS align loss: 0.0601312331375646
+2026-08-25 18:28:28,573 - INFO - Early stop metric (ce): 2.1826494891244455
+2026-08-25 18:28:28,573 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-25 18:28:28,574 - INFO - Epoch 55/120
+2026-08-25 18:28:40,810 - INFO - Training total loss: 2.3505343259076663
+2026-08-25 18:28:40,810 - INFO - Training CE loss: 2.042754192760482
+2026-08-25 18:28:40,810 - INFO - Training COS align loss: 0.06155602639751212
+2026-08-25 18:28:40,810 - INFO - Training geometry effective rank: 24.895303484994614
+2026-08-25 18:28:40,810 - INFO - Training geometry avg cosine: 0.6750674565478522
+2026-08-25 18:28:42,747 - INFO - Validation total loss: 2.4893413157933773
+2026-08-25 18:28:42,748 - INFO - Validation CE loss: 2.189062726344162
+2026-08-25 18:28:42,748 - INFO - Validation COS align loss: 0.060055720192168406
+2026-08-25 18:28:42,748 - INFO - Early stop metric (ce): 2.189062726344162
+2026-08-25 18:28:42,748 - INFO - No improvement in validation loss. Early stop counter: 6
+2026-08-25 18:28:42,749 - INFO - Epoch 56/120
+2026-08-25 18:28:55,027 - INFO - Training total loss: 2.343132698582304
+2026-08-25 18:28:55,028 - INFO - Training CE loss: 2.035445503223731
+2026-08-25 18:28:55,028 - INFO - Training COS align loss: 0.06153744018495315
+2026-08-25 18:28:55,028 - INFO - Training geometry effective rank: 24.876537942700814
+2026-08-25 18:28:55,028 - INFO - Training geometry avg cosine: 0.6749753391928246
+2026-08-25 18:28:56,982 - INFO - Validation total loss: 2.4819418135630724
+2026-08-25 18:28:56,983 - INFO - Validation CE loss: 2.181722306386596
+2026-08-25 18:28:56,983 - INFO - Validation COS align loss: 0.06004390286785338
+2026-08-25 18:28:56,983 - INFO - Early stop metric (ce): 2.181722306386596
+2026-08-25 18:28:56,983 - INFO - No improvement in validation loss. Early stop counter: 7
+2026-08-25 18:28:56,983 - INFO - Epoch 57/120
+2026-08-25 18:29:09,249 - INFO - Training total loss: 2.341980898890514
+2026-08-25 18:29:09,249 - INFO - Training CE loss: 2.0344104180076243
+2026-08-25 18:29:09,249 - INFO - Training COS align loss: 0.06151409661723482
+2026-08-25 18:29:09,249 - INFO - Training geometry effective rank: 24.3108854479363
+2026-08-25 18:29:09,249 - INFO - Training geometry avg cosine: 0.6745947171509962
+2026-08-25 18:29:11,203 - INFO - Validation total loss: 2.4820088951372794
+2026-08-25 18:29:11,204 - INFO - Validation CE loss: 2.1815269648261335
+2026-08-25 18:29:11,204 - INFO - Validation COS align loss: 0.06009638846688004
+2026-08-25 18:29:11,204 - INFO - Early stop metric (ce): 2.1815269648261335
+2026-08-25 18:29:11,204 - INFO - No improvement in validation loss. Early stop counter: 8
+2026-08-25 18:29:11,204 - INFO - Epoch 58/120
+2026-08-25 18:29:23,430 - INFO - Training total loss: 2.3382369729795345
+2026-08-25 18:29:23,431 - INFO - Training CE loss: 2.030843562421168
+2026-08-25 18:29:23,431 - INFO - Training COS align loss: 0.06147868206528838
+2026-08-25 18:29:23,431 - INFO - Training geometry effective rank: 24.34657751447032
+2026-08-25 18:29:23,431 - INFO - Training geometry avg cosine: 0.6759344099328676
+2026-08-25 18:29:25,375 - INFO - Validation total loss: 2.4769012027544015
+2026-08-25 18:29:25,375 - INFO - Validation CE loss: 2.1764482167657353
+2026-08-25 18:29:25,375 - INFO - Validation COS align loss: 0.060090600932616534
+2026-08-25 18:29:25,375 - INFO - Early stop metric (ce): 2.1764482167657353
+2026-08-25 18:29:25,413 - INFO - Best validation ce loss: 2.1764482167657353
+2026-08-25 18:29:25,413 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:29:25,413 - INFO - Epoch 59/120
+2026-08-25 18:29:37,713 - INFO - Training total loss: 2.3354021946279917
+2026-08-25 18:29:37,714 - INFO - Training CE loss: 2.028021045695947
+2026-08-25 18:29:37,714 - INFO - Training COS align loss: 0.06147623062133789
+2026-08-25 18:29:37,714 - INFO - Training geometry effective rank: 24.031534361932064
+2026-08-25 18:29:37,714 - INFO - Training geometry avg cosine: 0.6770745951841778
+2026-08-25 18:29:39,670 - INFO - Validation total loss: 2.4866671766845965
+2026-08-25 18:29:39,671 - INFO - Validation CE loss: 2.1865734880062644
+2026-08-25 18:29:39,671 - INFO - Validation COS align loss: 0.06001873845194542
+2026-08-25 18:29:39,671 - INFO - Early stop metric (ce): 2.1865734880062644
+2026-08-25 18:29:39,671 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:29:39,671 - INFO - Epoch 60/120
+2026-08-25 18:29:51,904 - INFO - Training total loss: 2.3316919367600972
+2026-08-25 18:29:51,904 - INFO - Training CE loss: 2.0244046345295144
+2026-08-25 18:29:51,904 - INFO - Training COS align loss: 0.06145746223193662
+2026-08-25 18:29:51,904 - INFO - Training geometry effective rank: 23.69154535657237
+2026-08-25 18:29:51,904 - INFO - Training geometry avg cosine: 0.6798375122510042
+2026-08-25 18:29:53,840 - INFO - Validation total loss: 2.4781971868015664
+2026-08-25 18:29:53,841 - INFO - Validation CE loss: 2.1781972477876064
+2026-08-25 18:29:53,841 - INFO - Validation COS align loss: 0.05999999061674519
+2026-08-25 18:29:53,841 - INFO - Early stop metric (ce): 2.1781972477876064
+2026-08-25 18:29:53,841 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 18:29:53,841 - INFO - Epoch 61/120
+2026-08-25 18:30:06,177 - INFO - Training total loss: 2.330190223014772
+2026-08-25 18:30:06,177 - INFO - Training CE loss: 2.0228665183490353
+2026-08-25 18:30:06,177 - INFO - Training COS align loss: 0.061464740492490476
+2026-08-25 18:30:06,177 - INFO - Training geometry effective rank: 23.631953209754556
+2026-08-25 18:30:06,177 - INFO - Training geometry avg cosine: 0.678496167701506
+2026-08-25 18:30:08,291 - INFO - Validation total loss: 2.472631860700288
+2026-08-25 18:30:08,291 - INFO - Validation CE loss: 2.1725186953728803
+2026-08-25 18:30:08,291 - INFO - Validation COS align loss: 0.06002263193990028
+2026-08-25 18:30:08,291 - INFO - Early stop metric (ce): 2.1725186953728803
+2026-08-25 18:30:08,329 - INFO - Best validation ce loss: 2.1725186953728803
+2026-08-25 18:30:08,329 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:30:08,329 - INFO - Epoch 62/120
+2026-08-25 18:30:20,590 - INFO - Training total loss: 2.3265531633614565
+2026-08-25 18:30:20,591 - INFO - Training CE loss: 2.0193677623448205
+2026-08-25 18:30:20,591 - INFO - Training COS align loss: 0.061437079762670314
+2026-08-25 18:30:20,591 - INFO - Training geometry effective rank: 23.56722073239575
+2026-08-25 18:30:20,591 - INFO - Training geometry avg cosine: 0.6791600867931945
+2026-08-25 18:30:22,539 - INFO - Validation total loss: 2.4802974242509177
+2026-08-25 18:30:22,539 - INFO - Validation CE loss: 2.180113334512506
+2026-08-25 18:30:22,539 - INFO - Validation COS align loss: 0.06003681810117075
+2026-08-25 18:30:22,539 - INFO - Early stop metric (ce): 2.180113334512506
+2026-08-25 18:30:22,540 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:30:22,540 - INFO - Epoch 63/120
+2026-08-25 18:30:34,829 - INFO - Training total loss: 2.3247619268959134
+2026-08-25 18:30:34,829 - INFO - Training CE loss: 2.0177011921248083
+2026-08-25 18:30:34,829 - INFO - Training COS align loss: 0.06141214809065199
+2026-08-25 18:30:34,829 - INFO - Training geometry effective rank: 23.842315235954313
+2026-08-25 18:30:34,829 - INFO - Training geometry avg cosine: 0.6791675981380596
+2026-08-25 18:30:36,790 - INFO - Validation total loss: 2.4742960228940447
+2026-08-25 18:30:36,790 - INFO - Validation CE loss: 2.1744980505096043
+2026-08-25 18:30:36,790 - INFO - Validation COS align loss: 0.05995959734200408
+2026-08-25 18:30:36,790 - INFO - Early stop metric (ce): 2.1744980505096043
+2026-08-25 18:30:36,791 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 18:30:36,791 - INFO - Epoch 64/120
+2026-08-25 18:30:49,065 - INFO - Training total loss: 2.320209817663705
+2026-08-25 18:30:49,065 - INFO - Training CE loss: 2.013264579763672
+2026-08-25 18:30:49,065 - INFO - Training COS align loss: 0.06138904769596887
+2026-08-25 18:30:49,065 - INFO - Training geometry effective rank: 24.008525711089256
+2026-08-25 18:30:49,065 - INFO - Training geometry avg cosine: 0.6797171544703992
+2026-08-25 18:30:51,082 - INFO - Validation total loss: 2.4716908384290375
+2026-08-25 18:30:51,082 - INFO - Validation CE loss: 2.1720196545891497
+2026-08-25 18:30:51,082 - INFO - Validation COS align loss: 0.05993423927495408
+2026-08-25 18:30:51,082 - INFO - Early stop metric (ce): 2.1720196545891497
+2026-08-25 18:30:51,120 - INFO - Best validation ce loss: 2.1720196545891497
+2026-08-25 18:30:51,120 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:30:51,120 - INFO - Epoch 65/120
+2026-08-25 18:31:03,549 - INFO - Training total loss: 2.318800414582635
+2026-08-25 18:31:03,549 - INFO - Training CE loss: 2.0118822569049284
+2026-08-25 18:31:03,549 - INFO - Training COS align loss: 0.061383631674696036
+2026-08-25 18:31:03,549 - INFO - Training geometry effective rank: 23.497768858527394
+2026-08-25 18:31:03,549 - INFO - Training geometry avg cosine: 0.6820820340386624
+2026-08-25 18:31:05,538 - INFO - Validation total loss: 2.4785323895098315
+2026-08-25 18:31:05,538 - INFO - Validation CE loss: 2.178986889609963
+2026-08-25 18:31:05,538 - INFO - Validation COS align loss: 0.05990910248695013
+2026-08-25 18:31:05,538 - INFO - Early stop metric (ce): 2.178986889609963
+2026-08-25 18:31:05,539 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:31:05,539 - INFO - Epoch 66/120
+2026-08-25 18:31:17,845 - INFO - Training total loss: 2.3175552151082557
+2026-08-25 18:31:17,846 - INFO - Training CE loss: 2.0106180205883217
+2026-08-25 18:31:17,846 - INFO - Training COS align loss: 0.06138743837055993
+2026-08-25 18:31:17,846 - INFO - Training geometry effective rank: 23.300774956491672
+2026-08-25 18:31:17,846 - INFO - Training geometry avg cosine: 0.6805214408770609
+2026-08-25 18:31:19,781 - INFO - Validation total loss: 2.4719837504906716
+2026-08-25 18:31:19,781 - INFO - Validation CE loss: 2.1723814916201416
+2026-08-25 18:31:19,781 - INFO - Validation COS align loss: 0.05992045550898933
+2026-08-25 18:31:19,781 - INFO - Early stop metric (ce): 2.1723814916201416
+2026-08-25 18:31:19,782 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 18:31:19,782 - INFO - Epoch 67/120
+2026-08-25 18:31:32,088 - INFO - Training total loss: 2.3150966724069204
+2026-08-25 18:31:32,088 - INFO - Training CE loss: 2.0082806870631207
+2026-08-25 18:31:32,088 - INFO - Training COS align loss: 0.061363197370261996
+2026-08-25 18:31:32,088 - INFO - Training geometry effective rank: 23.148888072151156
+2026-08-25 18:31:32,088 - INFO - Training geometry avg cosine: 0.6810628972396776
+2026-08-25 18:31:33,986 - INFO - Validation total loss: 2.4698027791895067
+2026-08-25 18:31:33,986 - INFO - Validation CE loss: 2.169833308637398
+2026-08-25 18:31:33,986 - INFO - Validation COS align loss: 0.05999389610577039
+2026-08-25 18:31:33,986 - INFO - Early stop metric (ce): 2.169833308637398
+2026-08-25 18:31:34,023 - INFO - Best validation ce loss: 2.169833308637398
+2026-08-25 18:31:34,023 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:31:34,023 - INFO - Epoch 68/120
+2026-08-25 18:31:46,330 - INFO - Training total loss: 2.310897403190108
+2026-08-25 18:31:46,330 - INFO - Training CE loss: 2.004149077003568
+2026-08-25 18:31:46,330 - INFO - Training COS align loss: 0.06134966607223689
+2026-08-25 18:31:46,330 - INFO - Training geometry effective rank: 22.856567004311408
+2026-08-25 18:31:46,330 - INFO - Training geometry avg cosine: 0.6830952028356173
+2026-08-25 18:31:48,291 - INFO - Validation total loss: 2.4694804505728856
+2026-08-25 18:31:48,292 - INFO - Validation CE loss: 2.1696779456773028
+2026-08-25 18:31:48,292 - INFO - Validation COS align loss: 0.059960502411674534
+2026-08-25 18:31:48,292 - INFO - Early stop metric (ce): 2.1696779456773028
+2026-08-25 18:31:48,328 - INFO - Best validation ce loss: 2.1696779456773028
+2026-08-25 18:31:48,328 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:31:48,328 - INFO - Epoch 69/120
+2026-08-25 18:32:00,633 - INFO - Training total loss: 2.309086146521661
+2026-08-25 18:32:00,633 - INFO - Training CE loss: 2.002393072913129
+2026-08-25 18:32:00,633 - INFO - Training COS align loss: 0.061338614512974184
+2026-08-25 18:32:00,633 - INFO - Training geometry effective rank: 22.885772163302054
+2026-08-25 18:32:00,633 - INFO - Training geometry avg cosine: 0.6831673093806909
+2026-08-25 18:32:02,698 - INFO - Validation total loss: 2.4700552439996613
+2026-08-25 18:32:02,698 - INFO - Validation CE loss: 2.17011695972328
+2026-08-25 18:32:02,698 - INFO - Validation COS align loss: 0.05998765833899698
+2026-08-25 18:32:02,698 - INFO - Early stop metric (ce): 2.17011695972328
+2026-08-25 18:32:02,699 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:32:02,699 - INFO - Epoch 70/120
+2026-08-25 18:32:15,024 - INFO - Training total loss: 2.3068331874298216
+2026-08-25 18:32:15,024 - INFO - Training CE loss: 2.0001431429896375
+2026-08-25 18:32:15,024 - INFO - Training COS align loss: 0.06133800802991548
+2026-08-25 18:32:15,024 - INFO - Training geometry effective rank: 22.845206494461237
+2026-08-25 18:32:15,024 - INFO - Training geometry avg cosine: 0.6833109878844325
+2026-08-25 18:32:16,936 - INFO - Validation total loss: 2.4757560788306043
+2026-08-25 18:32:16,936 - INFO - Validation CE loss: 2.1758686181301723
+2026-08-25 18:32:16,936 - INFO - Validation COS align loss: 0.059977497154039376
+2026-08-25 18:32:16,936 - INFO - Early stop metric (ce): 2.1758686181301723
+2026-08-25 18:32:16,937 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 18:32:16,937 - INFO - Epoch 71/120
+2026-08-25 18:32:29,240 - INFO - Training total loss: 2.303005530676489
+2026-08-25 18:32:29,240 - INFO - Training CE loss: 1.9964517589209145
+2026-08-25 18:32:29,240 - INFO - Training COS align loss: 0.06131075432792248
+2026-08-25 18:32:29,240 - INFO - Training geometry effective rank: 22.425476923990807
+2026-08-25 18:32:29,240 - INFO - Training geometry avg cosine: 0.6844992363963146
+2026-08-25 18:32:31,117 - INFO - Validation total loss: 2.4710744777974143
+2026-08-25 18:32:31,117 - INFO - Validation CE loss: 2.1714827026932024
+2026-08-25 18:32:31,117 - INFO - Validation COS align loss: 0.05991835885805122
+2026-08-25 18:32:31,117 - INFO - Early stop metric (ce): 2.1714827026932024
+2026-08-25 18:32:31,118 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 18:32:31,118 - INFO - Epoch 72/120
+2026-08-25 18:32:43,490 - INFO - Training total loss: 2.301665048191056
+2026-08-25 18:32:43,490 - INFO - Training CE loss: 1.995067111944874
+2026-08-25 18:32:43,490 - INFO - Training COS align loss: 0.06131958613599785
+2026-08-25 18:32:43,490 - INFO - Training geometry effective rank: 22.324288082493883
+2026-08-25 18:32:43,490 - INFO - Training geometry avg cosine: 0.6854645331546027
+2026-08-25 18:32:45,449 - INFO - Validation total loss: 2.4672288603025443
+2026-08-25 18:32:45,449 - INFO - Validation CE loss: 2.1676044689227583
+2026-08-25 18:32:45,449 - INFO - Validation COS align loss: 0.059924881345724344
+2026-08-25 18:32:45,449 - INFO - Early stop metric (ce): 2.1676044689227583
+2026-08-25 18:32:45,485 - INFO - Best validation ce loss: 2.1676044689227583
+2026-08-25 18:32:45,485 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:32:45,485 - INFO - Epoch 73/120
+2026-08-25 18:32:57,705 - INFO - Training total loss: 2.2986240456540297
+2026-08-25 18:32:57,705 - INFO - Training CE loss: 1.992052389721926
+2026-08-25 18:32:57,705 - INFO - Training COS align loss: 0.0613143316502701
+2026-08-25 18:32:57,705 - INFO - Training geometry effective rank: 22.229111645472187
+2026-08-25 18:32:57,705 - INFO - Training geometry avg cosine: 0.68612782535386
+2026-08-25 18:32:59,634 - INFO - Validation total loss: 2.469333013239848
+2026-08-25 18:32:59,635 - INFO - Validation CE loss: 2.1694351629126225
+2026-08-25 18:32:59,635 - INFO - Validation COS align loss: 0.05997957180497984
+2026-08-25 18:32:59,635 - INFO - Early stop metric (ce): 2.1694351629126225
+2026-08-25 18:32:59,635 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:32:59,635 - INFO - Epoch 74/120
+2026-08-25 18:33:11,964 - INFO - Training total loss: 2.298024088956039
+2026-08-25 18:33:11,964 - INFO - Training CE loss: 1.9915591800723094
+2026-08-25 18:33:11,964 - INFO - Training COS align loss: 0.061292981243319083
+2026-08-25 18:33:11,964 - INFO - Training geometry effective rank: 22.23262379791022
+2026-08-25 18:33:11,964 - INFO - Training geometry avg cosine: 0.6863375568204353
+2026-08-25 18:33:14,028 - INFO - Validation total loss: 2.477082620362867
+2026-08-25 18:33:14,028 - INFO - Validation CE loss: 2.177644889242148
+2026-08-25 18:33:14,029 - INFO - Validation COS align loss: 0.05988754734972516
+2026-08-25 18:33:14,029 - INFO - Early stop metric (ce): 2.177644889242148
+2026-08-25 18:33:14,029 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 18:33:14,029 - INFO - Epoch 75/120
+2026-08-25 18:33:26,320 - INFO - Training total loss: 2.2963710095631935
+2026-08-25 18:33:26,320 - INFO - Training CE loss: 1.989893704536824
+2026-08-25 18:33:26,321 - INFO - Training COS align loss: 0.06129546109804383
+2026-08-25 18:33:26,321 - INFO - Training geometry effective rank: 22.062115925295345
+2026-08-25 18:33:26,321 - INFO - Training geometry avg cosine: 0.6867266936292908
+2026-08-25 18:33:28,171 - INFO - Validation total loss: 2.465920330628817
+2026-08-25 18:33:28,171 - INFO - Validation CE loss: 2.166528669038044
+2026-08-25 18:33:28,171 - INFO - Validation COS align loss: 0.059878333955363655
+2026-08-25 18:33:28,171 - INFO - Early stop metric (ce): 2.166528669038044
+2026-08-25 18:33:28,209 - INFO - Best validation ce loss: 2.166528669038044
+2026-08-25 18:33:28,209 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty_cos5_token.pth
+2026-08-25 18:33:28,209 - INFO - Epoch 76/120
+2026-08-25 18:33:40,544 - INFO - Training total loss: 2.2909689070185797
+2026-08-25 18:33:40,544 - INFO - Training CE loss: 1.9846240275100975
+2026-08-25 18:33:40,544 - INFO - Training COS align loss: 0.061268975066767595
+2026-08-25 18:33:40,544 - INFO - Training geometry effective rank: 22.07214624501388
+2026-08-25 18:33:40,544 - INFO - Training geometry avg cosine: 0.687714609654497
+2026-08-25 18:33:42,475 - INFO - Validation total loss: 2.4720093794646694
+2026-08-25 18:33:42,475 - INFO - Validation CE loss: 2.1725640982517356
+2026-08-25 18:33:42,475 - INFO - Validation COS align loss: 0.05988905844258648
+2026-08-25 18:33:42,475 - INFO - Early stop metric (ce): 2.1725640982517356
+2026-08-25 18:33:42,476 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 18:33:42,476 - INFO - Epoch 77/120
+2026-08-25 18:33:54,702 - INFO - Training total loss: 2.2908574505074943
+2026-08-25 18:33:54,702 - INFO - Training CE loss: 1.98448924308621
+2026-08-25 18:33:54,702 - INFO - Training COS align loss: 0.06127364127552463
+2026-08-25 18:33:54,702 - INFO - Training geometry effective rank: 21.975797861002764
+2026-08-25 18:33:54,702 - INFO - Training geometry avg cosine: 0.6878169993018362
+2026-08-25 18:33:56,572 - INFO - Validation total loss: 2.4723721814257904
+2026-08-25 18:33:56,572 - INFO - Validation CE loss: 2.1729513140707057
+2026-08-25 18:33:56,572 - INFO - Validation COS align loss: 0.05988417521055164
+2026-08-25 18:33:56,572 - INFO - Early stop metric (ce): 2.1729513140707057
+2026-08-25 18:33:56,573 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 18:33:56,574 - INFO - Epoch 78/120
+2026-08-25 18:34:08,931 - INFO - Training total loss: 2.28862731141339
+2026-08-25 18:34:08,931 - INFO - Training CE loss: 1.982243242894629
+2026-08-25 18:34:08,931 - INFO - Training COS align loss: 0.06127681284563087
+2026-08-25 18:34:08,931 - INFO - Training geometry effective rank: 21.738138235960488
+2026-08-25 18:34:08,931 - INFO - Training geometry avg cosine: 0.6879602766918301
+2026-08-25 18:34:10,971 - INFO - Validation total loss: 2.4722323688826338
+2026-08-25 18:34:10,971 - INFO - Validation CE loss: 2.1727000316325173
+2026-08-25 18:34:10,971 - INFO - Validation COS align loss: 0.059906469394209044
+2026-08-25 18:34:10,971 - INFO - Early stop metric (ce): 2.1727000316325173
+2026-08-25 18:34:10,972 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 18:34:10,972 - INFO - Epoch 79/120
+2026-08-25 18:34:23,203 - INFO - Training total loss: 2.2865123447277202
+2026-08-25 18:34:23,203 - INFO - Training CE loss: 1.9802004959332804
+2026-08-25 18:34:23,203 - INFO - Training COS align loss: 0.06126236857607207
+2026-08-25 18:34:23,203 - INFO - Training geometry effective rank: 21.370218124834945
+2026-08-25 18:34:23,203 - INFO - Training geometry avg cosine: 0.6897333255073903
+2026-08-25 18:34:25,224 - INFO - Validation total loss: 2.466196506831779
+2026-08-25 18:34:25,224 - INFO - Validation CE loss: 2.1667298267839294
+2026-08-25 18:34:25,224 - INFO - Validation COS align loss: 0.05989333820956971
+2026-08-25 18:34:25,224 - INFO - Early stop metric (ce): 2.1667298267839294
+2026-08-25 18:34:25,225 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-25 18:34:25,225 - INFO - Epoch 80/120
+2026-08-25 18:34:37,531 - INFO - Training total loss: 2.2843899281572275
+2026-08-25 18:34:37,532 - INFO - Training CE loss: 1.9780256562659713
+2026-08-25 18:34:37,532 - INFO - Training COS align loss: 0.06127285423909644
+2026-08-25 18:34:37,532 - INFO - Training geometry effective rank: 21.218884152661037
+2026-08-25 18:34:37,532 - INFO - Training geometry avg cosine: 0.6898366260389409
+2026-08-25 18:34:39,615 - INFO - Validation total loss: 2.4732904802576154
+2026-08-25 18:34:39,615 - INFO - Validation CE loss: 2.173885793133355
+2026-08-25 18:34:39,615 - INFO - Validation COS align loss: 0.05988094095508428
+2026-08-25 18:34:39,615 - INFO - Early stop metric (ce): 2.173885793133355
+2026-08-25 18:34:39,616 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-25 18:34:39,616 - INFO - Epoch 81/120
+2026-08-25 18:34:51,924 - INFO - Training total loss: 2.280832259571506
+2026-08-25 18:34:51,924 - INFO - Training CE loss: 1.974620773634558
+2026-08-25 18:34:51,925 - INFO - Training COS align loss: 0.06124229734973685
+2026-08-25 18:34:51,925 - INFO - Training geometry effective rank: 21.00944598453982
+2026-08-25 18:34:51,925 - INFO - Training geometry avg cosine: 0.6892350961957924
+2026-08-25 18:34:53,992 - INFO - Validation total loss: 2.466792137326089
+2026-08-25 18:34:53,992 - INFO - Validation CE loss: 2.1678859501949197
+2026-08-25 18:34:53,992 - INFO - Validation COS align loss: 0.05978123773321062
+2026-08-25 18:34:53,992 - INFO - Early stop metric (ce): 2.1678859501949197
+2026-08-25 18:34:53,993 - INFO - No improvement in validation loss. Early stop counter: 6
+2026-08-25 18:34:53,993 - INFO - Epoch 82/120
+2026-08-25 18:35:06,224 - INFO - Training total loss: 2.2792831830941287
+2026-08-25 18:35:06,224 - INFO - Training CE loss: 1.9730664120573942
+2026-08-25 18:35:06,224 - INFO - Training COS align loss: 0.06124335434650169
+2026-08-25 18:35:06,224 - INFO - Training geometry effective rank: 21.118880776579743
+2026-08-25 18:35:06,224 - INFO - Training geometry avg cosine: 0.6898833899414493
+2026-08-25 18:35:08,199 - INFO - Validation total loss: 2.4668348776936018
+2026-08-25 18:35:08,199 - INFO - Validation CE loss: 2.1675972595746935
+2026-08-25 18:35:08,199 - INFO - Validation COS align loss: 0.059847527563316114
+2026-08-25 18:35:08,199 - INFO - Early stop metric (ce): 2.1675972595746935
+2026-08-25 18:35:08,199 - INFO - No improvement in validation loss. Early stop counter: 7
+2026-08-25 18:35:08,200 - INFO - Epoch 83/120
+2026-08-25 18:35:20,663 - INFO - Training total loss: 2.2772641817419443
+2026-08-25 18:35:20,663 - INFO - Training CE loss: 1.9711096530294603
+2026-08-25 18:35:20,663 - INFO - Training COS align loss: 0.061230906020806455
+2026-08-25 18:35:20,663 - INFO - Training geometry effective rank: 21.289511996020604
+2026-08-25 18:35:20,663 - INFO - Training geometry avg cosine: 0.6896973150249585
+2026-08-25 18:35:22,722 - INFO - Validation total loss: 2.46980266407324
+2026-08-25 18:35:22,723 - INFO - Validation CE loss: 2.170566131628634
+2026-08-25 18:35:22,723 - INFO - Validation COS align loss: 0.059847308330781473
+2026-08-25 18:35:22,723 - INFO - Early stop metric (ce): 2.170566131628634
+2026-08-25 18:35:22,723 - INFO - No improvement in validation loss. Early stop counter: 8
+2026-08-25 18:35:22,724 - INFO - Epoch 84/120
+2026-08-25 18:35:35,034 - INFO - Training total loss: 2.275868538288755
+2026-08-25 18:35:35,034 - INFO - Training CE loss: 1.969868843889422
+2026-08-25 18:35:35,034 - INFO - Training COS align loss: 0.061199939204561106
+2026-08-25 18:35:35,034 - INFO - Training geometry effective rank: 21.493272042923863
+2026-08-25 18:35:35,034 - INFO - Training geometry avg cosine: 0.6900192802982108
+2026-08-25 18:35:37,079 - INFO - Validation total loss: 2.4663404277465886
+2026-08-25 18:35:37,079 - INFO - Validation CE loss: 2.167151952506135
+2026-08-25 18:35:37,080 - INFO - Validation COS align loss: 0.059837696122509214
+2026-08-25 18:35:37,080 - INFO - Early stop metric (ce): 2.167151952506135
+2026-08-25 18:35:37,080 - INFO - No improvement in validation loss. Early stop counter: 9
+2026-08-25 18:35:37,080 - INFO - Epoch 85/120
+2026-08-25 18:35:49,362 - INFO - Training total loss: 2.2727379381424724
+2026-08-25 18:35:49,363 - INFO - Training CE loss: 1.9667570706935245
+2026-08-25 18:35:49,363 - INFO - Training COS align loss: 0.06119617460302806
+2026-08-25 18:35:49,363 - INFO - Training geometry effective rank: 21.190605219236144
+2026-08-25 18:35:49,363 - INFO - Training geometry avg cosine: 0.6899078700561004
+2026-08-25 18:35:51,323 - INFO - Validation total loss: 2.4666718423622362
+2026-08-25 18:35:51,323 - INFO - Validation CE loss: 2.1674023779676705
+2026-08-25 18:35:51,323 - INFO - Validation COS align loss: 0.05985389477193612
+2026-08-25 18:35:51,323 - INFO - Early stop metric (ce): 2.1674023779676705
+2026-08-25 18:35:51,323 - INFO - No improvement in validation loss. Early stop counter: 10
+2026-08-25 18:35:51,323 - INFO - Early stopping triggered.
+2026-08-25 18:35:51,336 - INFO - Loading best model for final testing...
+2026-08-25 18:45:34,129 - INFO - Final Epoch: 75
+2026-08-25 18:45:34,131 - INFO - Final Test Recalls: {'Recall@5': 0.03818150757224391, 'Recall@10': 0.059086568249877174, 'Recall@20': 0.08938004043704706}
+2026-08-25 18:45:34,131 - INFO - Final Test NDCGs: {'NDCG@5': 0.025803674572015524, 'NDCG@10': 0.032560626223739314, 'NDCG@20': 0.040180544379914716}

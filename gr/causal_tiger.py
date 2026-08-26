@@ -254,6 +254,7 @@ class CausalTIGER(nn.Module):
         self.pad_token_id = config["pad_token_id"]
         self.eos_token_id = config["eos_token_id"]
         self.decoder_start_token_id = config.get("decoder_start_token_id", self.pad_token_id)
+        self.decoder_only_lm = config.get("decoder_only_lm", False)
         self.dropout = nn.Dropout(config["dropout_rate"])
         self.shared = nn.Embedding(config["vocab_size"], config["d_model"])
 
@@ -332,23 +333,36 @@ class CausalTIGER(nn.Module):
             hidden_states = self._encode_tokens(input_ids, attention_mask)
             return None, self._lm_logits(hidden_states)
 
-        batch_size = input_ids.size(0)
-        start_tokens = torch.full(
-            (batch_size, 1),
-            self.decoder_start_token_id,
-            dtype=input_ids.dtype,
-            device=input_ids.device,
-        )
-        decoder_input_ids = torch.cat([start_tokens, labels[:, :-1]], dim=1)
-        model_input_ids = torch.cat([input_ids, decoder_input_ids], dim=1)
-
         if attention_mask is None:
             attention_mask = torch.ones_like(input_ids)
-        decoder_attention_mask = torch.ones_like(decoder_input_ids)
-        model_attention_mask = torch.cat([attention_mask, decoder_attention_mask], dim=1)
-
-        hidden_states = self._encode_tokens(model_input_ids, model_attention_mask)
-        logits = self._lm_logits(hidden_states[:, -labels.size(1) :, :])
+        if self.decoder_only_lm:
+            model_input_ids = torch.cat([input_ids, labels[:, :-1]], dim=1)
+            label_attention_mask = torch.ones_like(labels[:, :-1])
+            model_attention_mask = torch.cat([attention_mask, label_attention_mask], dim=1)
+            hidden_states = self._encode_tokens(model_input_ids, model_attention_mask)
+            history_positions = torch.arange(input_ids.size(1), device=input_ids.device).view(1, -1)
+            history_last_pos = (attention_mask.long() * history_positions).max(dim=1).values
+            first_hidden = hidden_states[
+                torch.arange(input_ids.size(0), device=input_ids.device),
+                history_last_pos,
+            ].unsqueeze(1)
+            rest_hidden = hidden_states[:, input_ids.size(1) :, :]
+            pred_hidden = torch.cat([first_hidden, rest_hidden], dim=1)
+        else:
+            batch_size = input_ids.size(0)
+            start_tokens = torch.full(
+                (batch_size, 1),
+                self.decoder_start_token_id,
+                dtype=input_ids.dtype,
+                device=input_ids.device,
+            )
+            decoder_input_ids = torch.cat([start_tokens, labels[:, :-1]], dim=1)
+            model_input_ids = torch.cat([input_ids, decoder_input_ids], dim=1)
+            decoder_attention_mask = torch.ones_like(decoder_input_ids)
+            model_attention_mask = torch.cat([attention_mask, decoder_attention_mask], dim=1)
+            hidden_states = self._encode_tokens(model_input_ids, model_attention_mask)
+            pred_hidden = hidden_states[:, -labels.size(1) :, :]
+        logits = self._lm_logits(pred_hidden)
         loss = F.cross_entropy(
             logits.reshape(-1, logits.size(-1)),
             labels.reshape(-1),
@@ -394,12 +408,18 @@ class CausalTIGER(nn.Module):
             if attention_mask is not None
             else None
         )
-        generated = torch.full(
+        start_prefix = torch.full(
             (batch_size * num_beams, 1),
             self.decoder_start_token_id,
             dtype=input_ids.dtype,
             device=device,
         )
+        if self.decoder_only_lm:
+            generated = torch.empty((batch_size * num_beams, 0), dtype=input_ids.dtype, device=device)
+            trie_prefix = generated
+        else:
+            generated = start_prefix
+            trie_prefix = start_prefix
         beam_scores = torch.full(
             (batch_size, num_beams),
             torch.finfo(torch.float32).min,
@@ -407,7 +427,8 @@ class CausalTIGER(nn.Module):
         )
         beam_scores[:, 0] = 0.0
 
-        for _ in range(1, max_length):
+        steps = max_length - 1 if self.decoder_only_lm else max_length - generated.size(1)
+        for _ in range(steps):
             logits = self._next_token_logits(beam_input_ids, beam_attention_mask, generated)
             log_probs = F.log_softmax(logits.float(), dim=-1)
 
@@ -415,7 +436,7 @@ class CausalTIGER(nn.Module):
                 allowed_mask = torch.zeros_like(log_probs, dtype=torch.bool)
                 for flat_idx in range(generated.size(0)):
                     batch_idx = flat_idx // num_beams
-                    allowed_tokens = prefix_allowed_tokens_fn(batch_idx, generated[flat_idx])
+                    allowed_tokens = prefix_allowed_tokens_fn(batch_idx, trie_prefix[flat_idx])
                     if allowed_tokens:
                         allowed_mask[flat_idx, allowed_tokens] = True
                 log_probs = log_probs.masked_fill(~allowed_mask, torch.finfo(log_probs.dtype).min)
@@ -434,13 +455,19 @@ class CausalTIGER(nn.Module):
                 [generated[gather_indices], next_tokens.reshape(-1, 1).to(input_ids.dtype)],
                 dim=1,
             )
+            trie_prefix = torch.cat(
+                [trie_prefix[gather_indices], next_tokens.reshape(-1, 1).to(input_ids.dtype)],
+                dim=1,
+            )
             beam_input_ids = beam_input_ids[gather_indices]
             if beam_attention_mask is not None:
                 beam_attention_mask = beam_attention_mask[gather_indices]
             beam_scores = top_scores
 
-        generated = generated.view(batch_size, num_beams, max_length)
-        return generated[:, :num_return_sequences, :].reshape(
+        output = generated
+        output_len = output.size(1)
+        output = output.view(batch_size, num_beams, output_len)
+        return output[:, :num_return_sequences, :].reshape(
             batch_size * num_return_sequences,
-            max_length,
+            output_len,
         )

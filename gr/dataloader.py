@@ -13,10 +13,11 @@ class GenRecDataLoader(DataLoader):
         num_workers (int): Number of subprocesses to use for data loading.
         collate_fn (callable, optional): Function to merge a list of samples to form a mini-batch.
     """
-    def __init__(self, dataset, batch_size=32, shuffle=True, num_workers=4, collate_fn=None):
+    def __init__(self, dataset, batch_size=32, shuffle=True, num_workers=4, collate_fn=None, generator=None, worker_init_fn=None):
         collate_fn = self.collate_fn
         super(GenRecDataLoader, self).__init__(dataset, batch_size=batch_size, shuffle=shuffle,
-                                               num_workers=num_workers, collate_fn=collate_fn)
+                                               num_workers=num_workers, collate_fn=collate_fn,
+                                               generator=generator, worker_init_fn=worker_init_fn)
     
             
     def collate_fn(self, batch, pad_token=0):

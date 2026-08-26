@@ -345,30 +345,30 @@ class CausalTIGER(nn.Module):
                 shift_labels = shift_labels.masked_fill(shift_labels == self.pad_token_id, -100)
             else:
                 shift_labels = shift_labels.masked_fill(~loss_mask[:, 1:].to(torch.bool), -100)
-            loss = F.cross_entropy(
+            token_loss = F.cross_entropy(
                 shift_logits.reshape(-1, shift_logits.size(-1)),
                 shift_labels.reshape(-1),
                 ignore_index=-100,
-            )
+                reduction="none",
+            ).view(shift_labels.size())
+            valid_mask = shift_labels.ne(-100)
+            loss = (token_loss * valid_mask).sum() / valid_mask.sum().clamp_min(1)
             return loss, shift_logits
-
-        batch_size = input_ids.size(0)
-        start_tokens = torch.full(
-            (batch_size, 1),
-            self.decoder_start_token_id,
-            dtype=input_ids.dtype,
-            device=input_ids.device,
-        )
-        decoder_input_ids = torch.cat([start_tokens, labels[:, :-1]], dim=1)
-        model_input_ids = torch.cat([input_ids, decoder_input_ids], dim=1)
 
         if attention_mask is None:
             attention_mask = torch.ones_like(input_ids)
-        decoder_attention_mask = torch.ones_like(decoder_input_ids)
-        model_attention_mask = torch.cat([attention_mask, decoder_attention_mask], dim=1)
-
+        model_input_ids = torch.cat([input_ids, labels[:, :-1]], dim=1)
+        label_attention_mask = torch.ones_like(labels[:, :-1])
+        model_attention_mask = torch.cat([attention_mask, label_attention_mask], dim=1)
         hidden_states = self._encode_tokens(model_input_ids, model_attention_mask)
-        logits = self._lm_logits(hidden_states[:, -labels.size(1) :, :])
+        history_last_pos = attention_mask.long().sum(dim=1).clamp_min(1) - 1
+        first_hidden = hidden_states[
+            torch.arange(input_ids.size(0), device=input_ids.device),
+            history_last_pos,
+        ].unsqueeze(1)
+        rest_hidden = hidden_states[:, input_ids.size(1) :, :]
+        pred_hidden = torch.cat([first_hidden, rest_hidden], dim=1)
+        logits = self._lm_logits(pred_hidden)
         loss = F.cross_entropy(
             logits.reshape(-1, logits.size(-1)),
             labels.reshape(-1),
@@ -414,9 +414,14 @@ class CausalTIGER(nn.Module):
             if attention_mask is not None
             else None
         )
-        generated = torch.full(
+        trie_prefix = torch.full(
             (batch_size * num_beams, 1),
             self.decoder_start_token_id,
+            dtype=input_ids.dtype,
+            device=device,
+        )
+        generated = torch.empty(
+            (batch_size * num_beams, 0),
             dtype=input_ids.dtype,
             device=device,
         )
@@ -427,7 +432,8 @@ class CausalTIGER(nn.Module):
         )
         beam_scores[:, 0] = 0.0
 
-        for _ in range(1, max_length):
+        steps = max_length - 1
+        for _ in range(steps):
             logits = self._next_token_logits(beam_input_ids, beam_attention_mask, generated)
             log_probs = F.log_softmax(logits.float(), dim=-1)
 
@@ -435,7 +441,7 @@ class CausalTIGER(nn.Module):
                 allowed_mask = torch.zeros_like(log_probs, dtype=torch.bool)
                 for flat_idx in range(generated.size(0)):
                     batch_idx = flat_idx // num_beams
-                    allowed_tokens = prefix_allowed_tokens_fn(batch_idx, generated[flat_idx])
+                    allowed_tokens = prefix_allowed_tokens_fn(batch_idx, trie_prefix[flat_idx])
                     if allowed_tokens:
                         allowed_mask[flat_idx, allowed_tokens] = True
                 log_probs = log_probs.masked_fill(~allowed_mask, torch.finfo(log_probs.dtype).min)
@@ -446,12 +452,14 @@ class CausalTIGER(nn.Module):
             next_beam_indices = top_indices // vocab_size
             next_tokens = top_indices % vocab_size
 
-            batch_offsets = (
-                torch.arange(batch_size, device=device).unsqueeze(1) * num_beams
-            )
+            batch_offsets = torch.arange(batch_size, device=device).unsqueeze(1) * num_beams
             gather_indices = (batch_offsets + next_beam_indices).reshape(-1)
             generated = torch.cat(
                 [generated[gather_indices], next_tokens.reshape(-1, 1).to(input_ids.dtype)],
+                dim=1,
+            )
+            trie_prefix = torch.cat(
+                [trie_prefix[gather_indices], next_tokens.reshape(-1, 1).to(input_ids.dtype)],
                 dim=1,
             )
             beam_input_ids = beam_input_ids[gather_indices]
@@ -459,8 +467,9 @@ class CausalTIGER(nn.Module):
                 beam_attention_mask = beam_attention_mask[gather_indices]
             beam_scores = top_scores
 
-        generated = generated.view(batch_size, num_beams, max_length)
-        return generated[:, :num_return_sequences, :].reshape(
+        output = torch.cat([trie_prefix[:, :1], generated], dim=1)
+        output = output.view(batch_size, num_beams, max_length)
+        return output[:, :num_return_sequences, :].reshape(
             batch_size * num_return_sequences,
             max_length,
         )

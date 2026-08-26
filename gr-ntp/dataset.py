@@ -23,16 +23,38 @@ def process_data(file_path, mode, max_len, PAD_TOKEN=0, max_seq_len=None):
     data['sequence'] = data['history'].apply(lambda x: list(x)) + data['target'].apply(lambda x: [x])
 
     if mode == 'train':
-        # Keep one full sequence per user. The dataloader builds NTP masks.
+        # Keep one full sequence per user, then create overlapping windows.
         processed_data = []
-        for row in data.itertuples(index=False):
+        rows = data.groupby('user', sort=False).tail(1) if 'user' in data.columns else data
+        for row in rows.itertuples(index=False):
             sequence = row.sequence
             if max_seq_len is not None and len(sequence) > max_seq_len:
                 sequence = sequence[-max_seq_len:]
-            if len(sequence) > 1:
+            if len(sequence) <= 1:
+                continue
+            window_size = max(2 * max_len, 2)
+            stride = max(max_len, 1)
+            if len(sequence) <= window_size:
                 processed_data.append({
-                    'sequence': sequence
+                    'sequence': sequence,
+                    'item_loss_mask': [False] + [True] * (len(sequence) - 1),
                 })
+            else:
+                for start in range(0, len(sequence), stride):
+                    window = sequence[start:start + window_size]
+                    if len(window) <= 1:
+                        continue
+                    if start == 0:
+                        item_loss_mask = [False] + [True] * (len(window) - 1)
+                    else:
+                        item_loss_mask = [False] * min(stride, len(window))
+                        item_loss_mask += [True] * (len(window) - len(item_loss_mask))
+                    processed_data.append({
+                        'sequence': window,
+                        'item_loss_mask': item_loss_mask,
+                    })
+                    if start + window_size >= len(sequence):
+                        break
     elif mode == 'evaluation':
         # Use the last item as target and the rest as history
         processed_data = []

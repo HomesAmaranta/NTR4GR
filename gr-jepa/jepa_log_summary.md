@@ -1,0 +1,14 @@
+| file | dataset | loss_type | weight | mode | Recall@5 | Recall@10 | Recall@20 | NDCG@5 | NDCG@10 | NDCG@20 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| causal_tiger_Beauty_cos0.1_mean.log | Beauty | cos | 0.1 | mean | 0.035730 | 0.053995 | 0.082624 | 0.023530 | 0.029434 | 0.036622 |
+| causal_tiger_Beauty_cos0.1_token.log | Beauty | cos | 0.1 | token | 0.035417 | 0.053893 | 0.082314 | 0.022867 | 0.028833 | 0.035990 |
+| causal_tiger_Beauty_cos0.5_token.log | Beauty | cos | 0.5 | token | 0.036537 | 0.056541 | 0.083834 | 0.023264 | 0.029675 | 0.036512 |
+| causal_tiger_Beauty_cos0_token.log | Beauty | cos | 0 | token | 0.035648 | 0.055865 | 0.083342 | 0.023833 | 0.030329 | 0.037263 |
+| causal_tiger_Beauty_cos10_token.log | Beauty | cos | 10 | token | 0.034389 | 0.054569 | 0.081902 | 0.022066 | 0.028501 | 0.035388 |
+| causal_tiger_Beauty_cos1_token.log | Beauty | cos | 1 | token | 0.036393 | 0.056752 | 0.083553 | 0.023628 | 0.030170 | 0.036908 |
+| causal_tiger_Beauty_cos2_token.log | Beauty | cos | 2 | token | 0.037059 | 0.057246 | 0.085533 | 0.024121 | 0.030611 | 0.037719 |
+| causal_tiger_Beauty_cos5_token.log | Beauty | cos | 5 | token | 0.035424 | 0.054750 | 0.083697 | 0.023757 | 0.029945 | 0.037237 |
+| causal_tiger_Beauty_mse0.1_mean.log | Beauty | mse | 0.1 | mean | 0.033770 | 0.053267 | 0.082932 | 0.022239 | 0.028500 | 0.035963 |
+| causal_tiger_Beauty_mse10_token.log | Beauty | mse | 10 | token | 0.035924 | 0.056188 | 0.084274 | 0.023020 | 0.029546 | 0.036576 |
+| causal_tiger_Beauty_mse2_token.log | Beauty | mse | 2 | token | 0.034965 | 0.054889 | 0.081956 | 0.023010 | 0.029430 | 0.036253 |
+| causal_tiger_Beauty_mse5_token.log | Beauty | mse | 5 | token | 0.035561 | 0.055162 | 0.084596 | 0.023179 | 0.029432 | 0.036854 |

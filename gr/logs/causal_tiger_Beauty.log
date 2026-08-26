@@ -506,3 +506,1647 @@
 2026-08-24 08:15:29,590 - INFO - Final Epoch: 95
 2026-08-24 08:15:29,592 - INFO - Final Test Recalls: {'Recall@5': 0.037928005756386614, 'Recall@10': 0.058515206478983804, 'Recall@20': 0.0860766559807272}
 2026-08-24 08:15:29,592 - INFO - Final Test NDCGs: {'NDCG@5': 0.0250533443192108, 'NDCG@10': 0.03166224194346835, 'NDCG@20': 0.03858501670778181}
+2026-08-25 07:00:44,024 - INFO - Configuration: {'batch_size': 256, 'infer_size': 96, 'num_epochs': 200, 'lr': 0.0001, 'device': 'cuda', 'num_layers': 4, 'num_decoder_layers': 4, 'd_model': 128, 'd_ff': 1024, 'num_heads': 6, 'd_kv': 64, 'dropout_rate': 0.1, 'vocab_size': 1025, 'pad_token_id': 0, 'eos_token_id': 0, 'feed_forward_proj': 'relu', 'max_len': 20, 'dataset_path': '../data/Beauty', 'code_path': '../data/Beauty/Beauty_t5_rqvae.npy', 'mode': 'train', 'model_type': 'causal', 'decoder_only_lm': True, 'log_path': './logs/causal_tiger_Beauty.log', 'seed': 2025, 'save_path': './ckpt/causal_tiger_Beauty.pth', 'early_stop': 10, 'topk_list': [5, 10, 20], 'beam_size': 30}
+2026-08-25 07:00:44,051 - INFO - #Embedding parameters: 131200
+#Non-embedding parameters: 4459648
+#Total trainable parameters: 4590848
+
+2026-08-25 07:00:47,963 - INFO - Epoch 1/200
+2026-08-25 07:01:10,446 - INFO - Training loss: 4.977663095823058
+2026-08-25 07:01:12,651 - INFO - Validation loss: 4.442942658207447
+2026-08-25 07:01:12,713 - INFO - Best validation loss: 4.442942658207447
+2026-08-25 07:01:12,713 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:01:12,713 - INFO - Epoch 2/200
+2026-08-25 07:01:34,843 - INFO - Training loss: 4.262399243937392
+2026-08-25 07:01:37,033 - INFO - Validation loss: 4.084404896257261
+2026-08-25 07:01:37,095 - INFO - Best validation loss: 4.084404896257261
+2026-08-25 07:01:37,095 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:01:37,095 - INFO - Epoch 3/200
+2026-08-25 07:01:59,206 - INFO - Training loss: 3.940760350876745
+2026-08-25 07:02:01,475 - INFO - Validation loss: 3.8575721585187788
+2026-08-25 07:02:01,535 - INFO - Best validation loss: 3.8575721585187788
+2026-08-25 07:02:01,535 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:02:01,536 - INFO - Epoch 4/200
+2026-08-25 07:02:23,646 - INFO - Training loss: 3.6870692370002836
+2026-08-25 07:02:25,843 - INFO - Validation loss: 3.688904169803014
+2026-08-25 07:02:25,906 - INFO - Best validation loss: 3.688904169803014
+2026-08-25 07:02:25,906 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:02:25,907 - INFO - Epoch 5/200
+2026-08-25 07:02:48,075 - INFO - Training loss: 3.4620131231003697
+2026-08-25 07:02:50,282 - INFO - Validation loss: 3.4861961782234423
+2026-08-25 07:02:50,343 - INFO - Best validation loss: 3.4861961782234423
+2026-08-25 07:02:50,343 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:02:50,344 - INFO - Epoch 6/200
+2026-08-25 07:03:12,477 - INFO - Training loss: 3.263400592228782
+2026-08-25 07:03:14,675 - INFO - Validation loss: 3.3500305705827707
+2026-08-25 07:03:14,736 - INFO - Best validation loss: 3.3500305705827707
+2026-08-25 07:03:14,736 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:03:14,736 - INFO - Epoch 7/200
+2026-08-25 07:03:36,858 - INFO - Training loss: 3.0832005910836306
+2026-08-25 07:03:39,167 - INFO - Validation loss: 3.157373402763334
+2026-08-25 07:03:39,230 - INFO - Best validation loss: 3.157373402763334
+2026-08-25 07:03:39,230 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:03:39,230 - INFO - Epoch 8/200
+2026-08-25 07:04:01,331 - INFO - Training loss: 2.924816040677319
+2026-08-25 07:04:03,531 - INFO - Validation loss: 2.98034207043218
+2026-08-25 07:04:03,590 - INFO - Best validation loss: 2.98034207043218
+2026-08-25 07:04:03,590 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:04:03,590 - INFO - Epoch 9/200
+2026-08-25 07:04:25,739 - INFO - Training loss: 2.7796740049518034
+2026-08-25 07:04:27,921 - INFO - Validation loss: 2.774908296028432
+2026-08-25 07:04:27,981 - INFO - Best validation loss: 2.774908296028432
+2026-08-25 07:04:27,981 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:04:27,981 - INFO - Epoch 10/200
+2026-08-25 07:04:50,062 - INFO - Training loss: 2.658471093567429
+2026-08-25 07:04:52,259 - INFO - Validation loss: 2.6643324916454856
+2026-08-25 07:04:52,324 - INFO - Best validation loss: 2.6643324916454856
+2026-08-25 07:04:52,324 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:04:52,324 - INFO - Epoch 11/200
+2026-08-25 07:05:14,470 - INFO - Training loss: 2.5638986793473535
+2026-08-25 07:05:16,668 - INFO - Validation loss: 2.5311738887058306
+2026-08-25 07:05:16,728 - INFO - Best validation loss: 2.5311738887058306
+2026-08-25 07:05:16,728 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:05:16,728 - INFO - Epoch 12/200
+2026-08-25 07:05:38,854 - INFO - Training loss: 2.4813793354925013
+2026-08-25 07:05:41,113 - INFO - Validation loss: 2.420232519059734
+2026-08-25 07:05:41,176 - INFO - Best validation loss: 2.420232519059734
+2026-08-25 07:05:41,176 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:05:41,176 - INFO - Epoch 13/200
+2026-08-25 07:06:03,253 - INFO - Training loss: 2.4150824630306853
+2026-08-25 07:06:05,442 - INFO - Validation loss: 2.34164925962047
+2026-08-25 07:06:05,501 - INFO - Best validation loss: 2.34164925962047
+2026-08-25 07:06:05,502 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:06:05,502 - INFO - Epoch 14/200
+2026-08-25 07:06:27,648 - INFO - Training loss: 2.3511892747322407
+2026-08-25 07:06:29,834 - INFO - Validation loss: 2.2801279049574563
+2026-08-25 07:06:29,894 - INFO - Best validation loss: 2.2801279049574563
+2026-08-25 07:06:29,895 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:06:29,895 - INFO - Epoch 15/200
+2026-08-25 07:06:52,033 - INFO - Training loss: 2.2949575631071157
+2026-08-25 07:06:54,212 - INFO - Validation loss: 2.220347901270625
+2026-08-25 07:06:54,277 - INFO - Best validation loss: 2.220347901270625
+2026-08-25 07:06:54,277 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:06:54,278 - INFO - Epoch 16/200
+2026-08-25 07:07:16,348 - INFO - Training loss: 2.249182729869501
+2026-08-25 07:07:18,530 - INFO - Validation loss: 2.1964571025750157
+2026-08-25 07:07:18,598 - INFO - Best validation loss: 2.1964571025750157
+2026-08-25 07:07:18,598 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:07:18,599 - INFO - Epoch 17/200
+2026-08-25 07:07:40,789 - INFO - Training loss: 2.2049822751650088
+2026-08-25 07:07:43,126 - INFO - Validation loss: 2.138836303494007
+2026-08-25 07:07:43,195 - INFO - Best validation loss: 2.138836303494007
+2026-08-25 07:07:43,195 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:07:43,195 - INFO - Epoch 18/200
+2026-08-25 07:08:05,321 - INFO - Training loss: 2.1644826155692223
+2026-08-25 07:08:07,481 - INFO - Validation loss: 2.1025323264076987
+2026-08-25 07:08:07,551 - INFO - Best validation loss: 2.1025323264076987
+2026-08-25 07:08:07,551 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:08:07,552 - INFO - Epoch 19/200
+2026-08-25 07:08:29,679 - INFO - Training loss: 2.127496991176086
+2026-08-25 07:08:31,868 - INFO - Validation loss: 2.06553862074414
+2026-08-25 07:08:31,936 - INFO - Best validation loss: 2.06553862074414
+2026-08-25 07:08:31,936 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:08:31,936 - INFO - Epoch 20/200
+2026-08-25 07:08:54,183 - INFO - Training loss: 2.090018988815263
+2026-08-25 07:08:56,381 - INFO - Validation loss: 2.0339172981327693
+2026-08-25 07:08:56,445 - INFO - Best validation loss: 2.0339172981327693
+2026-08-25 07:08:56,445 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:08:56,445 - INFO - Epoch 21/200
+2026-08-25 07:09:18,560 - INFO - Training loss: 2.060632663014334
+2026-08-25 07:09:20,859 - INFO - Validation loss: 2.0027744028189662
+2026-08-25 07:09:20,925 - INFO - Best validation loss: 2.0027744028189662
+2026-08-25 07:09:20,925 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:09:20,926 - INFO - Epoch 22/200
+2026-08-25 07:09:43,030 - INFO - Training loss: 2.027130569929279
+2026-08-25 07:09:45,221 - INFO - Validation loss: 1.9735332701850858
+2026-08-25 07:09:45,289 - INFO - Best validation loss: 1.9735332701850858
+2026-08-25 07:09:45,289 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:09:45,289 - INFO - Epoch 23/200
+2026-08-25 07:10:07,460 - INFO - Training loss: 1.9988760869326758
+2026-08-25 07:10:09,625 - INFO - Validation loss: 1.9491653340057242
+2026-08-25 07:10:09,690 - INFO - Best validation loss: 1.9491653340057242
+2026-08-25 07:10:09,690 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:10:09,690 - INFO - Epoch 24/200
+2026-08-25 07:10:31,864 - INFO - Training loss: 1.96991008404164
+2026-08-25 07:10:34,094 - INFO - Validation loss: 1.9220391404475266
+2026-08-25 07:10:34,158 - INFO - Best validation loss: 1.9220391404475266
+2026-08-25 07:10:34,158 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:10:34,159 - INFO - Epoch 25/200
+2026-08-25 07:10:56,249 - INFO - Training loss: 1.944612734744521
+2026-08-25 07:10:58,457 - INFO - Validation loss: 1.8957234063373616
+2026-08-25 07:10:58,521 - INFO - Best validation loss: 1.8957234063373616
+2026-08-25 07:10:58,521 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:10:58,521 - INFO - Epoch 26/200
+2026-08-25 07:11:20,653 - INFO - Training loss: 1.9170171913005962
+2026-08-25 07:11:22,836 - INFO - Validation loss: 1.870839917096969
+2026-08-25 07:11:22,902 - INFO - Best validation loss: 1.870839917096969
+2026-08-25 07:11:22,902 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:11:22,902 - INFO - Epoch 27/200
+2026-08-25 07:11:45,025 - INFO - Training loss: 1.8956988862052502
+2026-08-25 07:11:47,283 - INFO - Validation loss: 1.848650703102734
+2026-08-25 07:11:47,344 - INFO - Best validation loss: 1.848650703102734
+2026-08-25 07:11:47,344 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:11:47,345 - INFO - Epoch 28/200
+2026-08-25 07:12:09,447 - INFO - Training loss: 1.8740775385719328
+2026-08-25 07:12:11,638 - INFO - Validation loss: 1.8337921809740845
+2026-08-25 07:12:11,710 - INFO - Best validation loss: 1.8337921809740845
+2026-08-25 07:12:11,710 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:12:11,710 - INFO - Epoch 29/200
+2026-08-25 07:12:33,851 - INFO - Training loss: 1.852342874855383
+2026-08-25 07:12:36,045 - INFO - Validation loss: 1.8134213332966163
+2026-08-25 07:12:36,109 - INFO - Best validation loss: 1.8134213332966163
+2026-08-25 07:12:36,109 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:12:36,109 - INFO - Epoch 30/200
+2026-08-25 07:12:58,271 - INFO - Training loss: 1.8335313926874897
+2026-08-25 07:13:00,453 - INFO - Validation loss: 1.8025545756704306
+2026-08-25 07:13:00,515 - INFO - Best validation loss: 1.8025545756704306
+2026-08-25 07:13:00,515 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:13:00,516 - INFO - Epoch 31/200
+2026-08-25 07:13:22,648 - INFO - Training loss: 1.8132507404464693
+2026-08-25 07:13:24,843 - INFO - Validation loss: 1.777045605520322
+2026-08-25 07:13:24,908 - INFO - Best validation loss: 1.777045605520322
+2026-08-25 07:13:24,908 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:13:24,909 - INFO - Epoch 32/200
+2026-08-25 07:13:47,063 - INFO - Training loss: 1.7952410822248643
+2026-08-25 07:13:49,291 - INFO - Validation loss: 1.7634750174862122
+2026-08-25 07:13:49,355 - INFO - Best validation loss: 1.7634750174862122
+2026-08-25 07:13:49,355 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:13:49,355 - INFO - Epoch 33/200
+2026-08-25 07:14:11,460 - INFO - Training loss: 1.7768863620461193
+2026-08-25 07:14:13,665 - INFO - Validation loss: 1.7478315646044686
+2026-08-25 07:14:13,725 - INFO - Best validation loss: 1.7478315646044686
+2026-08-25 07:14:13,725 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:14:13,725 - INFO - Epoch 34/200
+2026-08-25 07:14:35,825 - INFO - Training loss: 1.7615359715450598
+2026-08-25 07:14:38,007 - INFO - Validation loss: 1.7346151269044998
+2026-08-25 07:14:38,072 - INFO - Best validation loss: 1.7346151269044998
+2026-08-25 07:14:38,072 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:14:38,072 - INFO - Epoch 35/200
+2026-08-25 07:15:00,142 - INFO - Training loss: 1.744159745335115
+2026-08-25 07:15:02,325 - INFO - Validation loss: 1.7199685430322083
+2026-08-25 07:15:02,384 - INFO - Best validation loss: 1.7199685430322083
+2026-08-25 07:15:02,384 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:15:02,384 - INFO - Epoch 36/200
+2026-08-25 07:15:24,537 - INFO - Training loss: 1.730501902242579
+2026-08-25 07:15:26,705 - INFO - Validation loss: 1.711823139579511
+2026-08-25 07:15:26,771 - INFO - Best validation loss: 1.711823139579511
+2026-08-25 07:15:26,771 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:15:26,771 - INFO - Epoch 37/200
+2026-08-25 07:15:48,850 - INFO - Training loss: 1.7144647224404004
+2026-08-25 07:15:51,032 - INFO - Validation loss: 1.697272124208606
+2026-08-25 07:15:51,093 - INFO - Best validation loss: 1.697272124208606
+2026-08-25 07:15:51,093 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:15:51,093 - INFO - Epoch 38/200
+2026-08-25 07:16:13,232 - INFO - Training loss: 1.7032955917402928
+2026-08-25 07:16:15,397 - INFO - Validation loss: 1.6885443746787796
+2026-08-25 07:16:15,457 - INFO - Best validation loss: 1.6885443746787796
+2026-08-25 07:16:15,457 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:16:15,458 - INFO - Epoch 39/200
+2026-08-25 07:16:37,535 - INFO - Training loss: 1.6915886376618412
+2026-08-25 07:16:39,739 - INFO - Validation loss: 1.6785672038409842
+2026-08-25 07:16:39,799 - INFO - Best validation loss: 1.6785672038409842
+2026-08-25 07:16:39,799 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:16:39,799 - INFO - Epoch 40/200
+2026-08-25 07:17:01,941 - INFO - Training loss: 1.676815635035474
+2026-08-25 07:17:04,106 - INFO - Validation loss: 1.6637983859352798
+2026-08-25 07:17:04,173 - INFO - Best validation loss: 1.6637983859352798
+2026-08-25 07:17:04,173 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:17:04,174 - INFO - Epoch 41/200
+2026-08-25 07:17:26,240 - INFO - Training loss: 1.6630956247622866
+2026-08-25 07:17:28,455 - INFO - Validation loss: 1.657798091229451
+2026-08-25 07:17:28,522 - INFO - Best validation loss: 1.657798091229451
+2026-08-25 07:17:28,523 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:17:28,523 - INFO - Epoch 42/200
+2026-08-25 07:17:50,626 - INFO - Training loss: 1.6492702353325335
+2026-08-25 07:17:52,817 - INFO - Validation loss: 1.648399203632011
+2026-08-25 07:17:52,879 - INFO - Best validation loss: 1.648399203632011
+2026-08-25 07:17:52,879 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:17:52,879 - INFO - Epoch 43/200
+2026-08-25 07:18:15,019 - INFO - Training loss: 1.6378776894933056
+2026-08-25 07:18:17,207 - INFO - Validation loss: 1.6368320540808812
+2026-08-25 07:18:17,269 - INFO - Best validation loss: 1.6368320540808812
+2026-08-25 07:18:17,269 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:18:17,269 - INFO - Epoch 44/200
+2026-08-25 07:18:39,426 - INFO - Training loss: 1.6314164861630838
+2026-08-25 07:18:41,632 - INFO - Validation loss: 1.6260962977429827
+2026-08-25 07:18:41,692 - INFO - Best validation loss: 1.6260962977429827
+2026-08-25 07:18:41,692 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:18:41,693 - INFO - Epoch 45/200
+2026-08-25 07:19:03,861 - INFO - Training loss: 1.6206391569705325
+2026-08-25 07:19:06,068 - INFO - Validation loss: 1.628354504896336
+2026-08-25 07:19:06,069 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:19:06,069 - INFO - Epoch 46/200
+2026-08-25 07:19:28,158 - INFO - Training loss: 1.6122184326212694
+2026-08-25 07:19:30,348 - INFO - Validation loss: 1.6124370967881363
+2026-08-25 07:19:30,410 - INFO - Best validation loss: 1.6124370967881363
+2026-08-25 07:19:30,410 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:19:30,410 - INFO - Epoch 47/200
+2026-08-25 07:19:52,554 - INFO - Training loss: 1.600732683439663
+2026-08-25 07:19:54,732 - INFO - Validation loss: 1.6097046735460667
+2026-08-25 07:19:54,791 - INFO - Best validation loss: 1.6097046735460667
+2026-08-25 07:19:54,791 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:19:54,791 - INFO - Epoch 48/200
+2026-08-25 07:20:16,932 - INFO - Training loss: 1.5913448240970358
+2026-08-25 07:20:19,117 - INFO - Validation loss: 1.605968436969708
+2026-08-25 07:20:19,176 - INFO - Best validation loss: 1.605968436969708
+2026-08-25 07:20:19,176 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:20:19,176 - INFO - Epoch 49/200
+2026-08-25 07:20:41,320 - INFO - Training loss: 1.5826186018231314
+2026-08-25 07:20:43,509 - INFO - Validation loss: 1.5994962678958418
+2026-08-25 07:20:43,571 - INFO - Best validation loss: 1.5994962678958418
+2026-08-25 07:20:43,571 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:20:43,571 - INFO - Epoch 50/200
+2026-08-25 07:21:05,630 - INFO - Training loss: 1.5727073327576604
+2026-08-25 07:21:07,806 - INFO - Validation loss: 1.5836349096421007
+2026-08-25 07:21:07,871 - INFO - Best validation loss: 1.5836349096421007
+2026-08-25 07:21:07,871 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:21:07,871 - INFO - Epoch 51/200
+2026-08-25 07:21:29,962 - INFO - Training loss: 1.565073706528556
+2026-08-25 07:21:32,127 - INFO - Validation loss: 1.5818136285814604
+2026-08-25 07:21:32,185 - INFO - Best validation loss: 1.5818136285814604
+2026-08-25 07:21:32,185 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:21:32,185 - INFO - Epoch 52/200
+2026-08-25 07:21:54,332 - INFO - Training loss: 1.5560311686667951
+2026-08-25 07:21:56,507 - INFO - Validation loss: 1.5781198980470583
+2026-08-25 07:21:56,568 - INFO - Best validation loss: 1.5781198980470583
+2026-08-25 07:21:56,568 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:21:56,569 - INFO - Epoch 53/200
+2026-08-25 07:22:18,679 - INFO - Training loss: 1.547981011960293
+2026-08-25 07:22:21,213 - INFO - Validation loss: 1.5713496151911854
+2026-08-25 07:22:21,293 - INFO - Best validation loss: 1.5713496151911854
+2026-08-25 07:22:21,293 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:22:21,294 - INFO - Epoch 54/200
+2026-08-25 07:22:43,603 - INFO - Training loss: 1.541694169610391
+2026-08-25 07:22:46,005 - INFO - Validation loss: 1.5670877700199897
+2026-08-25 07:22:46,075 - INFO - Best validation loss: 1.5670877700199897
+2026-08-25 07:22:46,075 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:22:46,075 - INFO - Epoch 55/200
+2026-08-25 07:23:08,424 - INFO - Training loss: 1.5331557513674874
+2026-08-25 07:23:10,813 - INFO - Validation loss: 1.5614544403911148
+2026-08-25 07:23:10,884 - INFO - Best validation loss: 1.5614544403911148
+2026-08-25 07:23:10,884 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:23:10,884 - INFO - Epoch 56/200
+2026-08-25 07:23:33,208 - INFO - Training loss: 1.5274367696580256
+2026-08-25 07:23:35,614 - INFO - Validation loss: 1.5568387191183066
+2026-08-25 07:23:35,688 - INFO - Best validation loss: 1.5568387191183066
+2026-08-25 07:23:35,688 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:23:35,688 - INFO - Epoch 57/200
+2026-08-25 07:23:57,994 - INFO - Training loss: 1.5195755218717375
+2026-08-25 07:24:00,323 - INFO - Validation loss: 1.5562778240621347
+2026-08-25 07:24:00,389 - INFO - Best validation loss: 1.5562778240621347
+2026-08-25 07:24:00,389 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:24:00,390 - INFO - Epoch 58/200
+2026-08-25 07:24:22,686 - INFO - Training loss: 1.5136355975722524
+2026-08-25 07:24:25,044 - INFO - Validation loss: 1.5535901032803907
+2026-08-25 07:24:25,114 - INFO - Best validation loss: 1.5535901032803907
+2026-08-25 07:24:25,114 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:24:25,114 - INFO - Epoch 59/200
+2026-08-25 07:24:47,373 - INFO - Training loss: 1.505044235793533
+2026-08-25 07:24:49,740 - INFO - Validation loss: 1.5456065937173213
+2026-08-25 07:24:49,810 - INFO - Best validation loss: 1.5456065937173213
+2026-08-25 07:24:49,810 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:24:49,810 - INFO - Epoch 60/200
+2026-08-25 07:25:12,122 - INFO - Training loss: 1.500175339238653
+2026-08-25 07:25:14,578 - INFO - Validation loss: 1.541290289854287
+2026-08-25 07:25:14,645 - INFO - Best validation loss: 1.541290289854287
+2026-08-25 07:25:14,645 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:25:14,645 - INFO - Epoch 61/200
+2026-08-25 07:25:36,998 - INFO - Training loss: 1.4934919931081483
+2026-08-25 07:25:39,415 - INFO - Validation loss: 1.5406523088528874
+2026-08-25 07:25:39,484 - INFO - Best validation loss: 1.5406523088528874
+2026-08-25 07:25:39,484 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:25:39,484 - INFO - Epoch 62/200
+2026-08-25 07:26:01,850 - INFO - Training loss: 1.486730228138341
+2026-08-25 07:26:04,359 - INFO - Validation loss: 1.5355657840491364
+2026-08-25 07:26:04,425 - INFO - Best validation loss: 1.5355657840491364
+2026-08-25 07:26:04,425 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:26:04,425 - INFO - Epoch 63/200
+2026-08-25 07:26:26,694 - INFO - Training loss: 1.4817223625424307
+2026-08-25 07:26:29,016 - INFO - Validation loss: 1.5309334758013615
+2026-08-25 07:26:29,085 - INFO - Best validation loss: 1.5309334758013615
+2026-08-25 07:26:29,085 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:26:29,085 - INFO - Epoch 64/200
+2026-08-25 07:26:51,397 - INFO - Training loss: 1.4753623885403346
+2026-08-25 07:26:53,801 - INFO - Validation loss: 1.528010402626234
+2026-08-25 07:26:53,868 - INFO - Best validation loss: 1.528010402626234
+2026-08-25 07:26:53,869 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:26:53,869 - INFO - Epoch 65/200
+2026-08-25 07:27:16,197 - INFO - Training loss: 1.469961120228823
+2026-08-25 07:27:18,533 - INFO - Validation loss: 1.5287507705934058
+2026-08-25 07:27:18,534 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:27:18,534 - INFO - Epoch 66/200
+2026-08-25 07:27:40,798 - INFO - Training loss: 1.4639003963322028
+2026-08-25 07:27:43,158 - INFO - Validation loss: 1.5202066724392478
+2026-08-25 07:27:43,222 - INFO - Best validation loss: 1.5202066724392478
+2026-08-25 07:27:43,222 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:27:43,222 - INFO - Epoch 67/200
+2026-08-25 07:28:05,478 - INFO - Training loss: 1.459296800746992
+2026-08-25 07:28:07,876 - INFO - Validation loss: 1.5208823384133532
+2026-08-25 07:28:07,876 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:28:07,876 - INFO - Epoch 68/200
+2026-08-25 07:28:30,221 - INFO - Training loss: 1.4528249636698325
+2026-08-25 07:28:32,635 - INFO - Validation loss: 1.5196619407301808
+2026-08-25 07:28:32,704 - INFO - Best validation loss: 1.5196619407301808
+2026-08-25 07:28:32,704 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:28:32,705 - INFO - Epoch 69/200
+2026-08-25 07:28:55,019 - INFO - Training loss: 1.4498359238591176
+2026-08-25 07:28:57,351 - INFO - Validation loss: 1.5174974955202685
+2026-08-25 07:28:57,429 - INFO - Best validation loss: 1.5174974955202685
+2026-08-25 07:28:57,429 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:28:57,430 - INFO - Epoch 70/200
+2026-08-25 07:29:19,731 - INFO - Training loss: 1.442103225433409
+2026-08-25 07:29:22,067 - INFO - Validation loss: 1.5144906320285387
+2026-08-25 07:29:22,147 - INFO - Best validation loss: 1.5144906320285387
+2026-08-25 07:29:22,147 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:29:22,147 - INFO - Epoch 71/200
+2026-08-25 07:29:44,495 - INFO - Training loss: 1.436373563592072
+2026-08-25 07:29:46,807 - INFO - Validation loss: 1.5156125520943573
+2026-08-25 07:29:46,807 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:29:46,807 - INFO - Epoch 72/200
+2026-08-25 07:30:09,130 - INFO - Training loss: 1.4320124921167872
+2026-08-25 07:30:11,480 - INFO - Validation loss: 1.5156074399088586
+2026-08-25 07:30:11,480 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 07:30:11,480 - INFO - Epoch 73/200
+2026-08-25 07:30:33,780 - INFO - Training loss: 1.4264054226504226
+2026-08-25 07:30:36,089 - INFO - Validation loss: 1.5099373390746218
+2026-08-25 07:30:36,164 - INFO - Best validation loss: 1.5099373390746218
+2026-08-25 07:30:36,164 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:30:36,164 - INFO - Epoch 74/200
+2026-08-25 07:30:58,484 - INFO - Training loss: 1.421097038320994
+2026-08-25 07:31:00,837 - INFO - Validation loss: 1.510561891891414
+2026-08-25 07:31:00,837 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:31:00,837 - INFO - Epoch 75/200
+2026-08-25 07:31:23,222 - INFO - Training loss: 1.4184898325905262
+2026-08-25 07:31:25,556 - INFO - Validation loss: 1.5060792936275957
+2026-08-25 07:31:25,639 - INFO - Best validation loss: 1.5060792936275957
+2026-08-25 07:31:25,639 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:31:25,639 - INFO - Epoch 76/200
+2026-08-25 07:31:47,889 - INFO - Training loss: 1.4149775544493115
+2026-08-25 07:31:50,252 - INFO - Validation loss: 1.5102707111784317
+2026-08-25 07:31:50,252 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:31:50,252 - INFO - Epoch 77/200
+2026-08-25 07:32:12,451 - INFO - Training loss: 1.4088564967366972
+2026-08-25 07:32:14,674 - INFO - Validation loss: 1.5042457954054738
+2026-08-25 07:32:14,757 - INFO - Best validation loss: 1.5042457954054738
+2026-08-25 07:32:14,757 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:32:14,758 - INFO - Epoch 78/200
+2026-08-25 07:32:36,854 - INFO - Training loss: 1.405618743441912
+2026-08-25 07:32:39,094 - INFO - Validation loss: 1.5035465321315715
+2026-08-25 07:32:39,175 - INFO - Best validation loss: 1.5035465321315715
+2026-08-25 07:32:39,175 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:32:39,175 - INFO - Epoch 79/200
+2026-08-25 07:33:01,326 - INFO - Training loss: 1.3985772258112867
+2026-08-25 07:33:03,554 - INFO - Validation loss: 1.4965942371556686
+2026-08-25 07:33:03,633 - INFO - Best validation loss: 1.4965942371556686
+2026-08-25 07:33:03,633 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:33:03,634 - INFO - Epoch 80/200
+2026-08-25 07:33:25,740 - INFO - Training loss: 1.3952121985097803
+2026-08-25 07:33:27,980 - INFO - Validation loss: 1.5012809677697048
+2026-08-25 07:33:27,980 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:33:27,980 - INFO - Epoch 81/200
+2026-08-25 07:33:50,152 - INFO - Training loss: 1.391084061754353
+2026-08-25 07:33:52,673 - INFO - Validation loss: 1.4978709041816483
+2026-08-25 07:33:52,673 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 07:33:52,674 - INFO - Epoch 82/200
+2026-08-25 07:34:14,766 - INFO - Training loss: 1.3858837735792078
+2026-08-25 07:34:16,967 - INFO - Validation loss: 1.4988911857932423
+2026-08-25 07:34:16,968 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 07:34:16,968 - INFO - Epoch 83/200
+2026-08-25 07:34:39,090 - INFO - Training loss: 1.3827909465429848
+2026-08-25 07:34:42,547 - INFO - Validation loss: 1.4939036563742314
+2026-08-25 07:34:42,900 - INFO - Best validation loss: 1.4939036563742314
+2026-08-25 07:34:42,900 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:34:42,900 - INFO - Epoch 84/200
+2026-08-25 07:35:05,021 - INFO - Training loss: 1.3805428571738159
+2026-08-25 07:35:07,222 - INFO - Validation loss: 1.4947908180466025
+2026-08-25 07:35:07,222 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:35:07,223 - INFO - Epoch 85/200
+2026-08-25 07:35:29,340 - INFO - Training loss: 1.3751951697271623
+2026-08-25 07:35:31,738 - INFO - Validation loss: 1.4952559537641992
+2026-08-25 07:35:31,738 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 07:35:31,738 - INFO - Epoch 86/200
+2026-08-25 07:35:53,848 - INFO - Training loss: 1.3702491162352062
+2026-08-25 07:35:56,057 - INFO - Validation loss: 1.48996110433161
+2026-08-25 07:35:56,184 - INFO - Best validation loss: 1.48996110433161
+2026-08-25 07:35:56,184 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:35:56,185 - INFO - Epoch 87/200
+2026-08-25 07:36:18,373 - INFO - Training loss: 1.368745932319285
+2026-08-25 07:36:20,560 - INFO - Validation loss: 1.4911832328518062
+2026-08-25 07:36:20,561 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:36:20,561 - INFO - Epoch 88/200
+2026-08-25 07:36:42,614 - INFO - Training loss: 1.3628141147153388
+2026-08-25 07:36:44,806 - INFO - Validation loss: 1.4962859803514932
+2026-08-25 07:36:44,806 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 07:36:44,806 - INFO - Epoch 89/200
+2026-08-25 07:37:06,913 - INFO - Training loss: 1.3592516283580764
+2026-08-25 07:37:09,120 - INFO - Validation loss: 1.4886482989839218
+2026-08-25 07:37:09,439 - INFO - Best validation loss: 1.4886482989839218
+2026-08-25 07:37:09,439 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:37:09,439 - INFO - Epoch 90/200
+2026-08-25 07:37:31,526 - INFO - Training loss: 1.3531452122829304
+2026-08-25 07:37:33,831 - INFO - Validation loss: 1.4962623569586757
+2026-08-25 07:37:33,832 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:37:33,832 - INFO - Epoch 91/200
+2026-08-25 07:37:55,925 - INFO - Training loss: 1.3489235458670887
+2026-08-25 07:37:58,419 - INFO - Validation loss: 1.4909434917147069
+2026-08-25 07:37:58,419 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 07:37:58,419 - INFO - Epoch 92/200
+2026-08-25 07:38:20,550 - INFO - Training loss: 1.346708391427066
+2026-08-25 07:38:22,875 - INFO - Validation loss: 1.4933258678780092
+2026-08-25 07:38:22,876 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 07:38:22,876 - INFO - Epoch 93/200
+2026-08-25 07:38:44,986 - INFO - Training loss: 1.3415619533813417
+2026-08-25 07:38:47,171 - INFO - Validation loss: 1.493579474129902
+2026-08-25 07:38:47,172 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-25 07:38:47,172 - INFO - Epoch 94/200
+2026-08-25 07:39:09,362 - INFO - Training loss: 1.3378169775473006
+2026-08-25 07:39:11,571 - INFO - Validation loss: 1.4905303307357265
+2026-08-25 07:39:11,571 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-25 07:39:11,571 - INFO - Epoch 95/200
+2026-08-25 07:39:33,624 - INFO - Training loss: 1.3351974842149459
+2026-08-25 07:39:35,823 - INFO - Validation loss: 1.490731577504858
+2026-08-25 07:39:35,824 - INFO - No improvement in validation loss. Early stop counter: 6
+2026-08-25 07:39:35,824 - INFO - Epoch 96/200
+2026-08-25 07:39:57,910 - INFO - Training loss: 1.331277231298068
+2026-08-25 07:40:00,093 - INFO - Validation loss: 1.4920057580194759
+2026-08-25 07:40:00,093 - INFO - No improvement in validation loss. Early stop counter: 7
+2026-08-25 07:40:00,094 - INFO - Epoch 97/200
+2026-08-25 07:40:22,208 - INFO - Training loss: 1.3284285926633308
+2026-08-25 07:40:24,410 - INFO - Validation loss: 1.4894794967553135
+2026-08-25 07:40:24,410 - INFO - No improvement in validation loss. Early stop counter: 8
+2026-08-25 07:40:24,410 - INFO - Epoch 98/200
+2026-08-25 07:40:46,514 - INFO - Training loss: 1.3227180446632179
+2026-08-25 07:40:48,729 - INFO - Validation loss: 1.4886265757769475
+2026-08-25 07:40:48,821 - INFO - Best validation loss: 1.4886265757769475
+2026-08-25 07:40:48,821 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:40:48,822 - INFO - Epoch 99/200
+2026-08-25 07:41:10,945 - INFO - Training loss: 1.3203270688131161
+2026-08-25 07:41:13,217 - INFO - Validation loss: 1.4894183915060477
+2026-08-25 07:41:13,217 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:41:13,217 - INFO - Epoch 100/200
+2026-08-25 07:41:35,331 - INFO - Training loss: 1.3174984348423286
+2026-08-25 07:41:37,585 - INFO - Validation loss: 1.4898536138780127
+2026-08-25 07:41:37,585 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 07:41:37,585 - INFO - Epoch 101/200
+2026-08-25 07:41:59,776 - INFO - Training loss: 1.3143849556084273
+2026-08-25 07:42:01,959 - INFO - Validation loss: 1.490522778085373
+2026-08-25 07:42:01,959 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 07:42:01,959 - INFO - Epoch 102/200
+2026-08-25 07:42:24,078 - INFO - Training loss: 1.3099515535488202
+2026-08-25 07:42:26,277 - INFO - Validation loss: 1.4879288658052043
+2026-08-25 07:42:26,363 - INFO - Best validation loss: 1.4879288658052043
+2026-08-25 07:42:26,363 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 07:42:26,363 - INFO - Epoch 103/200
+2026-08-25 07:42:48,399 - INFO - Training loss: 1.3055424391063735
+2026-08-25 07:42:50,580 - INFO - Validation loss: 1.492092321359037
+2026-08-25 07:42:50,580 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 07:42:50,581 - INFO - Epoch 104/200
+2026-08-25 07:43:12,649 - INFO - Training loss: 1.3030559977204883
+2026-08-25 07:43:14,914 - INFO - Validation loss: 1.4901288819415375
+2026-08-25 07:43:14,914 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 07:43:14,914 - INFO - Epoch 105/200
+2026-08-25 07:43:37,062 - INFO - Training loss: 1.2987814012204626
+2026-08-25 07:43:39,283 - INFO - Validation loss: 1.4944555657104361
+2026-08-25 07:43:39,284 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 07:43:39,284 - INFO - Epoch 106/200
+2026-08-25 07:44:01,379 - INFO - Training loss: 1.296922801997411
+2026-08-25 07:44:03,587 - INFO - Validation loss: 1.4929740040087394
+2026-08-25 07:44:03,587 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-25 07:44:03,587 - INFO - Epoch 107/200
+2026-08-25 07:44:25,756 - INFO - Training loss: 1.2911472668443673
+2026-08-25 07:44:27,947 - INFO - Validation loss: 1.4921679609323264
+2026-08-25 07:44:27,948 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-25 07:44:27,948 - INFO - Epoch 108/200
+2026-08-25 07:44:50,050 - INFO - Training loss: 1.2884031578260637
+2026-08-25 07:44:52,254 - INFO - Validation loss: 1.4971012705897058
+2026-08-25 07:44:52,254 - INFO - No improvement in validation loss. Early stop counter: 6
+2026-08-25 07:44:52,255 - INFO - Epoch 109/200
+2026-08-25 07:45:14,343 - INFO - Training loss: 1.2834416085180143
+2026-08-25 07:45:16,519 - INFO - Validation loss: 1.4954935808550134
+2026-08-25 07:45:16,519 - INFO - No improvement in validation loss. Early stop counter: 7
+2026-08-25 07:45:16,519 - INFO - Epoch 110/200
+2026-08-25 07:45:38,662 - INFO - Training loss: 1.2850384610172376
+2026-08-25 07:45:40,951 - INFO - Validation loss: 1.4918561304076035
+2026-08-25 07:45:40,951 - INFO - No improvement in validation loss. Early stop counter: 8
+2026-08-25 07:45:40,951 - INFO - Epoch 111/200
+2026-08-25 07:46:03,070 - INFO - Training loss: 1.2796120056846263
+2026-08-25 07:46:05,281 - INFO - Validation loss: 1.4945234126799096
+2026-08-25 07:46:05,281 - INFO - No improvement in validation loss. Early stop counter: 9
+2026-08-25 07:46:05,281 - INFO - Epoch 112/200
+2026-08-25 07:46:27,365 - INFO - Training loss: 1.2757841130638865
+2026-08-25 07:46:29,569 - INFO - Validation loss: 1.4918758050566578
+2026-08-25 07:46:29,569 - INFO - No improvement in validation loss. Early stop counter: 10
+2026-08-25 07:46:29,569 - INFO - Early stopping triggered.
+2026-08-25 07:46:29,569 - INFO - Loading best model for final testing...
+2026-08-25 07:51:22,988 - INFO - Final Epoch: 102
+2026-08-25 07:51:22,990 - INFO - Final Test Recalls: {'Recall@5': 0.02778203594358438, 'Recall@10': 0.044156978830151544, 'Recall@20': 0.06596108653898403}
+2026-08-25 07:51:22,990 - INFO - Final Test NDCGs: {'NDCG@5': 0.018406489234449652, 'NDCG@10': 0.02365999828320588, 'NDCG@20': 0.029162022970664784}
+2026-08-25 08:34:15,991 - INFO - Configuration: {'batch_size': 256, 'infer_size': 96, 'num_epochs': 200, 'lr': 0.0001, 'device': 'cuda', 'num_layers': 4, 'num_decoder_layers': 4, 'd_model': 128, 'd_ff': 1024, 'num_heads': 6, 'd_kv': 64, 'dropout_rate': 0.1, 'vocab_size': 1025, 'pad_token_id': 0, 'eos_token_id': 0, 'feed_forward_proj': 'relu', 'max_len': 20, 'dataset_path': '../data/Beauty', 'code_path': '../data/Beauty/Beauty_t5_rqvae.npy', 'mode': 'train', 'model_type': 'causal', 'decoder_only_lm': False, 'log_path': './logs/causal_tiger_Beauty.log', 'seed': 2025, 'save_path': './ckpt/causal_tiger_Beauty.pth', 'early_stop': 10, 'topk_list': [5, 10, 20], 'beam_size': 30}
+2026-08-25 08:34:16,576 - INFO - #Embedding parameters: 131200
+#Non-embedding parameters: 4459648
+#Total trainable parameters: 4590848
+
+2026-08-25 08:34:20,367 - INFO - Epoch 1/200
+2026-08-25 08:34:44,864 - INFO - Training loss: 4.8935704388970995
+2026-08-25 08:34:47,315 - INFO - Validation loss: 4.387622083205522
+2026-08-25 08:34:47,391 - INFO - Best validation loss: 4.387622083205522
+2026-08-25 08:34:47,391 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:34:47,391 - INFO - Epoch 2/200
+2026-08-25 08:35:11,565 - INFO - Training loss: 4.213476071097971
+2026-08-25 08:35:14,017 - INFO - Validation loss: 4.0300452085012015
+2026-08-25 08:35:14,089 - INFO - Best validation loss: 4.0300452085012015
+2026-08-25 08:35:14,089 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:35:14,089 - INFO - Epoch 3/200
+2026-08-25 08:35:38,256 - INFO - Training loss: 3.87086487001946
+2026-08-25 08:35:40,781 - INFO - Validation loss: 3.7628899950837886
+2026-08-25 08:35:40,853 - INFO - Best validation loss: 3.7628899950837886
+2026-08-25 08:35:40,853 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:35:40,854 - INFO - Epoch 4/200
+2026-08-25 08:36:05,013 - INFO - Training loss: 3.6149064905448647
+2026-08-25 08:36:07,558 - INFO - Validation loss: 3.5517803630092115
+2026-08-25 08:36:07,630 - INFO - Best validation loss: 3.5517803630092115
+2026-08-25 08:36:07,630 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:36:07,630 - INFO - Epoch 5/200
+2026-08-25 08:36:31,798 - INFO - Training loss: 3.414297115014221
+2026-08-25 08:36:34,282 - INFO - Validation loss: 3.3742332837100704
+2026-08-25 08:36:34,353 - INFO - Best validation loss: 3.3742332837100704
+2026-08-25 08:36:34,353 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:36:34,353 - INFO - Epoch 6/200
+2026-08-25 08:36:58,495 - INFO - Training loss: 3.253748750872185
+2026-08-25 08:37:00,952 - INFO - Validation loss: 3.229134776561557
+2026-08-25 08:37:01,023 - INFO - Best validation loss: 3.229134776561557
+2026-08-25 08:37:01,023 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:37:01,023 - INFO - Epoch 7/200
+2026-08-25 08:37:25,189 - INFO - Training loss: 3.1247158319569746
+2026-08-25 08:37:27,648 - INFO - Validation loss: 3.1125283123597565
+2026-08-25 08:37:27,720 - INFO - Best validation loss: 3.1125283123597565
+2026-08-25 08:37:27,720 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:37:27,720 - INFO - Epoch 8/200
+2026-08-25 08:37:51,902 - INFO - Training loss: 3.018809999473364
+2026-08-25 08:37:54,372 - INFO - Validation loss: 3.0163756675474636
+2026-08-25 08:37:54,442 - INFO - Best validation loss: 3.0163756675474636
+2026-08-25 08:37:54,442 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:37:54,442 - INFO - Epoch 9/200
+2026-08-25 08:38:18,571 - INFO - Training loss: 2.9297824499672025
+2026-08-25 08:38:21,056 - INFO - Validation loss: 2.9311263233806955
+2026-08-25 08:38:21,125 - INFO - Best validation loss: 2.9311263233806955
+2026-08-25 08:38:21,126 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:38:21,126 - INFO - Epoch 10/200
+2026-08-25 08:38:45,317 - INFO - Training loss: 2.8576448849666907
+2026-08-25 08:38:47,779 - INFO - Validation loss: 2.8637858409226706
+2026-08-25 08:38:47,851 - INFO - Best validation loss: 2.8637858409226706
+2026-08-25 08:38:47,851 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:38:47,851 - INFO - Epoch 11/200
+2026-08-25 08:39:12,012 - INFO - Training loss: 2.794192619824688
+2026-08-25 08:39:14,475 - INFO - Validation loss: 2.808712280359391
+2026-08-25 08:39:14,545 - INFO - Best validation loss: 2.808712280359391
+2026-08-25 08:39:14,545 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:39:14,545 - INFO - Epoch 12/200
+2026-08-25 08:39:38,725 - INFO - Training loss: 2.7410128817020225
+2026-08-25 08:39:41,300 - INFO - Validation loss: 2.7561975374753893
+2026-08-25 08:39:41,371 - INFO - Best validation loss: 2.7561975374753893
+2026-08-25 08:39:41,372 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:39:41,372 - INFO - Epoch 13/200
+2026-08-25 08:40:05,493 - INFO - Training loss: 2.693555246995117
+2026-08-25 08:40:07,966 - INFO - Validation loss: 2.710960113439437
+2026-08-25 08:40:08,036 - INFO - Best validation loss: 2.710960113439437
+2026-08-25 08:40:08,036 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:40:08,036 - INFO - Epoch 14/200
+2026-08-25 08:40:32,198 - INFO - Training loss: 2.6489247000171052
+2026-08-25 08:40:34,766 - INFO - Validation loss: 2.66881092218882
+2026-08-25 08:40:34,836 - INFO - Best validation loss: 2.66881092218882
+2026-08-25 08:40:34,836 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:40:34,836 - INFO - Epoch 15/200
+2026-08-25 08:40:59,016 - INFO - Training loss: 2.612682363866368
+2026-08-25 08:41:01,537 - INFO - Validation loss: 2.634804077414484
+2026-08-25 08:41:01,607 - INFO - Best validation loss: 2.634804077414484
+2026-08-25 08:41:01,607 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:41:01,608 - INFO - Epoch 16/200
+2026-08-25 08:41:25,797 - INFO - Training loss: 2.576640386989608
+2026-08-25 08:41:28,234 - INFO - Validation loss: 2.6083392508551797
+2026-08-25 08:41:28,302 - INFO - Best validation loss: 2.6083392508551797
+2026-08-25 08:41:28,303 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:41:28,303 - INFO - Epoch 17/200
+2026-08-25 08:41:52,498 - INFO - Training loss: 2.546093958824989
+2026-08-25 08:41:54,967 - INFO - Validation loss: 2.5744359319302146
+2026-08-25 08:41:55,034 - INFO - Best validation loss: 2.5744359319302146
+2026-08-25 08:41:55,034 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:41:55,034 - INFO - Epoch 18/200
+2026-08-25 08:42:19,197 - INFO - Training loss: 2.519298418950478
+2026-08-25 08:42:21,657 - INFO - Validation loss: 2.5491184323642386
+2026-08-25 08:42:21,726 - INFO - Best validation loss: 2.5491184323642386
+2026-08-25 08:42:21,726 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:42:21,726 - INFO - Epoch 19/200
+2026-08-25 08:42:45,931 - INFO - Training loss: 2.4921583980901696
+2026-08-25 08:42:48,511 - INFO - Validation loss: 2.527388925716089
+2026-08-25 08:42:48,583 - INFO - Best validation loss: 2.527388925716089
+2026-08-25 08:42:48,583 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:42:48,583 - INFO - Epoch 20/200
+2026-08-25 08:43:12,850 - INFO - Training loss: 2.470325070596391
+2026-08-25 08:43:15,319 - INFO - Validation loss: 2.505136126612389
+2026-08-25 08:43:15,383 - INFO - Best validation loss: 2.505136126612389
+2026-08-25 08:43:15,383 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:43:15,384 - INFO - Epoch 21/200
+2026-08-25 08:43:39,495 - INFO - Training loss: 2.4501930442765527
+2026-08-25 08:43:41,979 - INFO - Validation loss: 2.4900101899077454
+2026-08-25 08:43:42,044 - INFO - Best validation loss: 2.4900101899077454
+2026-08-25 08:43:42,044 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:43:42,044 - INFO - Epoch 22/200
+2026-08-25 08:44:06,197 - INFO - Training loss: 2.429084443860481
+2026-08-25 08:44:08,704 - INFO - Validation loss: 2.473104393533371
+2026-08-25 08:44:08,772 - INFO - Best validation loss: 2.473104393533371
+2026-08-25 08:44:08,772 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:44:08,772 - INFO - Epoch 23/200
+2026-08-25 08:44:32,893 - INFO - Training loss: 2.410303965616783
+2026-08-25 08:44:35,350 - INFO - Validation loss: 2.4569875830744468
+2026-08-25 08:44:35,415 - INFO - Best validation loss: 2.4569875830744468
+2026-08-25 08:44:35,415 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:44:35,415 - INFO - Epoch 24/200
+2026-08-25 08:44:59,624 - INFO - Training loss: 2.393396230987074
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          2026-08-25 08:45:02,182 - INFO - Validation loss: 2.442011659749076
+2026-08-25 08:45:02,247 - INFO - Best validation loss: 2.442011659749076
+2026-08-25 08:45:02,247 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:45:02,247 - INFO - Epoch 25/200
+2026-08-25 08:45:26,383 - INFO - Training loss: 2.375702466018469
+2026-08-25 08:45:37,728 - INFO - Training loss: 4.247924190087077
+                                                                                                                                                                                                             2026-08-25 08:45:39,757 - INFO - Validation loss: 4.0627957782008615
+2026-08-25 08:45:39,810 - INFO - Best validation loss: 4.0627957782008615
+2026-08-25 08:45:39,810 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:45:39,810 - INFO - Epoch 3/200
+2026-08-25 08:45:58,665 - INFO - Training loss: 3.916850406835979
+2026-08-25 08:46:00,694 - INFO - Validation loss: 3.8062958696881077
+2026-08-25 08:46:00,747 - INFO - Best validation loss: 3.8062958696881077
+2026-08-25 08:46:00,747 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:46:00,747 - INFO - Epoch 4/200
+2026-08-25 08:46:19,580 - INFO - Training loss: 3.668339553510169
+2026-08-25 08:46:21,626 - INFO - Validation loss: 3.6025493718012207
+2026-08-25 08:46:21,679 - INFO - Best validation loss: 3.6025493718012207
+2026-08-25 08:46:21,679 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:46:21,679 - INFO - Epoch 5/200
+2026-08-25 08:46:40,524 - INFO - Training loss: 3.4745060080220265
+2026-08-25 08:46:42,607 - INFO - Validation loss: 3.4376577471458862
+2026-08-25 08:46:42,663 - INFO - Best validation loss: 3.4376577471458862
+2026-08-25 08:46:42,663 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:46:42,663 - INFO - Epoch 6/200
+2026-08-25 08:47:01,495 - INFO - Training loss: 3.320385304406459
+2026-08-25 08:47:03,548 - INFO - Validation loss: 3.2972200489862793
+2026-08-25 08:47:03,599 - INFO - Best validation loss: 3.2972200489862793
+2026-08-25 08:47:03,599 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:47:03,600 - INFO - Epoch 7/200
+2026-08-25 08:47:22,470 - INFO - Training loss: 3.194997110719347
+2026-08-25 08:47:24,556 - INFO - Validation loss: 3.1868017477027335
+2026-08-25 08:47:24,607 - INFO - Best validation loss: 3.1868017477027335
+2026-08-25 08:47:24,607 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:47:24,608 - INFO - Epoch 8/200
+2026-08-25 08:47:43,394 - INFO - Training loss: 3.090196956456403
+2026-08-25 08:47:45,392 - INFO - Validation loss: 3.0882320465448077
+2026-08-25 08:47:45,442 - INFO - Best validation loss: 3.0882320465448077
+2026-08-25 08:47:45,442 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:47:45,442 - INFO - Epoch 9/200
+2026-08-25 08:48:04,306 - INFO - Training loss: 3.0031685295735815
+2026-08-25 08:48:06,365 - INFO - Validation loss: 3.0067915542954538
+2026-08-25 08:48:06,419 - INFO - Best validation loss: 3.0067915542954538
+2026-08-25 08:48:06,419 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:48:06,420 - INFO - Epoch 10/200
+2026-08-25 08:48:25,244 - INFO - Training loss: 2.9283980247111634
+2026-08-25 08:48:27,323 - INFO - Validation loss: 2.934834460843786
+2026-08-25 08:48:27,382 - INFO - Best validation loss: 2.934834460843786
+2026-08-25 08:48:27,382 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:48:27,383 - INFO - Epoch 11/200
+2026-08-25 08:48:46,173 - INFO - Training loss: 2.864244355765762
+2026-08-25 08:48:48,364 - INFO - Validation loss: 2.876630693034553
+2026-08-25 08:48:48,418 - INFO - Best validation loss: 2.876630693034553
+2026-08-25 08:48:48,418 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:48:48,418 - INFO - Epoch 12/200
+  2026-08-25 08:49:07,276 - INFO - Training loss: 2.8090152708009057
+2026-08-25 08:49:09,351 - INFO - Validation loss: 2.823541678584185
+2026-08-25 08:49:09,406 - INFO - Best validation loss: 2.823541678584185
+2026-08-25 08:49:09,406 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:49:09,406 - INFO - Epoch 13/200
+2026-08-25 08:49:28,223 - INFO - Training loss: 2.7592460700973924
+2026-08-25 08:49:30,264 - INFO - Validation loss: 2.7731941907702597
+2026-08-25 08:49:30,315 - INFO - Best valida model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:49:29,261 - INFO - Epoch 35/200
+2026-08-25 08:49:53,389 - INFO - Training loss: 2.256435424437319
+                                                                   2026-08-25 08:49:55,831 - INFO - Validation loss: 2.3303012152086513
+2026-08-25 08:49:55,900 - INFO - Best validation loss: 2.3303012152086513
+2026-08-25 08:49:55,900 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:49:55,901 - INFO - Epoch 36/200
+2026-08-25 08:50:20,155 - INFO - Training loss: 2.2479712401846506
+2026-08-25 08:50:22,714 - INFO - Validation loss: 2.327593892940636
+2026-08-25 08:50:22,782 - INFO - Best validation loss: 2.327593892940636
+2026-08-25 08:50:22,782 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:50:22,782 - INFO - Epoch 37/200
+                                                                     2026-08-25 08:50:47,063 - INFO - Training loss: 2.240154574817257
+                                                                                                                                                                                                               2026-08-25 08:50:49,645 - INFO - Validation loss: 2.3203020111174033
+2026-08-25 08:50:49,719 - INFO - Best validation loss: 2.3203020111174033
+2026-08-25 08:50:49,719 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:50:49,720 - INFO - Epoch 38/200
+2026-08-25 08:51:14,023 - INFO - Training loss: 2.2311506155399963
+                                                                2026-08-25 08:51:16,902 - INFO - Validation loss: 2.3153134635589665
+2026-08-25 08:51:16,977 - INFO - Best validation loss: 2.3153134635589665
+2026-08-25 08:51:16,977 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:51:16,977 - INFO - Epoch 39/200
+                                                                 2026-08-25 08:51:41,375 - INFO - Training loss: 2.222645263727537
+2026-08-25 08:51:44,051 - INFO - Validation loss: 2.3132490815011217
+2026-08-25 08:51:44,124 - INFO - Best validation loss: 2.3132490815011217
+2026-08-25 08:51:44,125 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:51:44,125 - INFO - Epoch 40/200
+2026-08-25 08:52:08,431 - INFO - Training loss: 2.2158137620191165
+2026-08-25 08:52:11,038 - INFO - Validation loss: 2.3049612398311305
+2026-08-25 08:52:11,110 - INFO - Best validation loss: 2.3049612398311305
+2026-08-25 08:52:11,110 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:52:11,110 - INFO - Epoch 41/200
+2026-08-25 08:52:35,452 - INFO - Training loss: 2.208200688955849
+                                                                                                                                                                                                           2026-08-25 08:52:38,053 - INFO - Validation loss: 2.3005264936086958
+2026-08-25 08:52:38,123 - INFO - Best validation loss: 2.3005264936086958
+2026-08-25 08:52:38,123 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:52:38,123 - INFO - Epoch 42/200
+                                                                                                                                    2026-08-25 08:53:02,420 - INFO - Training loss: 2.1982090334020237
+2026-08-25 08:53:05,158 - INFO - Validation loss: 2.295574063906854
+2026-08-25 08:53:05,230 - INFO - Best validation loss: 2.295574063906854
+2026-08-25 08:53:05,230 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:53:05,230 - INFO - Epoch 43/200
+  2026-08-25 08:53:29,544 - INFO - Training loss: 2.1935740621173427
+2026-08-25 08:53:32,172 - INFO - Validation loss: 2.2886999482248984
+2026-08-25 08:53:32,243 - INFO - Best validation loss: 2.2886999482248984
+2026-08-25 08:53:32,243 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:53:32,243 - INFO - Epoch 44/200
+2026-08-25 08:53:41,409 - INFO - Validation loss: 2.4685224847220555
+2026-08-25 08:53:41,463 - INFO - Best validation loss: 2.4685224847220555
+2026-08-25 08:53:41,463 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:53:41,463 - INFO - Epoch 26/200
+2026-08-25 08:54:00,300 - INFO - Training loss: 2.41421162200809
+ 2026-08-25 08:54:02,369 - INFO - Validation loss: 2.4559049002602378
+2026-08-25 08:54:02,421 - INFO - Best validation loss: 2.4559049002602378
+2026-08-25 08:54:02,421 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:54:02,422 - INFO - Epoch 27/200
+2026-08-25 08:54:21,187 - INFO - Training loss: 2.4002234796605686
+2026-08-25 08:54:23,214 - INFO - Validation loss: 2.442870758633757
+2026-08-25 08:54:23,264 - INFO - Best validation loss: 2.442870758633757
+2026-08-25 08:54:23,265 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:54:23,265 - INFO - Epoch 28/200
+2026-08-25 08:54:42,102 - INFO - Training loss: 2.385148100352009
+2026-08-25 08:54:44,189 - INFO - Validation loss: 2.433974273215036
+2026-08-25 08:54:44,240 - INFO - Best validation loss: 2.433974273215036
+2026-08-25 08:54:44,240 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:54:44,240 - INFO - Epoch 29/200
+                                                                    2026-08-25 08:55:03,071 - INFO - Training loss: 2.370985050145754
+2026-08-25 08:55:05,153 - INFO - Validation loss: 2.4236671924591064
+2026-08-25 08:55:05,202 - INFO - Best validation loss: 2.4236671924591064
+2026-08-25 08:55:05,202 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:55:05,202 - INFO - Epoch 30/200
+2026-08-25 08:55:23,972 - INFO - Training loss: 2.3562387622284056
+2026-08-25 08:55:26,091 - INFO - Validation loss: 2.4092283627505977
+2026-08-25 08:55:26,137 - INFO - Best validation loss: 2.4092283627505977
+2026-08-25 08:55:26,137 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:55:26,138 - INFO - Epoch 31/200
+2026-08-25 08:55:45,040 - INFO - Training loss: 2.3460464403323162
+2026-08-25 08:55:47,094 - INFO - Validation loss: 2.4017459302501107
+2026-08-25 08:55:47,143 - INFO - Best validation loss: 2.4017459302501107
+2026-08-25 08:55:47,144 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:55:47,144 - INFO - Epoch 32/200
+2026-08-25 08:56:05,952 - INFO - Training loss: 2.3358497925769495
+2026-08-25 08:56:07,975 - INFO - Validation loss: 2.3898232510161503
+2026-08-25 08:56:08,025 - INFO - Best validation loss: 2.3898232510161503
+2026-08-25 08:56:08,025 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:56:08,025 - INFO - Epoch 33/200
+2026-08-25 08:56:26,780 - INFO - Training loss: 2.32273488610635
+2026-08-25 08:56:28,928 - INFO - Validation loss: 2.380042446017777
+2026-08-25 08:56:28,974 - INFO - Best validation loss: 2.380042446017777
+2026-08-25 08:56:28,975 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:56:28,975 - INFO - Epoch 34/200
+                                                                     2026-08-25 08:56:47,859 - INFO - Training loss: 2.3139145870616926
+2026-08-25 08:56:49,950 - INFO - Validation loss: 2.37258799290964
+2026-08-25 08:56:49,999 - INFO - Best validation loss: 2.37258799290964
+2026-08-25 08:56:50,000 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:56:50,000 - INFO - Epoch 35/200
+2026-08-25 08:57:08,763 - INFO - Training loss: 2.302628736551634
+2026-08-25 08:57:10,852 - INFO - Validation loss: 2.3638171510123387
+2026-08-25 08:57:10,902 - INFO - Best validation loss: 2.3638171510123387
+2026-08-25 08:57:10,902 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:57:10,902 - INFO - Epoch 36/200
+2026-08-25 08:57:29,652 - INFO - Training loss: 2.293544945549872
+2026-08-25 08:57:31,757 - INFO - Validation loss: 2.359489540173772
+2026-08-25 08:57:31,806 - INFO - Best validation loss: 2.359489540173772
+2026-08-25 08:57:31,806 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:57:31,807 - INFO - Epoch 37/200
+2026-08-25 08:57:50,745 - INFO - Training loss: 2.285151211668081
+2026-08-25 08:58:02,413 - INFO - Validation loss: 2.3529930355211186
+2026-08-25 08:57:52,930 - INFO - Best validation loss: 2.3529930355211186
+2026-08-25 08:57:52,931 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:57:52,931 - INFO - Epoch 38/200
+2026-08-25 08:58:11,911 - INFO - Training loss: 2.2757322231619272
+2026-08-25 08:58:14,085 - INFO - Validation loss: 2.3490983431942984
+2026-08-25 08:58:14,135 - INFO - Best validation loss: 2.3490983431942984
+2026-08-25 08:58:14,135 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:58:14,135 - INFO - Epoch 39/200
+2026-08-25 08:58:33,123 - INFO - Training loss: 2.267024698424432
+2026-08-25 08:58:35,232 - INFO - Validation loss: 2.339605333979038
+2026-08-25 08:58:35,283 - INFO - Best validation loss: 2.339605333979038
+2026-08-25 08:58:35,283 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:58:35,283 - INFO - Epoch 40/200
+2026-08-25 08:58:54,231 - INFO - Training loss: 2.257742055195315
+2026-08-25 08:58:56,364 - INFO - Validation loss: 2.3322205497471558
+2026-08-25 08:58:56,422 - INFO - Best validation loss: 2.3322205497471558
+2026-08-25 08:58:56,422 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:58:56,422 - INFO - Epoch 41/200
+2026-08-25 08:59:15,435 - INFO - Training loss: 2.251843697829933
+2026-08-25 08:59:17,731 - INFO - Validation loss: 2.326598710256585
+2026-08-25 08:59:17,785 - INFO - Best validation loss: 2.326598710256585
+2026-08-25 08:59:17,785 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:59:17,786 - INFO - Epoch 42/200
+  2026-08-25 08:59:36,764 - INFO - Training loss: 2.243893686899415
+2026-08-25 08:59:38,890 - INFO - Validation loss: 2.322986444178569
+2026-08-25 08:59:38,949 - INFO - Best validation loss: 2.322986444178569
+2026-08-25 08:59:38,949 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 08:59:38,949 - INFO - Epoch 43/200
+2026-08-25 08:59:57,952 - INFO - Training loss: 2.2351069362247036
+                                                                                                                                                                                                            2026-08-25 09:00:00,130 - INFO - Validation loss: 2.3122349327725913
+2026-08-25 09:00:00,186 - INFO - Best validation loss: 2.3122349327725913
+2026-08-25 09:00:00,186 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:00:00,186 - INFO - Epoch 44/200
+2026-08-25 09:00:19,141 - INFO - Training loss: 2.2286771675028225
+2026-08-25 09:00:21,290 - INFO - Validation loss: 2.315038626797721
+2026-08-25 09:00:21,290 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:00:21,291 - INFO - Epoch 45/200
+2026-08-25 09:00:40,294 - INFO - Training loss: 2.2207811811090905
+2026-08-25 09:00:42,562 - INFO - Validation loss: 2.3070897324402444
+2026-08-25 09:00:42,622 - INFO - Best validation loss: 2.3070897324402444
+2026-08-25 09:00:42,622 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:00:42,622 - INFO - Epoch 46/200
+                                                                 2026-08-25 09:01:01,683 - INFO - Training loss: 2.213681691351568
+2026-08-25 09:01:03,880 - INFO - Validation loss: 2.3023423601117767
+2026-08-25 09:01:03,934 - INFO - Best validation loss: 2.3023423601117767
+2026-08-25 09:01:03,935 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:01:03,935 - INFO - Epoch 47/200
+2026-08-25 09:01:22,904 - INFO - Training loss: 2.207949820659504
+2026-08-25 09:01:25,064 - INFO - Validation loss: 2.304235028095
+2026-08-25 09:01:25,064 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:01:25,064 - INFO - Epoch 48/200
+2026-08-25 09:01:44,003 - INFO - Training loss: 2.201159882174392
+2026-08-25 09:01:46,108 - INFO - Validation loss: 2.2941645322439497
+2026-08-25 09:01:46,164 - INFO - Best validation loss: 2.2941645322439497
+2026-08-25 09:01:46,164 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:01:46,165 - INFO - Epoch 49/200
+2026-08-25 09:02:05,250 - INFO - Training loss: 2.1973336870104423
+                                                                                                                                           2026-08-25 09:02:07,355 - INFO - Validation loss: 2.292160871202854
+2026-08-25 09:02:07,410 - INFO - Best validation loss: 2.292160871202854
+2026-08-25 09:02:07,410 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:02:07,410 - INFO - Epoch 50/200
+2026-08-25 09:02:26,287 - INFO - Training loss: 2.18954879764453
+2026-08-25 09:02:28,381 - INFO - Validation loss: 2.292583993576115
+2026-08-25 09:02:28,381 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:02:28,381 - INFO - Epoch 51/200
+2026-08-25 09:02:47,424 - INFO - Training loss: 2.1839089010939987
+2026-08-25 09:02:49,551 - INFO - Validation loss: 2.284048584909398
+2026-08-25 09:02:49,604 - INFO - Best validation loss: 2.284048584909398
+2026-08-25 09:02:49,604 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:02:49,605 - INFO - Epoch 52/200
+                                                                                                                                                                                                               2026-08-25 09:03:08,616 - INFO - Training loss: 2.178467677261115
+2026-08-25 09:03:10,727 - INFO - Validation loss: 2.283271258481071
+2026-08-25 09:03:10,782 - INFO - Best validation loss: 2.283271258481071
+2026-08-25 09:03:10,782 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:03:10,783 - INFO - Epoch 53/200
+2026-08-25 09:03:29,729 - INFO - Training loss: 2.1741647019924355
+2026-08-25 09:03:31,954 - INFO - Validation loss: 2.2770976626310224
+2026-08-25 09:03:32,010 - INFO - Best validation loss: 2.2770976626310224
+2026-08-25 09:03:32,010 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:03:32,010 - INFO - Epoch 54/200
+2026-08-25 09:03:51,048 - INFO - Training loss: 2.166864915580601
+2026-08-25 09:03:53,158 - INFO - Validation loss: 2.27661321705503
+2026-08-25 09:03:53,213 - INFO - Best validation loss: 2.27661321705503
+2026-08-25 09:03:53,213 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:03:53,213 - INFO - Epoch 55/200
+    2026-08-25 09:04:12,224 - INFO - Training loss: 2.1611996916945344
+2026-08-25 09:04:14,488 - INFO - Validation loss: 2.2751138261459416
+2026-08-25 09:04:14,537 - INFO - Best validation loss: 2.2751138261459416
+2026-08-25 09:04:14,537 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:04:14,538 - INFO - Epoch 56/200
+2026-08-25 09:04:33,550 - INFO - Training loss: 2.1572417373323254
+2026-08-25 09:04:35,779 - INFO - Validation loss: 2.2709371992446834
+2026-08-25 09:04:35,834 - INFO - Best validation loss: 2.2709371992446834
+2026-08-25 09:04:35,834 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:04:35,835 - INFO - Epoch 57/200
+2026-08-25 09:04:54,832 - INFO - Training loss: 2.1540827085535814
+                                                                                                                                                                                                              2026-08-25 09:04:57,044 - INFO - Validation loss: 2.270957752870388
+2026-08-25 09:04:57,044 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:04:57,044 - INFO - Epoch 58/200
+2026-08-25 09:05:15,987 - INFO - Training loss: 2.14842179359629
+2026-08-25 09:05:18,247 - INFO - Validation loss: 2.2662169406342403
+2026-08-25 09:05:18,305 - INFO - Best validation loss: 2.2662169406342403
+2026-08-25 09:05:18,305 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:05:18,305 - INFO - Epoch 59/200
+2026-08-25 09:05:37,214 - INFO - Training loss: 2.142986988279142
+2026-08-25 09:05:39,281 - INFO - Validation loss: 2.2675581331416774
+2026-08-25 09:05:39,281 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:05:39,281 - INFO - Epoch 60/200
+2026-08-25 09:05:58,289 - INFO9:05:41,604 - INFO - Epoch 71/200
+2026-08-25 09:06:05,808 - INFO - Training loss: 2.051095380625372
+2026-08-25 09:06:08,269 - INFO - Validation loss: 2.2273975078640067
+2026-08-25 09:06:08,335 - INFO - Best validation loss: 2.2273975078640067
+2026-08-25 09:06:08,336 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:06:08,336 - INFO - Epoch 72/200
+  2026-08-25 09:06:32,537 - INFO - Training loss: 2.0450556744397383
+2026-08-25 09:06:35,020 - INFO - Validation loss: 2.224489260129151
+2026-08-25 09:06:35,089 - INFO - Best validation loss: 2.224489260129151
+2026-08-25 09:06:35,089 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:06:35,089 - INFO - Epoch 73/200
+2026-08-25 09:06:59,296 - INFO - Training loss: 2.0415688774001275
+                                                                                                                                                                                                               2026-08-25 09:07:01,729 - INFO - Validation loss: 2.224513005289397
+2026-08-25 09:07:01,729 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:07:01,730 - INFO - Epoch 74/200
+2026-08-25 09:07:25,912 - INFO - Training loss: 2.0369218184326408
+                                                                                                                                                                                                                                                                                                                                                    2026-08-25 09:07:28,363 - INFO - Validation loss: 2.2261185144661835
+2026-08-25 09:07:28,363 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 09:07:28,363 - INFO - Epoch 75/200
+2026-08-25 09:07:52,487 - INFO - Training loss: 2.0339326301901255
+2026-08-25 09:07:54,958 - INFO - Validation loss: 2.221918617195326
+2026-08-25 09:07:55,027 - INFO - Best validation loss: 2.221918617195326
+2026-08-25 09:07:55,027 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:07:55,028 - INFO - Epoch 76/200
+ 2026-08-25 09:08:19,213 - INFO - Training loss: 2.0308034941843975
+2026-08-25 09:08:21,659 - INFO - Validation loss: 2.221152632533225
+2026-08-25 09:08:21,725 - INFO - Best validation loss: 2.221152632533225
+2026-08-25 09:08:21,725 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:08:21,725 - INFO - Epoch 77/200
+ 2026-08-25 09:08:45,904 - INFO - Training loss: 2.0269063233401523
+                                                                                                                                                                                                                                                                               2026-08-25 09:08:48,375 - INFO - Validation loss: 2.2256673830261557
+2026-08-25 09:08:48,375 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:08:48,375 - INFO - Epoch 78/200
+2026-08-25 09:09:12,516 - INFO - Training loss: 2.022132328975989
+2026-08-25 09:09:14,989 - INFO - Validation loss: 2.2243969363716025
+2026-08-25 09:09:14,989 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 09:09:14,989 - INFO - Epoch 79/200
+2026-08-25 09:09:39,116 - INFO - Training loss: 2.020218466970243
+                                                                   2026-08-25 09:09:41,739 - INFO - Validation loss: 2.22328094863073
+2026-08-25 09:09:41,739 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 09:09:41,739 - INFO - Epoch 80/200
+                                                                      2026-08-25 09:10:05,909 - INFO - Training loss: 2.0143516244591444
+                                                                                                                                                                                                            2026-08-25 09:10:08,386 - INFO - Validation loss: 2.223056214050162
+2026-08-25 09:10:08,386 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-25 09:10:08,386 - INFO - Epoch 81/200
+                                                                                                                                      2026-08-25 09:10:32,503 - INFO - Training loss: 2.0128186127091197
+2026-08-25 09:10:34,988 - INFO - Validation loss: 2.220503973858551
+2026-08-25 09:10:35,059 - INFO - Best validation loss: 2.220503973858551
+2026-08-25 09:10:35,059 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:10:35,060 - INFO - Epoch 82/200
+2026-08-25 09:10:59,199 - INFO - Training loss: 2.007339484728728
+                                                                                                                                                                                                             2026-08-25 09:11:01,644 - INFO - Validation loss: 2.219772234495106
+2026-08-25 09:11:01,717 - INFO - Best validation loss: 2.219772234495106
+2026-08-25 09:11:01,717 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:11:01,717 - INFO - Epoch 83/200
+2026-08-25 09:11:25,881 - INFO - Training loss: 2.004433224637221
+                                                                                                                                           2026-08-25 09:11:28,341 - INFO - Validation loss: 2.223296354256986
+2026-08-25 09:11:28,341 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:11:28,341 - INFO - Epoch 84/200
+2026-08-25 09:11:52,495 - INFO - Training loss: 2.000751747927313
+2026-08-25 09:11:54,980 - INFO - Validation loss: 2.2184728271459817
+2026-08-25 09:11:55,051 - INFO - Best validation loss: 2.2184728271459817
+2026-08-25 09:11:55,051 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:11:55,051 - INFO - Epoch 85/200
+2026-08-25 09:12:19,196 - INFO - Training loss: 1.997471322809212
+                                                               2026-08-25 09:12:21,650 - INFO - Validation loss: 2.2187469849770673
+2026-08-25 09:12:21,650 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:12:21,650 - INFO - Epoch 86/200
+                                                                                                                                                                                                                                                                                2026-08-25 09:12:45,805 - INFO - Training loss: 1.9950154722896531
+2026-08-25 09:12:48,257 - INFO - Validation loss: 2.2184778554245126
+2026-08-25 09:12:48,258 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 09:12:48,258 - INFO - Epoch 87/200
+2026-08-25 09:13:12,367 - INFO - Training loss: 1.9916680564212428
+                                                                                                                                          2026-08-25 09:13:15,040 - INFO - Validation loss: 2.217508202458656
+2026-08-25 09:13:15,109 - INFO - Best validation loss: 2.217508202458656
+2026-08-25 09:13:15,109 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:13:15,109 - INFO - Epoch 88/200
+2026-08-25 09:13:39,299 - INFO - Training loss: 1.986812986288553
+                                                                                                                                                                                                                                                                                2026-08-25 09:13:41,836 - INFO - Validation loss: 2.2174134121432325
+2026-08-25 09:13:41,903 - INFO - Best validation loss: 2.2174134121432325
+2026-08-25 09:13:41,903 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:13:41,903 - INFO - Epoch 89/200
+2026-08-25 09:14:06,098 - INFO - Training loss: 1.984177542567717
+                                                                                                                                                                                                             2026-08-25 09:14:08,541 - INFO - Validation loss: 2.2175029285987558
+2026-08-25 09:14:08,541 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:14:08,541 - INFO - Epoch 90/200
+2026-08-25 09:14:32,687 - INFO - Training loss: 1.981594198176833
+                                                                    2026-08-25 09:14:35,158 - INFO - Validation loss: 2.2182187998243665
+2026-08-25 09:14:35,158 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 09:14:35,159 - INFO - Epoch 91/200
+2026-08-25 09:14:59,297 - INFO - Training loss: 1.9784079695026235
+2026-08-25 09:15:01,769 - INFO - Validation loss: 2.2181075366269876
+2026-08-25 09:15:01,769 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 09:15:01,770 - INFO - Epoch 92/200
+                                                                                                                                                                                                             2026-08-25 09:15:25,923 - INFO - Training loss: 1.9749449929838514
+2026-08-25 09:15:28,362 - INFO - Validation loss: 2.2163691771388567
+2026-08-25 09:15:28,427 - INFO - Best validation loss: 2.2163691771388567
+2026-08-25 09:15:28,427 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:15:28,427 - INFO - Epoch 93/200
+2026-08-25 09:15:52,611 - INFO - Training loss: 1.9717244188145442
+2026-08-25 09:15:55,110 - INFO - Validation loss: 2.2152600068391135
+2026-08-25 09:15:55,177 - INFO - Best validation loss: 2.2152600068391135
+2026-08-25 09:15:55,177 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:15:55,178 - INFO - Epoch 94/200
+2026-08-25 09:16:19,300 - INFO - Training loss: 1.9696420002076414
+2026-08-25 09:16:21,775 - INFO - Validation loss: 2.2155455729480464
+2026-08-25 09:16:21,775 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:16:21,775 - INFO - Epoch 95/200
+                                                                                                                                                                                                        2026-08-25 09:16:45,911 - INFO - Training loss: 1.9666989505986758
+2026-08-25 09:16:48,399 - INFO - Validation loss: 2.2235317619061776
+2026-08-25 09:16:48,399 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 09:16:48,400 - INFO - Epoch 96/200
+2026-08-25 09:17:12,588 - INFO - Training loss: 1.9619586013170531
+                                                                                                                                                                                                            2026-08-25 09:17:15,026 - INFO - Validation loss: 2.2171698532391004
+2026-08-25 09:17:15,027 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 09:17:15,027 - INFO - Epoch 97/200
+2026-08-25 09:17:39,191 - INFO - Training loss: 1.9596669284286201
+                                                                                                                                                                                                                                                                            2026-08-25 09:17:41,678 - INFO - Validation loss: 2.2175959747748313
+2026-08-25 09:17:41,679 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-25 09:17:41,679 - INFO - Epoch 98/200
+2026-08-25 09:18:05,767 - INFO - Training loss: 1.955466084211253
+2026-08-25 09:18:08,230 - INFO - Validation loss: 2.220476767024257
+2026-08-25 09:18:08,230 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-25 09:18:08,230 - INFO - Epoch 99/200
+                                                                    2026-08-25 09:18:32,406 - INFO - Training loss: 1.951662735948303
+85
+2026-08-25 09:18:13,817 - INFO - Best validation loss: 2.2225616878705985
+2026-08-25 09:18:13,817 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:18:13,818 - INFO - Epoch 96/200
+2026-08-25 09:18:32,686 - INFO - Training loss: 2.010480948227389
+2026-08-25 09:18:34,749 - INFO - Validation loss: 2.2223605853805215
+2026-08-25 09:18:34,801 - INFO - Best validation loss: 2.2223605853805215
+2026-08-25 09:18:34,802 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:18:34,802 - INFO - Epoch 97/200
+2026-08-25 09:18:53,585 - INFO - Training loss: 2.0069207117715235
+2026-08-25 09:18:55,680 - INFO - Validation loss: 2.223211617940485
+2026-08-25 09:18:55,680 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:18:55,680 - INFO - Epoch 98/200
+  2026-08-25 09:19:14,471 - INFO - Training loss: 2.0054199004451587
+2026-08-25 09:19:16,527 - INFO - Validation loss: 2.221946453331878
+2026-08-25 09:19:16,581 - INFO - Best validation loss: 2.221946453331878
+2026-08-25 09:19:16,581 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:19:16,582 - INFO - Epoch 99/200
+2026-08-25 09:19:35,494 - INFO - Training loss: 2.001471876866159
+2026-08-25 09:19:37,480 - INFO - Validation loss: 2.2232543102149798
+2026-08-25 09:19:37,480 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:19:37,481 - INFO - Epoch 100/200
+2026-08-25 09:19:56,269 - INFO - Training loss: 1.997928883546985
+2026-08-25 09:19:58,336 - INFO - Validation loss: 2.2231607631552373
+2026-08-25 09:19:58,336 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 09:19:58,336 - INFO - Epoch 101/200
+2026-08-25 09:20:17,074 - INFO - Training loss: 1.995834542619579
+2026-08-25 09:20:19,113 - INFO - Validation loss: 2.2257357375304587
+2026-08-25 09:20:19,113 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 09:20:19,114 - INFO - Epoch 102/200
+                                                                                     2026-08-25 09:20:37,891 - INFO - Training loss: 1.9931309819221497
+2026-08-25 09:20:40,053 - INFO - Validation loss: 2.2217933896273503
+2026-08-25 09:20:40,109 - INFO - Best validation loss: 2.2217933896273503
+2026-08-25 09:20:40,109 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:20:40,110 - INFO - Epoch 103/200
+2026-08-25 09:20:58,884 - INFO - Training loss: 1.9886233036620145
+2026-08-25 09:21:00,900 - INFO - Validation loss: 2.224804180374473
+2026-08-25 09:21:00,900 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:21:00,900 - INFO - Epoch 104/200
+2026-08-25 09:21:19,735 - INFO - Training loss: 1.9883541404505185
+2026-08-25 09:21:21,758 - INFO - Validation loss: 2.2209645136231515
+2026-08-25 09:21:21,809 - INFO - Best validation loss: 2.2209645136231515
+2026-08-25 09:21:21,809 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:21:21,809 - INFO - Epoch 105/200
+2026-08-25 09:21:40,601 - INFO - Training loss: 1.9852659321944537
+2026-08-25 09:21:42,657 - INFO - Validation loss: 2.221490878403954
+2026-08-25 09:21:42,657 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 09:21:42,657 - INFO - Epoch 106/200
+2026-08-25 09:22:01,495 - INFO - Training loss: 1.9801259435104488
+2026-08-25 09:22:03,596 - INFO - Validation loss: 2.221761581723782
+2026-08-25 09:22:03,596 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 09:22:03,596 - INFO - Epoch 107/200
+2026-08-25 09:22:22,459 - INFO - Training loss: 1.9796553112653443
+2026-08-25 09:22:24,516 - INFO - Validation loss: 2.221931299426525
+2026-08-25 09:22:24,516 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 09:22:24,517 - INFO - Epoch 108/200
+2026-08-25 09:22:43,247 - INFO - Training loss: 1.9778940758816463
+2026-08-25 09:22:45,340 - INFO - Validation loss: 2.2224500859755816
+2026-08-25 09:22:45,340 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-25 09:22:45,340 - INFO - Epoch 109/200
+2026-08-25 09:23:04,244 - INFO - Training loss: 1.975308629789241
+2026-08-25 09:23:06,246 - INFO - Validation loss: 2.2242385184816027
+2026-08-25 09:23:06,246 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-25 09:23:06,246 - INFO - Epoch 110/200
+2026-08-25 09:23:25,092 - INFO - Training loss: 1.9733018404314955
+2026-08-25 09:23:27,179 - INFO - Validation loss: 2.2227764155220067
+2026-08-25 09:23:27,179 - INFO - No improvement in validation loss. Early stop counter: 6
+2026-08-25 09:23:27,179 - INFO - Epoch 111/200
+2026-08-25 09:23:46,001 - INFO - Training loss: 1.9712223751535676
+2026-08-25 09:23:48,091 - INFO - Validation loss: 2.224156411420634
+2026-08-25 09:23:48,091 - INFO - No improvement in validation loss. Early stop counter: 7
+2026-08-25 09:23:48,091 - INFO - Epoch 112/200
+2026-08-25 09:24:06,951 - INFO - Training loss: 1.9672817383758752
+2026-08-25 09:24:09,008 - INFO - Validation loss: 2.2222047870251243
+2026-08-25 09:24:09,008 - INFO - No improvement in validation loss. Early stop counter: 8
+2026-08-25 09:24:09,009 - INFO - Epoch 113/200
+2026-08-25 09:24:27,886 - INFO - Training loss: 1.9646759420517355
+2026-08-25 09:24:29,960 - INFO - Validation loss: 2.225582183686449
+2026-08-25 09:24:29,961 - INFO - No improvement in validation loss. Early stop counter: 9
+2026-08-25 09:24:29,961 - INFO - Epoch 114/200
+2026-08-25 09:24:48,765 - INFO - Training loss: 1.962135308447515
+2026-08-25 09:24:50,819 - INFO - Validation loss: 2.225670212328178
+2026-08-25 09:24:50,820 - INFO - No improvement in validation loss. Early stop counter: 10
+2026-08-25 09:24:50,820 - INFO - Early stopping triggered.
+2026-08-25 09:24:50,820 - INFO - Loading best model for final testing...
+2026-08-25 09:34:28,554 - INFO - Final Epoch: 104
+2026-08-25 09:34:28,556 - INFO - Final Test Recalls: {'Recall@5': 0.03626894413657455, 'Recall@10': 0.05590993435773599, 'Recall@20': 0.08333480725856297}
+2026-08-25 09:34:28,556 - INFO - Final Test NDCGs: {'NDCG@5': 0.023259637871349447, 'NDCG@10': 0.029578786109506188, 'NDCG@20': 0.036499802124098965}
+2026-08-25 09:39:36,986 - INFO - Configuration: {'batch_size': 256, 'infer_size': 96, 'num_epochs': 200, 'lr': 0.0001, 'device': 'cuda', 'num_layers': 4, 'num_decoder_layers': 4, 'd_model': 128, 'd_ff': 1024, 'num_heads': 6, 'd_kv': 64, 'dropout_rate': 0.1, 'vocab_size': 1025, 'pad_token_id': 0, 'eos_token_id': 0, 'feed_forward_proj': 'relu', 'max_len': 20, 'dataset_path': '../data/Beauty', 'code_path': '../data/Beauty/Beauty_t5_rqvae.npy', 'mode': 'train', 'model_type': 'causal', 'decoder_only_lm': False, 'log_path': './logs/causal_tiger_Beauty.log', 'seed': 2025, 'save_path': './ckpt/causal_tiger_Beauty.pth', 'early_stop': 10, 'topk_list': [5, 10, 20], 'beam_size': 30}
+2026-08-25 09:39:38,069 - INFO - #Embedding parameters: 131200
+#Non-embedding parameters: 4459648
+#Total trainable parameters: 4590848
+
+2026-08-25 09:39:41,683 - INFO - Epoch 1/200
+2026-08-25 09:40:06,299 - INFO - Training loss: 4.8935704388970995
+2026-08-25 09:40:08,804 - INFO - Validation loss: 4.387622083205522
+2026-08-25 09:40:08,875 - INFO - Best validation loss: 4.387622083205522
+2026-08-25 09:40:08,875 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:40:08,875 - INFO - Epoch 2/200
+2026-08-25 09:40:33,132 - INFO - Training loss: 4.213476071097971
+2026-08-25 09:40:35,570 - INFO - Validation loss: 4.0300452085012015
+2026-08-25 09:40:35,634 - INFO - Best validation loss: 4.0300452085012015
+2026-08-25 09:40:35,635 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:40:35,635 - INFO - Epoch 3/200
+2026-08-25 09:40:59,870 - INFO - Training loss: 3.87086487001946
+2026-08-25 09:41:02,324 - INFO - Validation loss: 3.7628899950837886
+2026-08-25 09:41:02,392 - INFO - Best validation loss: 3.7628899950837886
+2026-08-25 09:41:02,392 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:41:02,392 - INFO - Epoch 4/200
+2026-08-25 09:41:26,617 - INFO - Training loss: 3.6149064905448647
+2026-08-25 09:41:29,082 - INFO - Validation loss: 3.5517803630092115
+2026-08-25 09:41:29,155 - INFO - Best validation loss: 3.5517803630092115
+2026-08-25 09:41:29,155 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:41:29,155 - INFO - Epoch 5/200
+2026-08-25 09:41:53,368 - INFO - Training loss: 3.414297115014221
+2026-08-25 09:41:55,907 - INFO - Validation loss: 3.3742332837100704
+2026-08-25 09:41:55,973 - INFO - Best validation loss: 3.3742332837100704
+2026-08-25 09:41:55,973 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:41:55,973 - INFO - Epoch 6/200
+2026-08-25 09:42:20,150 - INFO - Training loss: 3.253748750872185
+2026-08-25 09:42:22,675 - INFO - Validation loss: 3.229134776561557
+2026-08-25 09:42:22,743 - INFO - Best validation loss: 3.229134776561557
+2026-08-25 09:42:22,744 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:42:22,744 - INFO - Epoch 7/200
+2026-08-25 09:42:46,938 - INFO - Training loss: 3.1247158319569746
+2026-08-25 09:42:49,449 - INFO - Validation loss: 3.1125283123597565
+2026-08-25 09:42:49,516 - INFO - Best validation loss: 3.1125283123597565
+2026-08-25 09:42:49,516 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:42:49,516 - INFO - Epoch 8/200
+2026-08-25 09:43:13,735 - INFO - Training loss: 3.018809999473364
+2026-08-25 09:43:16,194 - INFO - Validation loss: 3.0163756675474636
+2026-08-25 09:43:16,258 - INFO - Best validation loss: 3.0163756675474636
+2026-08-25 09:43:16,258 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:43:16,258 - INFO - Epoch 9/200
+2026-08-25 09:43:40,437 - INFO - Training loss: 2.9297824499672025
+2026-08-25 09:43:42,854 - INFO - Validation loss: 2.9311263233806955
+2026-08-25 09:43:42,917 - INFO - Best validation loss: 2.9311263233806955
+2026-08-25 09:43:42,917 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:43:42,918 - INFO - Epoch 10/200
+2026-08-25 09:44:07,126 - INFO - Training loss: 2.8576448849666907
+2026-08-25 09:44:09,581 - INFO - Validation loss: 2.8637858409226706
+2026-08-25 09:44:09,644 - INFO - Best validation loss: 2.8637858409226706
+2026-08-25 09:44:09,644 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:44:09,644 - INFO - Epoch 11/200
+2026-08-25 09:44:33,861 - INFO - Training loss: 2.794192619824688
+2026-08-25 09:44:36,330 - INFO - Validation loss: 2.808712280359391
+2026-08-25 09:44:36,394 - INFO - Best validation loss: 2.808712280359391
+2026-08-25 09:44:36,394 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:44:36,394 - INFO - Epoch 12/200
+2026-08-25 09:45:00,642 - INFO - Training loss: 2.7410128817020225
+2026-08-25 09:45:03,086 - INFO - Validation loss: 2.7561975374753893
+2026-08-25 09:45:03,156 - INFO - Best validation loss: 2.7561975374753893
+2026-08-25 09:45:03,156 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:45:03,156 - INFO - Epoch 13/200
+2026-08-25 09:45:27,327 - INFO - Training loss: 2.693555246995117
+2026-08-25 09:45:29,766 - INFO - Validation loss: 2.710960113439437
+2026-08-25 09:45:29,839 - INFO - Best validation loss: 2.710960113439437
+2026-08-25 09:45:29,839 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:45:29,840 - INFO - Epoch 14/200
+2026-08-25 09:45:54,022 - INFO - Training loss: 2.6489247000171052
+2026-08-25 09:45:56,470 - INFO - Validation loss: 2.66881092218882
+2026-08-25 09:45:56,539 - INFO - Best validation loss: 2.66881092218882
+2026-08-25 09:45:56,540 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:45:56,540 - INFO - Epoch 15/200
+2026-08-25 09:46:20,710 - INFO - Training loss: 2.612682363866368
+2026-08-25 09:46:23,155 - INFO - Validation loss: 2.634804077414484
+2026-08-25 09:46:23,226 - INFO - Best validation loss: 2.634804077414484
+2026-08-25 09:46:23,226 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:46:23,226 - INFO - Epoch 16/200
+2026-08-25 09:46:47,415 - INFO - Training loss: 2.576640386989608
+2026-08-25 09:46:49,881 - INFO - Validation loss: 2.6083392508551797
+2026-08-25 09:46:49,954 - INFO - Best validation loss: 2.6083392508551797
+2026-08-25 09:46:49,954 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:46:49,954 - INFO - Epoch 17/200
+2026-08-25 09:47:14,125 - INFO - Training loss: 2.546093958824989
+2026-08-25 09:47:16,611 - INFO - Validation loss: 2.5744359319302146
+2026-08-25 09:47:16,684 - INFO - Best validation loss: 2.5744359319302146
+2026-08-25 09:47:16,684 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:47:16,684 - INFO - Epoch 18/200
+2026-08-25 09:47:40,963 - INFO - Training loss: 2.519298418950478
+2026-08-25 09:47:43,422 - INFO - Validation loss: 2.5491184323642386
+2026-08-25 09:47:43,493 - INFO - Best validation loss: 2.5491184323642386
+2026-08-25 09:47:43,493 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:47:43,494 - INFO - Epoch 19/200
+2026-08-25 09:48:07,751 - INFO - Training loss: 2.4921583980901696
+2026-08-25 09:48:10,219 - INFO - Validation loss: 2.527388925716089
+2026-08-25 09:48:10,296 - INFO - Best validation loss: 2.527388925716089
+2026-08-25 09:48:10,296 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:48:10,296 - INFO - Epoch 20/200
+2026-08-25 09:48:34,527 - INFO - Training loss: 2.470325070596391
+2026-08-25 09:48:36,967 - INFO - Validation loss: 2.505136126612389
+2026-08-25 09:48:37,039 - INFO - Best validation loss: 2.505136126612389
+2026-08-25 09:48:37,040 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:48:37,040 - INFO - Epoch 21/200
+2026-08-25 09:49:01,228 - INFO - Training loss: 2.4501930442765527
+2026-08-25 09:49:03,701 - INFO - Validation loss: 2.4900101899077454
+2026-08-25 09:49:03,774 - INFO - Best validation loss: 2.4900101899077454
+2026-08-25 09:49:03,774 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:49:03,775 - INFO - Epoch 22/200
+2026-08-25 09:49:27,999 - INFO - Training loss: 2.429084443860481
+2026-08-25 09:49:30,427 - INFO - Validation loss: 2.473104393533371
+2026-08-25 09:49:30,498 - INFO - Best validation loss: 2.473104393533371
+2026-08-25 09:49:30,498 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:49:30,498 - INFO - Epoch 23/200
+2026-08-25 09:49:54,733 - INFO - Training loss: 2.410303965616783
+2026-08-25 09:49:57,209 - INFO - Validation loss: 2.4569875830744468
+2026-08-25 09:49:57,279 - INFO - Best validation loss: 2.4569875830744468
+2026-08-25 09:49:57,279 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:49:57,279 - INFO - Epoch 24/200
+2026-08-25 09:50:21,426 - INFO - Training loss: 2.393396230987074
+2026-08-25 09:50:23,907 - INFO - Validation loss: 2.442011659749076
+2026-08-25 09:50:23,979 - INFO - Best validation loss: 2.442011659749076
+2026-08-25 09:50:23,979 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:50:23,979 - INFO - Epoch 25/200
+2026-08-25 09:50:48,215 - INFO - Training loss: 2.375702466018469
+2026-08-25 09:50:50,652 - INFO - Validation loss: 2.429029445791449
+2026-08-25 09:50:50,726 - INFO - Best validation loss: 2.429029445791449
+2026-08-25 09:50:50,726 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:50:50,726 - INFO - Epoch 26/200
+2026-08-25 09:51:15,086 - INFO - Training loss: 2.361654835916215
+2026-08-25 09:51:17,749 - INFO - Validation loss: 2.4170087867540353
+2026-08-25 09:51:17,819 - INFO - Best validation loss: 2.4170087867540353
+2026-08-25 09:51:17,819 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:51:17,819 - INFO - Epoch 27/200
+2026-08-25 09:51:42,016 - INFO - Training loss: 2.345240249708005
+2026-08-25 09:51:44,446 - INFO - Validation loss: 2.401121281247282
+2026-08-25 09:51:44,513 - INFO - Best validation loss: 2.401121281247282
+2026-08-25 09:51:44,513 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:51:44,513 - INFO - Epoch 28/200
+2026-08-25 09:52:08,732 - INFO - Training loss: 2.3336721148472352
+2026-08-25 09:52:11,181 - INFO - Validation loss: 2.391424585309663
+2026-08-25 09:52:11,249 - INFO - Best validation loss: 2.391424585309663
+2026-08-25 09:52:11,249 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:52:11,249 - INFO - Epoch 29/200
+2026-08-25 09:52:35,406 - INFO - Training loss: 2.322629004600911
+2026-08-25 09:52:37,847 - INFO - Validation loss: 2.383867021793971
+2026-08-25 09:52:37,912 - INFO - Best validation loss: 2.383867021793971
+2026-08-25 09:52:37,912 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:52:37,913 - INFO - Epoch 30/200
+2026-08-25 09:53:02,124 - INFO - Training loss: 2.3084336969175228
+2026-08-25 09:53:04,687 - INFO - Validation loss: 2.3711868529667672
+2026-08-25 09:53:04,753 - INFO - Best validation loss: 2.3711868529667672
+2026-08-25 09:53:04,753 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:53:04,753 - INFO - Epoch 31/200
+2026-08-25 09:53:28,950 - INFO - Training loss: 2.297443760508229
+2026-08-25 09:53:31,418 - INFO - Validation loss: 2.3616121899928144
+2026-08-25 09:53:31,484 - INFO - Best validation loss: 2.3616121899928144
+2026-08-25 09:53:31,484 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:53:31,484 - INFO - Epoch 32/200
+2026-08-25 09:53:55,762 - INFO - Training loss: 2.2870170624803476
+2026-08-25 09:53:58,229 - INFO - Validation loss: 2.3560101458954708
+2026-08-25 09:53:58,293 - INFO - Best validation loss: 2.3560101458954708
+2026-08-25 09:53:58,293 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:53:58,294 - INFO - Epoch 33/200
+2026-08-25 09:54:22,542 - INFO - Training loss: 2.278021179284567
+2026-08-25 09:54:25,084 - INFO - Validation loss: 2.3458222432197933
+2026-08-25 09:54:25,148 - INFO - Best validation loss: 2.3458222432197933
+2026-08-25 09:54:25,148 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:54:25,148 - INFO - Epoch 34/200
+2026-08-25 09:54:49,351 - INFO - Training loss: 2.2670127301828407
+2026-08-25 09:54:51,821 - INFO - Validation loss: 2.336948327752142
+2026-08-25 09:54:51,890 - INFO - Best validation loss: 2.336948327752142
+2026-08-25 09:54:51,890 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:54:51,890 - INFO - Epoch 35/200
+2026-08-25 09:55:16,117 - INFO - Training loss: 2.256435424437319
+2026-08-25 09:55:18,564 - INFO - Validation loss: 2.3303012152086513
+2026-08-25 09:55:18,629 - INFO - Best validation loss: 2.3303012152086513
+2026-08-25 09:55:18,629 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:55:18,629 - INFO - Epoch 36/200
+2026-08-25 09:55:42,817 - INFO - Training loss: 2.2479712401846506
+2026-08-25 09:55:45,265 - INFO - Validation loss: 2.327593892940636
+2026-08-25 09:55:45,332 - INFO - Best validation loss: 2.327593892940636
+2026-08-25 09:55:45,332 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:55:45,332 - INFO - Epoch 37/200
+2026-08-25 09:56:09,535 - INFO - Training loss: 2.240154574817257
+2026-08-25 09:56:12,019 - INFO - Validation loss: 2.3203020111174033
+2026-08-25 09:56:12,087 - INFO - Best validation loss: 2.3203020111174033
+2026-08-25 09:56:12,087 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:56:12,088 - INFO - Epoch 38/200
+2026-08-25 09:56:36,341 - INFO - Training loss: 2.2311506155399963
+2026-08-25 09:56:38,815 - INFO - Validation loss: 2.3153134635589665
+2026-08-25 09:56:38,881 - INFO - Best validation loss: 2.3153134635589665
+2026-08-25 09:56:38,881 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:56:38,881 - INFO - Epoch 39/200
+2026-08-25 09:57:03,130 - INFO - Training loss: 2.222645263727537
+2026-08-25 09:57:05,565 - INFO - Validation loss: 2.3132490815011217
+2026-08-25 09:57:05,639 - INFO - Best validation loss: 2.3132490815011217
+2026-08-25 09:57:05,639 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:57:05,639 - INFO - Epoch 40/200
+2026-08-25 09:57:29,812 - INFO - Training loss: 2.2158137620191165
+2026-08-25 09:57:32,295 - INFO - Validation loss: 2.3049612398311305
+2026-08-25 09:57:32,360 - INFO - Best validation loss: 2.3049612398311305
+2026-08-25 09:57:32,360 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:57:32,360 - INFO - Epoch 41/200
+2026-08-25 09:57:56,512 - INFO - Training loss: 2.208200688955849
+2026-08-25 09:57:58,952 - INFO - Validation loss: 2.3005264936086958
+2026-08-25 09:57:59,014 - INFO - Best validation loss: 2.3005264936086958
+2026-08-25 09:57:59,014 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:57:59,014 - INFO - Epoch 42/200
+2026-08-25 09:58:23,225 - INFO - Training loss: 2.1982090334020237
+2026-08-25 09:58:25,656 - INFO - Validation loss: 2.295574063906854
+2026-08-25 09:58:25,726 - INFO - Best validation loss: 2.295574063906854
+2026-08-25 09:58:25,726 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:58:25,726 - INFO - Epoch 43/200
+2026-08-25 09:58:49,949 - INFO - Training loss: 2.1935740621173427
+2026-08-25 09:58:52,399 - INFO - Validation loss: 2.2886999482248984
+2026-08-25 09:58:52,468 - INFO - Best validation loss: 2.2886999482248984
+2026-08-25 09:58:52,468 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:58:52,468 - INFO - Epoch 44/200
+2026-08-25 09:59:16,635 - INFO - Training loss: 2.188872532621896
+2026-08-25 09:59:19,085 - INFO - Validation loss: 2.288387220816551
+2026-08-25 09:59:19,147 - INFO - Best validation loss: 2.288387220816551
+2026-08-25 09:59:19,147 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:59:19,147 - INFO - Epoch 45/200
+2026-08-25 09:59:43,334 - INFO - Training loss: 2.180554725316712
+2026-08-25 09:59:45,797 - INFO - Validation loss: 2.285449108852337
+2026-08-25 09:59:45,859 - INFO - Best validation loss: 2.285449108852337
+2026-08-25 09:59:45,859 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 09:59:45,859 - INFO - Epoch 46/200
+2026-08-25 10:00:10,027 - INFO - Training loss: 2.173019881378352
+2026-08-25 10:00:12,490 - INFO - Validation loss: 2.2757709573778473
+2026-08-25 10:00:12,554 - INFO - Best validation loss: 2.2757709573778473
+2026-08-25 10:00:12,554 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:00:12,555 - INFO - Epoch 47/200
+2026-08-25 10:00:36,975 - INFO - Training loss: 2.1660367510198157
+2026-08-25 10:00:39,670 - INFO - Validation loss: 2.2764275227493482
+2026-08-25 10:00:39,671 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:00:39,671 - INFO - Epoch 48/200
+2026-08-25 10:01:04,036 - INFO - Training loss: 2.162181287192185
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        2026-08-25 10:01:06,714 - INFO - Validation loss: 2.2720714454487156
+2026-08-25 10:01:06,783 - INFO - Best validation loss: 2.2720714454487156
+2026-08-25 10:01:06,783 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:01:06,783 - INFO - Epoch 49/200
+2026-08-25 10:01:31,181 - INFO - Training loss: 2.1547281340866236
+2026-08-25 10:01:33,797 - INFO - Validation loss: 2.272883533408202
+2026-08-25 10:01:33,798 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:01:33,798 - INFO - Epoch 50/200
+2026-08-25 10:01:58,168 - INFO - Training loss: 2.1494348661444995
+2026-08-25 10:02:00,847 - INFO - Validation loss: 2.2664900066514897
+2026-08-25 10:02:00,915 - INFO - Best validation loss: 2.2664900066514897
+2026-08-25 10:02:00,915 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:02:00,915 - INFO - Epoch 51/200
+2026-08-25 10:02:25,279 - INFO - Training loss: 2.1423303719160622
+2026-08-25 10:02:27,772 - INFO - Validation loss: 2.2631109574322026
+2026-08-25 10:02:27,833 - INFO - Best validation loss: 2.2631109574322026
+2026-08-25 10:02:27,833 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:02:27,834 - INFO - Epoch 52/200
+2026-08-25 10:02:52,027 - INFO - Training loss: 2.137852867057815
+2026-08-25 10:02:54,463 - INFO - Validation loss: 2.260909374179758
+2026-08-25 10:02:54,523 - INFO - Best validation loss: 2.260909374179758
+2026-08-25 10:02:54,523 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:02:54,523 - INFO - Epoch 53/200
+2026-08-25 10:03:18,752 - INFO - Training loss: 2.131922010317851
+2026-08-25 10:03:21,209 - INFO - Validation loss: 2.2553130117097124
+2026-08-25 10:03:21,275 - INFO - Best validation loss: 2.2553130117097124
+2026-08-25 10:03:21,275 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:03:21,275 - INFO - Epoch 54/200
+2026-08-25 10:03:45,430 - INFO - Training loss: 2.126639702904549
+2026-08-25 10:03:47,900 - INFO - Validation loss: 2.255264383528877
+2026-08-25 10:03:47,965 - INFO - Best validation loss: 2.255264383528877
+2026-08-25 10:03:47,965 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:03:47,965 - INFO - Epoch 55/200
+2026-08-25 10:04:12,173 - INFO - Training loss: 2.1214764023105457
+2026-08-25 10:04:14,641 - INFO - Validation loss: 2.2555614080551867
+2026-08-25 10:04:14,641 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:04:14,642 - INFO - Epoch 56/200
+2026-08-25 10:04:38,832 - INFO - Training loss: 2.1160385571565143
+2026-08-25 10:04:41,426 - INFO - Validation loss: 2.2498941288485548
+2026-08-25 10:04:41,492 - INFO - Best validation loss: 2.2498941288485548
+2026-08-25 10:04:41,492 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:04:41,492 - INFO - Epoch 57/200
+2026-08-25 10:05:05,745 - INFO - Training loss: 2.1116702930008855
+2026-08-25 10:05:08,208 - INFO - Validation loss: 2.249489270054731
+2026-08-25 10:05:08,272 - INFO - Best validation loss: 2.249489270054731
+2026-08-25 10:05:08,272 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:05:08,272 - INFO - Epoch 58/200
+2026-08-25 10:05:32,529 - INFO - Training loss: 2.105083918525087
+2026-08-25 10:05:35,003 - INFO - Validation loss: 2.246125431019861
+2026-08-25 10:05:35,072 - INFO - Best validation loss: 2.246125431019861
+2026-08-25 10:05:35,072 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:05:35,073 - INFO - Epoch 59/200
+2026-08-25 10:05:59,241 - INFO - Training loss: 2.1017100196404215
+2026-08-25 10:06:01,678 - INFO - Validation loss: 2.245988292755487
+2026-08-25 10:06:01,757 - INFO - Best validation loss: 2.245988292755487
+2026-08-25 10:06:01,757 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:06:01,758 - INFO - Epoch 60/200
+2026-08-25 10:06:25,923 - INFO - Training loss: 2.09636575586601
+2026-08-25 10:06:28,416 - INFO - Validation loss: 2.241879702126008
+2026-08-25 10:06:28,487 - INFO - Best validation loss: 2.241879702126008
+2026-08-25 10:06:28,487 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:06:28,488 - INFO - Epoch 61/200
+2026-08-25 10:06:52,742 - INFO - Training loss: 2.092059839096515
+2026-08-25 10:06:55,190 - INFO - Validation loss: 2.2374155572555607
+2026-08-25 10:06:55,264 - INFO - Best validation loss: 2.2374155572555607
+2026-08-25 10:06:55,265 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:06:55,265 - INFO - Epoch 62/200
+2026-08-25 10:07:19,427 - INFO - Training loss: 2.0891613997374066
+2026-08-25 10:07:21,923 - INFO - Validation loss: 2.2377141207584494
+2026-08-25 10:07:21,923 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:07:21,924 - INFO - Epoch 63/200
+2026-08-25 10:07:46,118 - INFO - Training loss: 2.082524651219409
+2026-08-25 10:07:48,593 - INFO - Validation loss: 2.2356730638143842
+2026-08-25 10:07:48,662 - INFO - Best validation loss: 2.2356730638143842
+2026-08-25 10:07:48,662 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:07:48,663 - INFO - Epoch 64/200
+2026-08-25 10:08:12,842 - INFO - Training loss: 2.0800566939992198
+2026-08-25 10:08:15,292 - INFO - Validation loss: 2.2370451079929334
+2026-08-25 10:08:15,292 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:08:15,293 - INFO - Epoch 65/200
+2026-08-25 10:08:39,513 - INFO - Training loss: 2.073012645606401
+2026-08-25 10:08:41,967 - INFO - Validation loss: 2.237356507215377
+2026-08-25 10:08:41,968 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 10:08:41,968 - INFO - Epoch 66/200
+2026-08-25 10:09:06,158 - INFO - Training loss: 2.071093655745807
+2026-08-25 10:09:08,645 - INFO - Validation loss: 2.2333464914125436
+2026-08-25 10:09:08,715 - INFO - Best validation loss: 2.2333464914125436
+2026-08-25 10:09:08,715 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:09:08,715 - INFO - Epoch 67/200
+2026-08-25 10:09:32,956 - INFO - Training loss: 2.0657102512014514
+2026-08-25 10:09:35,418 - INFO - Validation loss: 2.2327513756158526
+2026-08-25 10:09:35,488 - INFO - Best validation loss: 2.2327513756158526
+2026-08-25 10:09:35,488 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:09:35,488 - INFO - Epoch 68/200
+2026-08-25 10:09:59,744 - INFO - Training loss: 2.0624948791028923
+2026-08-25 10:10:02,237 - INFO - Validation loss: 2.2287395660457694
+2026-08-25 10:10:02,305 - INFO - Best validation loss: 2.2287395660457694
+2026-08-25 10:10:02,306 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:10:02,306 - INFO - Epoch 69/200
+2026-08-25 10:10:26,541 - INFO - Training loss: 2.057965344260175
+2026-08-25 10:10:28,970 - INFO - Validation loss: 2.228901169330777
+2026-08-25 10:10:28,970 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:10:28,971 - INFO - Epoch 70/200
+2026-08-25 10:10:53,145 - INFO - Training loss: 2.051932624805762
+2026-08-25 10:10:55,633 - INFO - Validation loss: 2.22847867472489
+2026-08-25 10:10:55,708 - INFO - Best validation loss: 2.22847867472489
+2026-08-25 10:10:55,708 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:10:55,708 - INFO - Epoch 71/200
+2026-08-25 10:11:19,931 - INFO - Training loss: 2.051095380625372
+2026-08-25 10:11:22,438 - INFO - Validation loss: 2.2273975078640067
+2026-08-25 10:11:22,504 - INFO - Best validation loss: 2.2273975078640067
+2026-08-25 10:11:22,504 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:11:22,504 - INFO - Epoch 72/200
+2026-08-25 10:11:46,775 - INFO - Training loss: 2.0450556744397383
+2026-08-25 10:11:49,258 - INFO - Validation loss: 2.224489260129151
+2026-08-25 10:11:49,326 - INFO - Best validation loss: 2.224489260129151
+2026-08-25 10:11:49,326 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:11:49,326 - INFO - Epoch 73/200
+2026-08-25 10:12:13,834 - INFO - Training loss: 2.0415688774001275
+2026-08-25 10:12:16,535 - INFO - Validation loss: 2.224513005289397
+2026-08-25 10:12:16,535 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:12:16,535 - INFO - Epoch 74/200
+2026-08-25 10:12:40,881 - INFO - Training loss: 2.0369218184326408
+2026-08-25 10:12:43,557 - INFO - Validation loss: 2.2261185144661835
+2026-08-25 10:12:43,557 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 10:12:43,557 - INFO - Epoch 75/200
+2026-08-25 10:13:07,789 - INFO - Training loss: 2.0339326301901255
+2026-08-25 10:13:10,535 - INFO - Validation loss: 2.221918617195326
+2026-08-25 10:13:10,614 - INFO - Best validation loss: 2.221918617195326
+2026-08-25 10:13:10,614 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:13:10,614 - INFO - Epoch 76/200
+2026-08-25 10:13:34,907 - INFO - Training loss: 2.0308034941843975
+2026-08-25 10:13:37,418 - INFO - Validation loss: 2.221152632533225
+2026-08-25 10:13:37,496 - INFO - Best validation loss: 2.221152632533225
+2026-08-25 10:13:37,496 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:13:37,496 - INFO - Epoch 77/200
+2026-08-25 10:14:01,796 - INFO - Training loss: 2.0269063233401523
+2026-08-25 10:14:04,277 - INFO - Validation loss: 2.2256673830261557
+2026-08-25 10:14:04,277 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:14:04,277 - INFO - Epoch 78/200
+2026-08-25 10:14:28,457 - INFO - Training loss: 2.022132328975989
+2026-08-25 10:14:30,999 - INFO - Validation loss: 2.2243969363716025
+2026-08-25 10:14:30,999 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 10:14:30,999 - INFO - Epoch 79/200
+2026-08-25 10:14:55,264 - INFO - Training loss: 2.020218466970243
+2026-08-25 10:14:57,743 - INFO - Validation loss: 2.22328094863073
+2026-08-25 10:14:57,743 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 10:14:57,743 - INFO - Epoch 80/200
+2026-08-25 10:15:21,920 - INFO - Training loss: 2.0143516244591444
+2026-08-25 10:15:24,360 - INFO - Validation loss: 2.223056214050162
+2026-08-25 10:15:24,360 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-25 10:15:24,361 - INFO - Epoch 81/200
+2026-08-25 10:15:48,546 - INFO - Training loss: 2.0128186127091197
+2026-08-25 10:15:50,982 - INFO - Validation loss: 2.220503973858551
+2026-08-25 10:15:51,052 - INFO - Best validation loss: 2.220503973858551
+2026-08-25 10:15:51,052 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:15:51,052 - INFO - Epoch 82/200
+2026-08-25 10:16:15,259 - INFO - Training loss: 2.007339484728728
+2026-08-25 10:16:17,698 - INFO - Validation loss: 2.219772234495106
+2026-08-25 10:16:17,767 - INFO - Best validation loss: 2.219772234495106
+2026-08-25 10:16:17,767 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:16:17,767 - INFO - Epoch 83/200
+2026-08-25 10:16:41,957 - INFO - Training loss: 2.004433224637221
+2026-08-25 10:16:44,412 - INFO - Validation loss: 2.223296354256986
+2026-08-25 10:16:44,412 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:16:44,412 - INFO - Epoch 84/200
+2026-08-25 10:17:08,653 - INFO - Training loss: 2.000751747927313
+2026-08-25 10:17:11,120 - INFO - Validation loss: 2.2184728271459817
+2026-08-25 10:17:11,188 - INFO - Best validation loss: 2.2184728271459817
+2026-08-25 10:17:11,188 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:17:11,189 - INFO - Epoch 85/200
+2026-08-25 10:17:35,462 - INFO - Training loss: 1.997471322809212
+2026-08-25 10:17:37,900 - INFO - Validation loss: 2.2187469849770673
+2026-08-25 10:17:37,900 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:17:37,901 - INFO - Epoch 86/200
+2026-08-25 10:18:02,171 - INFO - Training loss: 1.9950154722896531
+2026-08-25 10:18:04,646 - INFO - Validation loss: 2.2184778554245126
+2026-08-25 10:18:04,647 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 10:18:04,647 - INFO - Epoch 87/200
+2026-08-25 10:18:28,884 - INFO - Training loss: 1.9916680564212428
+2026-08-25 10:18:31,327 - INFO - Validation loss: 2.217508202458656
+2026-08-25 10:18:31,399 - INFO - Best validation loss: 2.217508202458656
+2026-08-25 10:18:31,399 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:18:31,399 - INFO - Epoch 88/200
+2026-08-25 10:18:55,647 - INFO - Training loss: 1.986812986288553
+2026-08-25 10:18:58,094 - INFO - Validation loss: 2.2174134121432325
+2026-08-25 10:18:58,164 - INFO - Best validation loss: 2.2174134121432325
+2026-08-25 10:18:58,164 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:18:58,164 - INFO - Epoch 89/200
+2026-08-25 10:19:22,315 - INFO - Training loss: 1.984177542567717
+2026-08-25 10:19:24,745 - INFO - Validation loss: 2.2175029285987558
+2026-08-25 10:19:24,746 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:19:24,746 - INFO - Epoch 90/200
+2026-08-25 10:19:48,943 - INFO - Training loss: 1.981594198176833
+2026-08-25 10:19:51,390 - INFO - Validation loss: 2.2182187998243665
+2026-08-25 10:19:51,390 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 10:19:51,391 - INFO - Epoch 91/200
+2026-08-25 10:20:15,540 - INFO - Training loss: 1.9784079695026235
+2026-08-25 10:20:17,981 - INFO - Validation loss: 2.2181075366269876
+2026-08-25 10:20:17,981 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 10:20:17,981 - INFO - Epoch 92/200
+2026-08-25 10:20:42,174 - INFO - Training loss: 1.9749449929838514
+2026-08-25 10:20:44,745 - INFO - Validation loss: 2.2163691771388567
+2026-08-25 10:20:44,813 - INFO - Best validation loss: 2.2163691771388567
+2026-08-25 10:20:44,813 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:20:44,813 - INFO - Epoch 93/200
+2026-08-25 10:21:09,016 - INFO - Training loss: 1.9717244188145442
+2026-08-25 10:21:11,469 - INFO - Validation loss: 2.2152600068391135
+2026-08-25 10:21:11,535 - INFO - Best validation loss: 2.2152600068391135
+2026-08-25 10:21:11,535 - INFO - Best model saved to ./ckpt/causal_tiger_Beauty.pth
+2026-08-25 10:21:11,536 - INFO - Epoch 94/200
+2026-08-25 10:21:35,777 - INFO - Training loss: 1.9696420002076414
+2026-08-25 10:21:38,279 - INFO - Validation loss: 2.2155455729480464
+2026-08-25 10:21:38,279 - INFO - No improvement in validation loss. Early stop counter: 1
+2026-08-25 10:21:38,280 - INFO - Epoch 95/200
+2026-08-25 10:22:02,468 - INFO - Training loss: 1.9666989505986758
+2026-08-25 10:22:04,959 - INFO - Validation loss: 2.2235317619061776
+2026-08-25 10:22:04,959 - INFO - No improvement in validation loss. Early stop counter: 2
+2026-08-25 10:22:04,959 - INFO - Epoch 96/200
+2026-08-25 10:22:29,145 - INFO - Training loss: 1.9619586013170531
+2026-08-25 10:22:31,636 - INFO - Validation loss: 2.2171698532391004
+2026-08-25 10:22:31,637 - INFO - No improvement in validation loss. Early stop counter: 3
+2026-08-25 10:22:31,637 - INFO - Epoch 97/200
+2026-08-25 10:22:55,867 - INFO - Training loss: 1.9596669284286201
+2026-08-25 10:22:58,384 - INFO - Validation loss: 2.2175959747748313
+2026-08-25 10:22:58,384 - INFO - No improvement in validation loss. Early stop counter: 4
+2026-08-25 10:22:58,384 - INFO - Epoch 98/200
+2026-08-25 10:23:22,551 - INFO - Training loss: 1.955466084211253
+2026-08-25 10:23:24,995 - INFO - Validation loss: 2.220476767024257
+2026-08-25 10:23:24,995 - INFO - No improvement in validation loss. Early stop counter: 5
+2026-08-25 10:23:24,995 - INFO - Epoch 99/200
+2026-08-25 10:23:49,270 - INFO - Training loss: 1.951662735948303
+2026-08-25 10:23:51,707 - INFO - Validation loss: 2.2175146827370313
+2026-08-25 10:23:51,707 - INFO - No improvement in validation loss. Early stop counter: 6
+2026-08-25 10:23:51,707 - INFO - Epoch 100/200
+2026-08-25 10:24:15,933 - INFO - Training loss: 1.9503627025199772
+2026-08-25 10:24:18,398 - INFO - Validation loss: 2.2183362439978276
+2026-08-25 10:24:18,398 - INFO - No improvement in validation loss. Early stop counter: 7
+2026-08-25 10:24:18,398 - INFO - Epoch 101/200
+2026-08-25 10:24:42,638 - INFO - Training loss: 1.9469335679878057
+2026-08-25 10:24:45,116 - INFO - Validation loss: 2.221631554063298
+2026-08-25 10:24:45,116 - INFO - No improvement in validation loss. Early stop counter: 8
+2026-08-25 10:24:45,116 - INFO - Epoch 102/200
+2026-08-25 10:25:09,277 - INFO - Training loss: 1.9454929837920787
+2026-08-25 10:25:11,732 - INFO - Validation loss: 2.2164455166190478
+2026-08-25 10:25:11,733 - INFO - No improvement in validation loss. Early stop counter: 9
+2026-08-25 10:25:11,733 - INFO - Epoch 103/200
+2026-08-25 10:25:35,938 - INFO - Training loss: 1.941655014971351
+2026-08-25 10:25:38,375 - INFO - Validation loss: 2.220414230751889
+2026-08-25 10:25:38,375 - INFO - No improvement in validation loss. Early stop counter: 10
+2026-08-25 10:25:38,376 - INFO - Early stopping triggered.
+2026-08-25 10:25:38,376 - INFO - Loading best model for final testing...
+2026-08-25 10:36:09,277 - INFO - Final Epoch: 93
+2026-08-25 10:36:09,279 - INFO - Final Test Recalls: {'Recall@5': 0.03479116585489379, 'Recall@10': 0.054660602492707995, 'Recall@20': 0.0822643022584557}
+2026-08-25 10:36:09,279 - INFO - Final Test NDCGs: {'NDCG@5': 0.023097179796099022, 'NDCG@10': 0.029476596162426625, 'NDCG@20': 0.03641214354019692}

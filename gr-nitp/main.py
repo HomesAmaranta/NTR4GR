@@ -5,6 +5,7 @@ import hashlib
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import LambdaLR
 import math
@@ -14,6 +15,7 @@ import random
 import pandas as pd
 from tqdm import tqdm
 import logging
+from torch.utils.tensorboard import SummaryWriter
 from dataset import GenRecDataset
 from dataloader import GenRecDataLoader
 from generation_trie import Trie, prefix_allowed_tokens_fn
@@ -72,8 +74,11 @@ class TIGER(nn.Module):
       outputs = self.model(
           input_ids=input_ids,
           attention_mask=attention_mask,
-          labels=labels
+          labels=labels,
+          output_hidden_states=True,
+          return_dict=True,
       )
+      self.last_target_hidden_states = outputs.decoder_hidden_states[-1].detach()
       return outputs.loss, outputs.logits
     
     def generate(self, input_ids: torch.Tensor, attention_mask: Optional[torch.Tensor] = None,  num_beams: int = 20, **kwargs):
@@ -135,9 +140,25 @@ def ndcg_at_k(pos_index, k):
   dcg = torch.where(pos_index, dcg, torch.tensor(0.0, dtype=torch.float, device=dcg.device))
   return dcg[:, :k].sum(dim=1).cpu().float()
 
+def compute_geometry_metrics(hidden_states: torch.Tensor) -> Dict[str, float]:
+    reps = hidden_states[:, 0, :].detach().float()
+    if reps.size(0) < 2:
+        return {"effective_rank": 0.0, "avg_cosine": 0.0}
+    centered = reps - reps.mean(dim=0, keepdim=True)
+    cov = centered.T @ centered / max(centered.size(0) - 1, 1)
+    eigvals = torch.linalg.eigvalsh(cov).clamp_min(1e-12)
+    probs = eigvals / eigvals.sum()
+    effective_rank = torch.exp(-(probs * probs.log()).sum()).item()
+    normed = F.normalize(reps, dim=-1)
+    sim = normed @ normed.T
+    mask = ~torch.eye(sim.size(0), dtype=torch.bool, device=sim.device)
+    avg_cosine = sim[mask].mean().item()
+    return {"effective_rank": effective_rank, "avg_cosine": avg_cosine}
+
+
 def train(model, train_loader, optimizer, device):
     model.train()
-    total_loss = 0.0
+    totals = {"total": 0.0, "ce": 0.0, "align": 0.0, "effective_rank": 0.0, "avg_cosine": 0.0}
     for batch in train_loader:
         input_ids = batch['history'].to(device)
         attention_mask = batch['attention_mask'].to(device)
@@ -158,9 +179,17 @@ def train(model, train_loader, optimizer, device):
         loss.backward()
         optimizer.step()
 
-        total_loss += loss.item()
+        loss_dict = getattr(model, 'last_loss_dict', None)
+        totals["total"] += loss.item()
+        totals["ce"] += loss_dict["ce"].item() if loss_dict is not None and "ce" in loss_dict else loss.item()
+        totals["align"] += loss_dict["align"].item() if loss_dict is not None and "align" in loss_dict else 0.0
+        hidden_states = getattr(model, "last_target_hidden_states", None)
+        if hidden_states is not None:
+            geometry = compute_geometry_metrics(hidden_states)
+            totals["effective_rank"] += geometry["effective_rank"]
+            totals["avg_cosine"] += geometry["avg_cosine"]
         
-    return total_loss / len(train_loader)
+    return {k: v / len(train_loader) for k, v in totals.items()}
 
 def validate(model, valid_loader, device):
     model.eval()
@@ -229,11 +258,20 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
 
 def set_seed(seed):
     """Set random seed for reproducibility."""
+    os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    random.seed(worker_seed)
+    np.random.seed(worker_seed)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TIGER configuration")
@@ -266,6 +304,7 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'evaluation'], help='Mode of operation')
     parser.add_argument('--model_type', type=str, default='t5', choices=['t5', 'causal', 'gpt2'], help='Model type to train')
     parser.add_argument('--log_path', type=str, default='./logs/tiger.log', help='Path to the log file')
+    parser.add_argument('--tensorboard_dir', type=str, default=None, help='TensorBoard log directory')
     parser.add_argument('--seed', type=int, default=2025, help='Random seed for reproducibility')
     parser.add_argument('--save_path', type=str, default='./ckpt/tiger.pth', help='Path to save the trained model')
     parser.add_argument('--early_stop', type=int, default=10, help='Early stopping patience')
@@ -280,6 +319,12 @@ if __name__ == "__main__":
     )
 
     logging.info(f"Configuration: {config}")
+    tb_dir = config['tensorboard_dir']
+    if tb_dir is None or tb_dir == 'None':
+        tb_dir = os.path.join('./runs', os.path.splitext(os.path.basename(config['log_path']))[0])
+    writer = SummaryWriter(tb_dir)
+    logging.info(f"TensorBoard dir: {tb_dir}")
+    set_seed(config['seed'])
     
     # Initialize model
     if config['model_type'] == 'causal':
@@ -290,9 +335,6 @@ if __name__ == "__main__":
         model = TIGER(config)
     print(model.n_parameters)
     logging.info(model.n_parameters)
-
-    # Set random seed for reproducibility
-    set_seed(config['seed'])
     # Check if the device is available
     device = torch.device(config['device'] if torch.cuda.is_available() else 'cpu')
     
@@ -315,9 +357,11 @@ if __name__ == "__main__":
         max_len=config['max_len']
     )
 
-    train_dataloader = GenRecDataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
-    validation_dataloader = GenRecDataLoader(validation_dataset, batch_size=config['infer_size'], shuffle=False)
-    test_dataloader = GenRecDataLoader(test_dataset, batch_size=config['infer_size'], shuffle=False)
+    dataloader_generator = torch.Generator()
+    dataloader_generator.manual_seed(config['seed'])
+    train_dataloader = GenRecDataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True, generator=dataloader_generator, worker_init_fn=seed_worker)
+    validation_dataloader = GenRecDataLoader(validation_dataset, batch_size=config['infer_size'], shuffle=False, worker_init_fn=seed_worker)
+    test_dataloader = GenRecDataLoader(test_dataset, batch_size=config['infer_size'], shuffle=False, worker_init_fn=seed_worker)
 
     print("Building Trie...")
     trie_sequences = []
@@ -365,14 +409,26 @@ if __name__ == "__main__":
     
     for epoch in tqdm(range(config['num_epochs'])):
         logging.info(f"Epoch {epoch + 1}/{config['num_epochs']}")
-        train_loss = train(model, train_dataloader, optimizer, device)
-        logging.info(f"Training loss: {train_loss}")
+        train_losses = train(model, train_dataloader, optimizer, device)
+        logging.info(f"Training total loss: {train_losses['total']}")
+        logging.info(f"Training CE loss: {train_losses['ce']}")
+        logging.info(f"Training {config['align_loss_type'].upper()} align loss: {train_losses['align']}")
+        logging.info(f"Training geometry effective rank: {train_losses['effective_rank']}")
+        logging.info(f"Training geometry avg cosine: {train_losses['avg_cosine']}")
+        writer.add_scalar('train/loss_total', train_losses['total'], epoch + 1)
+        writer.add_scalar('train/loss_ce', train_losses['ce'], epoch + 1)
+        writer.add_scalar('train/loss_align', train_losses['align'], epoch + 1)
+        writer.add_scalar('train/effective_rank_first_label_token', train_losses['effective_rank'], epoch + 1)
+        writer.add_scalar('train/avg_cosine_first_label_token', train_losses['avg_cosine'], epoch + 1)
         valid_losses = validate(model, validation_dataloader, device)
         valid_loss = valid_losses[config['early_stop_metric']]
         logging.info(f"Validation total loss: {valid_losses['total']}")
         logging.info(f"Validation CE loss: {valid_losses['ce']}")
         logging.info(f"Validation {config['align_loss_type'].upper()} align loss: {valid_losses['align']}")
         logging.info(f"Early stop metric ({config['early_stop_metric']}): {valid_loss}")
+        writer.add_scalar('valid/loss_total', valid_losses['total'], epoch + 1)
+        writer.add_scalar('valid/loss_ce', valid_losses['ce'], epoch + 1)
+        writer.add_scalar('valid/loss_align', valid_losses['align'], epoch + 1)
         if valid_loss < best_loss:
             best_loss = valid_loss
             best_epoch = epoch
@@ -388,6 +444,7 @@ if __name__ == "__main__":
                 logging.info("Early stopping triggered.")
                 break
 
+    writer.close()
     logging.info("Loading best model for final testing...")
     model.load_state_dict(torch.load(config['save_path'], map_location=device))
     test_avg_recalls, test_avg_ndcgs = evaluate(model, test_dataloader, config['topk_list'], config['beam_size'], device, trie=item_trie)

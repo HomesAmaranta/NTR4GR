@@ -90,7 +90,9 @@ class GPT2TIGER(nn.Module):
             input_ids=model_input_ids,
             attention_mask=model_attention_mask,
             labels=lm_labels,
+            output_hidden_states=True,
         )
+        self.last_target_hidden_states = outputs.hidden_states[-1][:, -(labels.size(1) + 1) : -1, :].detach()
         target_logits = outputs.logits[:, -(labels.size(1) + 1) : -1, :]
         return outputs.loss, target_logits
 

@@ -2,6 +2,7 @@ from typing import Any, Callable, Dict, Optional
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from transformers import GPT2Config, GPT2LMHeadModel
 
 
@@ -68,18 +69,27 @@ class GPT2TIGER(nn.Module):
             return None, outputs.logits
 
         if labels.shape == input_ids.shape:
-            lm_labels = labels.clone()
-            if loss_mask is None:
-                lm_labels = lm_labels.masked_fill(lm_labels == self.pad_token_id, -100)
-            else:
-                lm_labels = lm_labels.masked_fill(~loss_mask.to(torch.bool), -100)
             outputs = self.model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 position_ids=position_ids,
-                labels=lm_labels,
             )
-            return outputs.loss, outputs.logits[:, :-1, :]
+            logits = outputs.logits
+            shift_logits = logits[:, :-1, :]
+            shift_labels = labels[:, 1:].clone()
+            if loss_mask is None:
+                shift_labels = shift_labels.masked_fill(shift_labels == self.pad_token_id, -100)
+            else:
+                shift_labels = shift_labels.masked_fill(~loss_mask[:, 1:].to(torch.bool), -100)
+            token_loss = F.cross_entropy(
+                shift_logits.reshape(-1, shift_logits.size(-1)),
+                shift_labels.reshape(-1),
+                ignore_index=-100,
+                reduction="none",
+            ).view(shift_labels.size())
+            valid_mask = shift_labels.ne(-100)
+            loss = (token_loss * valid_mask).sum() / valid_mask.sum().clamp_min(1)
+            return loss, shift_logits
 
         batch_size = input_ids.size(0)
         start_tokens = torch.full(
