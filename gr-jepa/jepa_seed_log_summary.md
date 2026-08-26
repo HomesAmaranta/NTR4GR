@@ -1,0 +1,10 @@
+| file | dataset | loss_type | weight | mode | align_target | align_item | lm_head | seed | Recall@5 | Recall@10 | Recall@20 | NDCG@5 | NDCG@10 | NDCG@20 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| causal_tiger_Beauty_cos0.3_token_item_seed1.log | Beauty | cos | 0.3 | token | item | next | emb | 1 | 0.038234 | 0.059626 | 0.086191 | 0.025340 | 0.032206 | 0.038914 |
+| causal_tiger_Beauty_cos0.3_token_item_seed42.log | Beauty | cos | 0.3 | token | item | next | emb | 42 | 0.041363 | 0.060917 | 0.088342 | 0.028371 | 0.034615 | 0.041541 |
+| causal_tiger_Beauty_cos0_token_item_seed1.log | Beauty | cos | 0 | token | item | next | emb | 1 | 0.038003 | 0.059526 | 0.086025 | 0.025492 | 0.032433 | 0.039103 |
+| causal_tiger_Beauty_cos0_token_item_seed42.log | Beauty | cos | 0 | token | item | next | emb | 42 | 0.037285 | 0.058453 | 0.084582 | 0.025239 | 0.032027 | 0.038597 |
+| causal_tiger_Beauty_cos1_mean_latent_seed1.log | Beauty | cos | 1 | mean | latent | next | emb | 1 | 0.040203 | 0.061901 | 0.089147 | 0.026797 | 0.033778 | 0.040648 |
+| causal_tiger_Beauty_cos1_mean_latent_seed42.log | Beauty | cos | 1 | mean | latent | next | emb | 42 | 0.040648 | 0.058823 | 0.086116 | 0.027335 | 0.033163 | 0.040033 |
+| causal_tiger_Beauty_mse0.3_mean_latent_seed1.log | Beauty | mse | 0.3 | mean | latent | next | emb | 1 | 0.040961 | 0.060962 | 0.089196 | 0.027355 | 0.033811 | 0.040933 |
+| causal_tiger_Beauty_mse0.3_mean_latent_seed42.log | Beauty | mse | 0.3 | mean | latent | next | emb | 42 | 0.039935 | 0.059176 | 0.085036 | 0.026711 | 0.032903 | 0.039401 |

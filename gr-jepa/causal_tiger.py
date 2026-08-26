@@ -258,12 +258,20 @@ class CausalTIGER(nn.Module):
         self.mse_loss_weight = config.get("mse_loss_weight", 0.0)
         self.mse_loss_mode = config.get("mse_loss_mode", "token")
         self.align_loss_type = config.get("align_loss_type", "mse")
+        self.lm_head_type = config.get("lm_head", "emb")
         if self.mse_loss_mode not in {"token", "mean"}:
             raise ValueError("mse_loss_mode must be 'token' or 'mean'")
         if self.align_loss_type not in {"mse", "cos"}:
             raise ValueError("align_loss_type must be 'mse' or 'cos'")
+        if self.lm_head_type not in {"emb", "linear"}:
+            raise ValueError("lm_head must be 'emb' or 'linear'")
         self.dropout = nn.Dropout(config["dropout_rate"])
         self.shared = nn.Embedding(config["vocab_size"], config["d_model"])
+        self.lm_head = (
+            nn.Linear(config["d_model"], config["vocab_size"], bias=False)
+            if self.lm_head_type == "linear"
+            else None
+        )
         self.hidden_to_item_emb = (
             nn.Linear(config["d_model"], self.item_emb_dim, bias=False)
             if self.item_emb_dim > 0
@@ -332,6 +340,8 @@ class CausalTIGER(nn.Module):
         return hidden_states
 
     def _lm_logits(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        if self.lm_head is not None:
+            return self.lm_head(hidden_states)
         hidden_states = hidden_states * (self.d_model ** -0.5)
         return torch.matmul(hidden_states, self.shared.weight.transpose(0, 1))
 

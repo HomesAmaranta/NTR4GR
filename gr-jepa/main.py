@@ -140,8 +140,8 @@ def ndcg_at_k(pos_index, k):
   dcg = torch.where(pos_index, dcg, torch.tensor(0.0, dtype=torch.float, device=dcg.device))
   return dcg[:, :k].sum(dim=1).cpu().float()
 
-def compute_geometry_metrics(hidden_states: torch.Tensor) -> Dict[str, float]:
-    reps = hidden_states[:, 0, :].detach().float()
+def compute_single_geometry(reps: torch.Tensor) -> Dict[str, float]:
+    reps = reps.detach().float()
     if reps.size(0) < 2:
         return {"effective_rank": 0.0, "avg_cosine": 0.0}
 
@@ -158,9 +158,40 @@ def compute_geometry_metrics(hidden_states: torch.Tensor) -> Dict[str, float]:
     return {"effective_rank": effective_rank, "avg_cosine": avg_cosine}
 
 
+def compute_geometry_metrics(hidden_states: torch.Tensor) -> Dict[str, float]:
+    # Track the supervised positions, including h_PAD for the first code token.
+    token_count = min(4, hidden_states.size(1))
+    metrics = {}
+    ranks = []
+    cosines = []
+    for token_idx in range(token_count):
+        cur = compute_single_geometry(hidden_states[:, token_idx, :])
+        metrics[f"effective_rank_token{token_idx + 1}"] = cur["effective_rank"]
+        metrics[f"avg_cosine_token{token_idx + 1}"] = cur["avg_cosine"]
+        ranks.append(cur["effective_rank"])
+        cosines.append(cur["avg_cosine"])
+    metrics["effective_rank"] = sum(ranks) / len(ranks) if ranks else 0.0
+    metrics["avg_cosine"] = sum(cosines) / len(cosines) if cosines else 0.0
+    return metrics
+
+
 def train(model, train_loader, optimizer, device):
     model.train()
-    totals = {"total": 0.0, "ce": 0.0, "align": 0.0, "effective_rank": 0.0, "avg_cosine": 0.0}
+    totals = {
+        "total": 0.0,
+        "ce": 0.0,
+        "align": 0.0,
+        "effective_rank": 0.0,
+        "avg_cosine": 0.0,
+        "effective_rank_token1": 0.0,
+        "effective_rank_token2": 0.0,
+        "effective_rank_token3": 0.0,
+        "effective_rank_token4": 0.0,
+        "avg_cosine_token1": 0.0,
+        "avg_cosine_token2": 0.0,
+        "avg_cosine_token3": 0.0,
+        "avg_cosine_token4": 0.0,
+    }
     for batch in train_loader:
         input_ids = batch['history'].to(device)
         attention_mask = batch['attention_mask'].to(device)
@@ -188,8 +219,8 @@ def train(model, train_loader, optimizer, device):
         hidden_states = getattr(model, "last_target_hidden_states", None)
         if hidden_states is not None:
             geometry = compute_geometry_metrics(hidden_states)
-            totals["effective_rank"] += geometry["effective_rank"]
-            totals["avg_cosine"] += geometry["avg_cosine"]
+            for key, value in geometry.items():
+                totals[key] += value
         
     return {k: v / len(train_loader) for k, v in totals.items()}
 
@@ -301,6 +332,8 @@ if __name__ == "__main__":
     parser.add_argument('--mse_loss_weight', type=float, default=0.0, help='Weight of auxiliary item embedding MSE loss')
     parser.add_argument('--mse_loss_mode', type=str, default='token', choices=['token', 'mean'], help='Auxiliary MSE mode: per-token or mean-pooled target hidden states')
     parser.add_argument('--align_loss_type', type=str, default='mse', choices=['mse', 'cos'], help='Auxiliary alignment loss type')
+    parser.add_argument('--align_item', type=str, default='next', choices=['pre', 'next'], help='Item embedding to align: previous history item or next target item')
+    parser.add_argument('--lm_head', type=str, default='emb', choices=['emb', 'linear'], help='LM head type: tied embedding or independent linear layer')
     parser.add_argument('--early_stop_metric', type=str, default='total', choices=['total', 'ce'], help='Validation loss used for early stopping')
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'evaluation'], help='Mode of operation')
     parser.add_argument('--model_type', type=str, default='t5', choices=['t5', 'causal', 'gpt2'], help='Model type to train')
@@ -344,14 +377,16 @@ if __name__ == "__main__":
         code_path=config['code_path'],
         mode='train',
         max_len=config['max_len'],
-        item_emb_path=config['item_emb_path'] if config['mse_loss_weight'] > 0 else None
+        item_emb_path=config['item_emb_path'] if config['mse_loss_weight'] > 0 else None,
+        align_item=config['align_item'],
     )
     validation_dataset = GenRecDataset(
         dataset_path=config['dataset_path'] + '/valid.parquet',
         code_path=config['code_path'],
         mode='evaluation',
         max_len=config['max_len'],
-        item_emb_path=config['item_emb_path'] if config['mse_loss_weight'] > 0 else None
+        item_emb_path=config['item_emb_path'] if config['mse_loss_weight'] > 0 else None,
+        align_item=config['align_item'],
     )
     test_dataset = GenRecDataset(
         dataset_path=config['dataset_path'] + '/test.parquet',
@@ -418,11 +453,17 @@ if __name__ == "__main__":
         logging.info(f"Training {config['align_loss_type'].upper()} align loss: {train_losses['align']}")
         logging.info(f"Training geometry effective rank: {train_losses['effective_rank']}")
         logging.info(f"Training geometry avg cosine: {train_losses['avg_cosine']}")
+        for token_idx in range(1, 5):
+            logging.info(f"Training geometry effective rank token{token_idx}: {train_losses[f'effective_rank_token{token_idx}']}")
+            logging.info(f"Training geometry avg cosine token{token_idx}: {train_losses[f'avg_cosine_token{token_idx}']}")
         writer.add_scalar('train/loss_total', train_losses['total'], epoch + 1)
         writer.add_scalar('train/loss_ce', train_losses['ce'], epoch + 1)
         writer.add_scalar('train/loss_align', train_losses['align'], epoch + 1)
-        writer.add_scalar('train/effective_rank_first_token', train_losses['effective_rank'], epoch + 1)
-        writer.add_scalar('train/avg_cosine_first_token', train_losses['avg_cosine'], epoch + 1)
+        writer.add_scalar('train/effective_rank_token_avg', train_losses['effective_rank'], epoch + 1)
+        writer.add_scalar('train/avg_cosine_token_avg', train_losses['avg_cosine'], epoch + 1)
+        for token_idx in range(1, 5):
+            writer.add_scalar(f'train/effective_rank_token{token_idx}', train_losses[f'effective_rank_token{token_idx}'], epoch + 1)
+            writer.add_scalar(f'train/avg_cosine_token{token_idx}', train_losses[f'avg_cosine_token{token_idx}'], epoch + 1)
         valid_losses = validate(model, validation_dataloader, device)
         valid_loss = valid_losses[config['early_stop_metric']]
         logging.info(f"Validation total loss: {valid_losses['total']}")
