@@ -57,11 +57,15 @@ class GenRecDataLoader(DataLoader):
             target_item_embs = torch.stack(
                 [
                     torch.tensor(np.asarray(emb), dtype=torch.float32)
-                    .unsqueeze(0)
-                    .repeat(flattened_targets.size(1), 1)
                     for emb in target_item_embs
                 ]
             )
+            if target_item_embs.dim() == 2:
+                target_item_embs = target_item_embs.unsqueeze(1).repeat(
+                    1,
+                    flattened_targets.size(1),
+                    1,
+                )
             output['target_item_emb'] = target_item_embs
 
         return output

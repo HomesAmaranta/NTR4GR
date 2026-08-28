@@ -1,11 +1,12 @@
 dataset=Beauty
-seed=2025
+seed=1
 align_loss_type=${1:-cos}
-mse_loss_weight=${2:-1}
+mse_loss_weight=${2:-5}
 mse_loss_mode=${3:-mean}
-align_target=${4:-latent}
-align_item=${5:-next}
+align_target=${4:-codebook}
+align_item=${5:-pre}
 lm_head=${6:-emb}
+shallow_layer=${7:-1}
 early_stop_metric=ce
 
 dataset_path="../data/${dataset}"
@@ -23,8 +24,16 @@ case "$align_target" in
     item_emb_path="../data/${dataset}/item_emb_rqvae_quantized_latent.parquet"
     item_emb_dim=32
     ;;
+  codebook)
+    item_emb_path="../data/${dataset}/item_emb_rqvae_codebook.parquet"
+    item_emb_dim=32
+    ;;
+  shallow)
+    item_emb_path=None
+    item_emb_dim=128
+    ;;
   *)
-    echo "Unknown align_target: ${align_target}. Use item, latent, or quantized." >&2
+    echo "Unknown align_target: ${align_target}. Use item, latent, quantized, codebook, or shallow." >&2
     exit 1
     ;;
 esac
@@ -44,8 +53,12 @@ case "$lm_head" in
     exit 1
     ;;
 esac
-save_path="./ckpt/causal_tiger_${dataset}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}_${lm_head}.pth"
-log_path="./logs/causal_tiger_${dataset}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}_${lm_head}.log"
+shallow_suffix=""
+if [ "$align_target" = "shallow" ]; then
+  shallow_suffix="_layer${shallow_layer}"
+fi
+save_path="./ckpt/causal_tiger_${dataset}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}_${lm_head}${shallow_suffix}_seed${seed}.pth"
+log_path="./logs/causal_tiger_${dataset}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}_${lm_head}${shallow_suffix}_seed${seed}.log"
 
 mkdir -p ./ckpt ./logs
 
@@ -58,7 +71,9 @@ mkdir -p ./ckpt ./logs
   --mse_loss_weight $mse_loss_weight \
   --mse_loss_mode $mse_loss_mode \
   --align_loss_type $align_loss_type \
+  --align_target $align_target \
   --align_item $align_item \
+  --shallow_layer $shallow_layer \
   --lm_head $lm_head \
   --early_stop_metric $early_stop_metric \
   --save_path $save_path \

@@ -7,11 +7,12 @@ from pathlib import Path
 LOG_NAME_RE = re.compile(
     r"^causal_tiger_(?P<dataset>.+)_(?P<loss_type>mse|cos)"
     r"(?P<weight>[0-9.]+)_(?P<mode>token|mean)"
-    r"_(?P<align_target>item|latent|quantized|codebook|shallow)"
+    r"_shallow"
     r"(?:_(?P<align_item>pre|next))?"
     r"(?:_(?P<lm_head>emb|linear))?"
-    r"(?:_layer(?P<shallow_layer>[0-9]+))?"
-    r"(?:_seed(?P<seed>[0-9]+))?\.log$"
+    r"_layer(?P<shallow_layer>[0-9]+)"
+    r"(?:_seed(?P<seed>[0-9]+))?"
+    r"\.log$"
 )
 
 
@@ -38,6 +39,7 @@ def build_table(rows):
         "align_target",
         "align_item",
         "lm_head",
+        "shallow_layer",
         "seed",
         "Recall@5",
         "Recall@10",
@@ -58,18 +60,23 @@ def build_table(rows):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--logs_dir", type=str, default="./logs")
-    parser.add_argument("--output", type=str, default="./jepa_log_summary_4params.md")
+    parser.add_argument("--output", type=str, default="./jepa_shallow_log_summary.md")
+    parser.add_argument(
+        "--include_unfinished",
+        action="store_true",
+        help="Include matched logs without final test metrics as empty metric rows.",
+    )
     args = parser.parse_args()
 
     rows = []
-    for log_path in sorted(Path(args.logs_dir).glob("*.log")):
+    for log_path in sorted(Path(args.logs_dir).glob("*_shallow*.log")):
         match = LOG_NAME_RE.match(log_path.name)
         if match is None:
             continue
         metrics = parse_last_metrics(log_path)
-        if metrics is None:
+        if metrics is None and not args.include_unfinished:
             continue
-        recalls, ndcgs = metrics
+        recalls, ndcgs = metrics or ({}, {})
         rows.append(
             [
                 log_path.name,
@@ -77,16 +84,17 @@ def main():
                 match.group("loss_type"),
                 match.group("weight"),
                 match.group("mode"),
-                match.group("align_target"),
+                "shallow",
                 match.group("align_item") or "next",
                 match.group("lm_head") or "emb",
+                match.group("shallow_layer"),
                 match.group("seed") or "",
-                f"{recalls.get('Recall@5', float('nan')):.6f}",
-                f"{recalls.get('Recall@10', float('nan')):.6f}",
-                f"{recalls.get('Recall@20', float('nan')):.6f}",
-                f"{ndcgs.get('NDCG@5', float('nan')):.6f}",
-                f"{ndcgs.get('NDCG@10', float('nan')):.6f}",
-                f"{ndcgs.get('NDCG@20', float('nan')):.6f}",
+                format_metric(recalls.get("Recall@5")),
+                format_metric(recalls.get("Recall@10")),
+                format_metric(recalls.get("Recall@20")),
+                format_metric(ndcgs.get("NDCG@5")),
+                format_metric(ndcgs.get("NDCG@10")),
+                format_metric(ndcgs.get("NDCG@20")),
             ]
         )
 
@@ -94,6 +102,12 @@ def main():
     Path(args.output).write_text(table + "\n")
     print(table)
     print(f"\nsaved to {args.output}")
+
+
+def format_metric(value):
+    if value is None:
+        return ""
+    return f"{value:.6f}"
 
 
 if __name__ == "__main__":

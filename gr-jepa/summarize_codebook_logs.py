@@ -7,11 +7,11 @@ from pathlib import Path
 LOG_NAME_RE = re.compile(
     r"^causal_tiger_(?P<dataset>.+)_(?P<loss_type>mse|cos)"
     r"(?P<weight>[0-9.]+)_(?P<mode>token|mean)"
-    r"_(?P<align_target>item|latent|quantized|codebook|shallow)"
+    r"_codebook"
     r"(?:_(?P<align_item>pre|next))?"
     r"(?:_(?P<lm_head>emb|linear))?"
-    r"(?:_layer(?P<shallow_layer>[0-9]+))?"
-    r"(?:_seed(?P<seed>[0-9]+))?\.log$"
+    r"(?:_seed(?P<seed>[0-9]+))?"
+    r"\.log$"
 )
 
 
@@ -58,11 +58,11 @@ def build_table(rows):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--logs_dir", type=str, default="./logs")
-    parser.add_argument("--output", type=str, default="./jepa_log_summary_4params.md")
+    parser.add_argument("--output", type=str, default="./jepa_codebook_log_summary.md")
     args = parser.parse_args()
 
     rows = []
-    for log_path in sorted(Path(args.logs_dir).glob("*.log")):
+    for log_path in sorted(Path(args.logs_dir).glob("*_codebook*.log")):
         match = LOG_NAME_RE.match(log_path.name)
         if match is None:
             continue
@@ -77,7 +77,7 @@ def main():
                 match.group("loss_type"),
                 match.group("weight"),
                 match.group("mode"),
-                match.group("align_target"),
+                "codebook",
                 match.group("align_item") or "next",
                 match.group("lm_head") or "emb",
                 match.group("seed") or "",

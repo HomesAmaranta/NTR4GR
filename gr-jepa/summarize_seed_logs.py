@@ -7,9 +7,10 @@ from pathlib import Path
 LOG_NAME_RE = re.compile(
     r"^causal_tiger_(?P<dataset>.+)_(?P<loss_type>mse|cos)"
     r"(?P<weight>[0-9.]+)_(?P<mode>token|mean)"
-    r"(?:_(?P<align_target>item|latent|quantized))?"
+    r"(?:_(?P<align_target>item|latent|quantized|codebook|shallow))?"
     r"(?:_(?P<align_item>pre|next))?"
     r"(?:_(?P<lm_head>emb|linear))?"
+    r"(?:_layer(?P<shallow_layer>[0-9]+))?"
     r"_seed(?P<seed>[0-9]+)\.log$"
 )
 

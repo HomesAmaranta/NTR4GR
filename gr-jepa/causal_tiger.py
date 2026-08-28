@@ -258,6 +258,10 @@ class CausalTIGER(nn.Module):
         self.mse_loss_weight = config.get("mse_loss_weight", 0.0)
         self.mse_loss_mode = config.get("mse_loss_mode", "token")
         self.align_loss_type = config.get("align_loss_type", "mse")
+        self.align_target = config.get("align_target", "item")
+        if self.align_target == "shallow" and self.item_emb_dim <= 0:
+            self.item_emb_dim = self.d_model
+        self.shallow_layer = config.get("shallow_layer", 1)
         self.lm_head_type = config.get("lm_head", "emb")
         if self.mse_loss_mode not in {"token", "mean"}:
             raise ValueError("mse_loss_mode must be 'token' or 'mean'")
@@ -265,6 +269,8 @@ class CausalTIGER(nn.Module):
             raise ValueError("align_loss_type must be 'mse' or 'cos'")
         if self.lm_head_type not in {"emb", "linear"}:
             raise ValueError("lm_head must be 'emb' or 'linear'")
+        if self.shallow_layer < 1 or self.shallow_layer > config["num_layers"]:
+            raise ValueError(f"shallow_layer must be in [1, {config['num_layers']}]")
         self.dropout = nn.Dropout(config["dropout_rate"])
         self.shared = nn.Embedding(config["vocab_size"], config["d_model"])
         self.lm_head = (
@@ -329,14 +335,22 @@ class CausalTIGER(nn.Module):
         self,
         token_ids: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
+        return_shallow_layer: Optional[int] = None,
     ) -> torch.Tensor:
         hidden_states = self.dropout(self.shared(token_ids))
-        for block in self.context_blocks:
+        shallow_states = None
+        for layer_idx, block in enumerate(self.context_blocks, start=1):
             hidden_states = block(hidden_states, attention_mask)
+            if return_shallow_layer == layer_idx:
+                shallow_states = hidden_states
         hidden_states = self.dropout(self.context_final_layer_norm(hidden_states))
         for block in self.decoder_blocks:
             hidden_states = block(hidden_states, attention_mask)
         hidden_states = self.dropout(self.decoder_final_layer_norm(hidden_states))
+        if return_shallow_layer is not None:
+            if shallow_states is None:
+                raise ValueError(f"Unsupported shallow_layer: {return_shallow_layer}")
+            return hidden_states, shallow_states
         return hidden_states
 
     def _lm_logits(self, hidden_states: torch.Tensor) -> torch.Tensor:
@@ -382,21 +396,56 @@ class CausalTIGER(nn.Module):
         )
         mse_loss = torch.zeros((), dtype=ce_loss.dtype, device=ce_loss.device)
         if (
-            target_item_emb is not None
+            (target_item_emb is not None or self.align_target == "shallow")
             and self.hidden_to_item_emb is not None
             and self.mse_loss_weight > 0
         ):
+            if self.align_target == "shallow":
+                shallow_input_ids = torch.cat([input_ids, labels], dim=1)
+                shallow_attention_mask = torch.cat(
+                    [attention_mask, torch.ones_like(labels)],
+                    dim=1,
+                )
+                max_shallow_len = input_ids.size(1)
+                if shallow_input_ids.size(1) > max_shallow_len:
+                    shallow_input_ids = shallow_input_ids[:, -max_shallow_len:]
+                    shallow_attention_mask = shallow_attention_mask[:, -max_shallow_len:]
+                _, shallow_states = self._encode_tokens(
+                    shallow_input_ids,
+                    shallow_attention_mask,
+                    return_shallow_layer=self.shallow_layer,
+                )
+                target_item_emb = shallow_states[:, -labels.size(1) :, :].detach()
+
             if self.mse_loss_mode == "mean":
-                pred_item_emb = self.hidden_to_item_emb(target_hidden_states.mean(dim=1))
-                target_emb = target_item_emb[:, 0, :].to(pred_item_emb.dtype)
+                if self.align_target == "codebook":
+                    valid_codebook = target_item_emb.abs().sum(dim=-1).gt(0).to(target_hidden_states.dtype)
+                    denom = valid_codebook.sum(dim=1, keepdim=True).clamp_min(1.0)
+                    pooled_hidden = (target_hidden_states * valid_codebook.unsqueeze(-1)).sum(dim=1) / denom
+                    target_emb = (target_item_emb * valid_codebook.unsqueeze(-1)).sum(dim=1) / denom
+                    target_emb = target_emb.to(pooled_hidden.dtype)
+                else:
+                    pooled_hidden = target_hidden_states.mean(dim=1)
+                    target_emb = target_item_emb.mean(dim=1).to(pooled_hidden.dtype)
+                pred_item_emb = self.hidden_to_item_emb(pooled_hidden)
+                if self.align_loss_type == "cos":
+                    align_loss = 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
+                else:
+                    align_loss = F.mse_loss(pred_item_emb, target_emb, reduction="mean")
             else:
                 pred_item_emb = self.hidden_to_item_emb(target_hidden_states)
                 target_emb = target_item_emb.to(pred_item_emb.dtype)
-
-            if self.align_loss_type == "cos":
-                align_loss = 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
-            else:
-                align_loss = F.mse_loss(pred_item_emb, target_emb, reduction="mean")
+                if self.align_target == "codebook":
+                    valid_codebook = target_item_emb.abs().sum(dim=-1).gt(0)
+                    if self.align_loss_type == "cos":
+                        token_loss = 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1)
+                    else:
+                        token_loss = F.mse_loss(pred_item_emb, target_emb, reduction="none").mean(dim=-1)
+                    align_loss = token_loss[valid_codebook].mean() if valid_codebook.any() else mse_loss
+                elif self.align_loss_type == "cos":
+                    align_loss = 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
+                else:
+                    align_loss = F.mse_loss(pred_item_emb, target_emb, reduction="mean")
         else:
             align_loss = mse_loss
         loss = ce_loss + self.mse_loss_weight * align_loss

@@ -200,7 +200,7 @@ def train(model, train_loader, optimizer, device):
         target_item_emb = target_item_emb.to(device) if target_item_emb is not None else None
 
         optimizer.zero_grad()
-        if target_item_emb is not None and model.__class__.__name__ == 'CausalTIGER':
+        if model.__class__.__name__ == 'CausalTIGER':
             loss, _ = model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
@@ -234,7 +234,7 @@ def validate(model, valid_loader, device):
             labels = batch['target'].to(device)
             target_item_emb = batch.get('target_item_emb')
             target_item_emb = target_item_emb.to(device) if target_item_emb is not None else None
-            if target_item_emb is not None and model.__class__.__name__ == 'CausalTIGER':
+            if model.__class__.__name__ == 'CausalTIGER':
                 loss, _ = model(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
@@ -332,7 +332,9 @@ if __name__ == "__main__":
     parser.add_argument('--mse_loss_weight', type=float, default=0.0, help='Weight of auxiliary item embedding MSE loss')
     parser.add_argument('--mse_loss_mode', type=str, default='token', choices=['token', 'mean'], help='Auxiliary MSE mode: per-token or mean-pooled target hidden states')
     parser.add_argument('--align_loss_type', type=str, default='mse', choices=['mse', 'cos'], help='Auxiliary alignment loss type')
+    parser.add_argument('--align_target', type=str, default='item', choices=['item', 'latent', 'quantized', 'codebook', 'shallow'], help='Auxiliary alignment target source')
     parser.add_argument('--align_item', type=str, default='next', choices=['pre', 'next'], help='Item embedding to align: previous history item or next target item')
+    parser.add_argument('--shallow_layer', type=int, default=1, help='Shallow layer index used when align_target=shallow')
     parser.add_argument('--lm_head', type=str, default='emb', choices=['emb', 'linear'], help='LM head type: tied embedding or independent linear layer')
     parser.add_argument('--early_stop_metric', type=str, default='total', choices=['total', 'ce'], help='Validation loss used for early stopping')
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'evaluation'], help='Mode of operation')
@@ -345,6 +347,8 @@ if __name__ == "__main__":
     parser.add_argument('--topk_list', type=list, default=[5,10,20], help='List of top-k values for evaluation metrics')
     parser.add_argument('--beam_size', type=int, default=30, help='Beam size for generation')
     config = vars(parser.parse_args())
+    if config['item_emb_path'] in {'', 'None'}:
+        config['item_emb_path'] = None
     # Set up logging
     logging.basicConfig(
         filename=config['log_path'],
@@ -371,6 +375,7 @@ if __name__ == "__main__":
     logging.info(model.n_parameters)
     # Check if the device is available
     device = torch.device(config['device'] if torch.cuda.is_available() else 'cpu')
+    print("device: ",device)
     
     train_dataset = GenRecDataset(
         dataset_path=config['dataset_path']+ '/train.parquet',

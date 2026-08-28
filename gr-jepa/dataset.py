@@ -93,8 +93,13 @@ def item2code(code_path, codebook_size=256):
 
 def load_item_embeddings(item_emb_path):
     data = pd.read_parquet(item_emb_path)
+    def to_array(embedding):
+        arr = np.asarray(embedding)
+        if arr.dtype == object:
+            arr = np.stack(embedding)
+        return arr.astype(np.float32)
     return {
-        int(row.ItemID): np.asarray(row.embedding, dtype=np.float32)
+        int(row.ItemID): to_array(row.embedding)
         for row in data.itertuples(index=False)
     }
 
