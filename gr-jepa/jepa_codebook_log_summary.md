@@ -1,50 +1,50 @@
-| file | dataset | loss_type | weight | mode | align_target | align_item | lm_head | seed | Recall@5 | Recall@10 | Recall@20 | NDCG@5 | NDCG@10 | NDCG@20 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| causal_tiger_Beauty_cos0.1_mean_codebook_next_emb.log | Beauty | cos | 0.1 | mean | codebook | next | emb |  | 0.039120 | 0.061978 | 0.089412 | 0.026328 | 0.033667 | 0.040583 |
-| causal_tiger_Beauty_cos0.1_mean_codebook_pre_emb.log | Beauty | cos | 0.1 | mean | codebook | pre | emb |  | 0.040824 | 0.060907 | 0.090540 | 0.027298 | 0.033760 | 0.041223 |
-| causal_tiger_Beauty_cos0.1_token_codebook_next_emb.log | Beauty | cos | 0.1 | token | codebook | next | emb |  | 0.039575 | 0.060343 | 0.087137 | 0.025986 | 0.032669 | 0.039441 |
-| causal_tiger_Beauty_cos0.1_token_codebook_pre_emb.log | Beauty | cos | 0.1 | token | codebook | pre | emb |  | 0.041229 | 0.062581 | 0.090994 | 0.027348 | 0.034160 | 0.041341 |
-| causal_tiger_Beauty_cos0.3_mean_codebook_next_emb.log | Beauty | cos | 0.3 | mean | codebook | next | emb |  | 0.039304 | 0.059268 | 0.086554 | 0.026874 | 0.033278 | 0.040174 |
-| causal_tiger_Beauty_cos0.3_mean_codebook_pre_emb.log | Beauty | cos | 0.3 | mean | codebook | pre | emb |  | 0.038641 | 0.059126 | 0.086012 | 0.026154 | 0.032779 | 0.039549 |
-| causal_tiger_Beauty_cos0.3_token_codebook_next_emb.log | Beauty | cos | 0.3 | token | codebook | next | emb |  | 0.038899 | 0.058240 | 0.087535 | 0.026606 | 0.032799 | 0.040204 |
-| causal_tiger_Beauty_cos0.3_token_codebook_pre_emb.log | Beauty | cos | 0.3 | token | codebook | pre | emb |  | 0.043104 | 0.062303 | 0.090500 | 0.029651 | 0.035824 | 0.042942 |
-| causal_tiger_Beauty_cos0.5_mean_codebook_next_emb.log | Beauty | cos | 0.5 | mean | codebook | next | emb |  | 0.040245 | 0.060825 | 0.088565 | 0.026707 | 0.033355 | 0.040337 |
-| causal_tiger_Beauty_cos0.5_mean_codebook_pre_emb.log | Beauty | cos | 0.5 | mean | codebook | pre | emb |  | 0.041944 | 0.062571 | 0.089604 | 0.028054 | 0.034680 | 0.041485 |
-| causal_tiger_Beauty_cos0.5_token_codebook_next_emb.log | Beauty | cos | 0.5 | token | codebook | next | emb |  | 0.040198 | 0.061454 | 0.087497 | 0.026671 | 0.033519 | 0.040059 |
-| causal_tiger_Beauty_cos0.5_token_codebook_pre_emb.log | Beauty | cos | 0.5 | token | codebook | pre | emb |  | 0.041532 | 0.063247 | 0.090060 | 0.028370 | 0.035350 | 0.042062 |
-| causal_tiger_Beauty_cos1_mean_codebook_next_emb.log | Beauty | cos | 1 | mean | codebook | next | emb |  | 0.039041 | 0.061503 | 0.088752 | 0.026428 | 0.033632 | 0.040483 |
-| causal_tiger_Beauty_cos1_mean_codebook_pre_emb.log | Beauty | cos | 1 | mean | codebook | pre | emb |  | 0.041904 | 0.060922 | 0.090177 | 0.028365 | 0.034478 | 0.041849 |
-| causal_tiger_Beauty_cos1_token_codebook_next_emb.log | Beauty | cos | 1 | token | codebook | next | emb |  | 0.040521 | 0.060875 | 0.088118 | 0.026888 | 0.033421 | 0.040243 |
-| causal_tiger_Beauty_cos1_token_codebook_pre_emb.log | Beauty | cos | 1 | token | codebook | pre | emb |  | 0.041358 | 0.060597 | 0.086728 | 0.028499 | 0.034673 | 0.041281 |
-| causal_tiger_Beauty_cos2_mean_codebook_next_emb.log | Beauty | cos | 2 | mean | codebook | next | emb |  | 0.038633 | 0.061143 | 0.087758 | 0.025825 | 0.033008 | 0.039694 |
-| causal_tiger_Beauty_cos2_mean_codebook_pre_emb.log | Beauty | cos | 2 | mean | codebook | pre | emb |  | 0.045968 | 0.064677 | 0.092691 | 0.031018 | 0.037051 | 0.044092 |
-| causal_tiger_Beauty_cos2_token_codebook_next_emb.log | Beauty | cos | 2 | token | codebook | next | emb |  | 0.040029 | 0.058498 | 0.084497 | 0.026145 | 0.032073 | 0.038597 |
-| causal_tiger_Beauty_cos2_token_codebook_pre_emb.log | Beauty | cos | 2 | token | codebook | pre | emb |  | 0.043685 | 0.063821 | 0.089820 | 0.030106 | 0.036600 | 0.043133 |
-| causal_tiger_Beauty_cos5_mean_codebook_next_emb.log | Beauty | cos | 5 | mean | codebook | next | emb |  | 0.041994 | 0.062447 | 0.089378 | 0.027664 | 0.034274 | 0.041061 |
-| causal_tiger_Beauty_cos5_mean_codebook_pre_emb.log | Beauty | cos | 5 | mean | codebook | pre | emb |  | 0.047493 | 0.068525 | 0.094824 | 0.033380 | 0.040144 | 0.046790 |
-| causal_tiger_Beauty_cos5_token_codebook_next_emb.log | Beauty | cos | 5 | token | codebook | next | emb |  | 0.035541 | 0.054959 | 0.082841 | 0.023376 | 0.029661 | 0.036697 |
-| causal_tiger_Beauty_cos5_token_codebook_pre_emb.log | Beauty | cos | 5 | token | codebook | pre | emb |  | 0.038351 | 0.056563 | 0.080287 | 0.026284 | 0.032188 | 0.038210 |
-| causal_tiger_Beauty_mse0.1_mean_codebook_next_emb.log | Beauty | mse | 0.1 | mean | codebook | next | emb |  | 0.039163 | 0.060646 | 0.088700 | 0.026441 | 0.033378 | 0.040430 |
-| causal_tiger_Beauty_mse0.1_mean_codebook_pre_emb.log | Beauty | mse | 0.1 | mean | codebook | pre | emb |  | 0.040650 | 0.060341 | 0.090041 | 0.026887 | 0.033205 | 0.040681 |
-| causal_tiger_Beauty_mse0.1_token_codebook_next_emb.log | Beauty | mse | 0.1 | token | codebook | next | emb |  | 0.040337 | 0.060512 | 0.087187 | 0.027750 | 0.034249 | 0.040975 |
-| causal_tiger_Beauty_mse0.1_token_codebook_pre_emb.log | Beauty | mse | 0.1 | token | codebook | pre | emb |  | 0.038045 | 0.059206 | 0.087624 | 0.025388 | 0.032153 | 0.039296 |
-| causal_tiger_Beauty_mse0.3_mean_codebook_next_emb.log | Beauty | mse | 0.3 | mean | codebook | next | emb |  | 0.040685 | 0.060877 | 0.088392 | 0.026702 | 0.033217 | 0.040149 |
-| causal_tiger_Beauty_mse0.3_mean_codebook_pre_emb.log | Beauty | mse | 0.3 | mean | codebook | pre | emb |  | 0.039624 | 0.058903 | 0.085083 | 0.026705 | 0.032912 | 0.039497 |
-| causal_tiger_Beauty_mse0.3_token_codebook_next_emb.log | Beauty | mse | 0.3 | token | codebook | next | emb |  | 0.040124 | 0.060249 | 0.089008 | 0.027108 | 0.033562 | 0.040792 |
-| causal_tiger_Beauty_mse0.3_token_codebook_pre_emb.log | Beauty | mse | 0.3 | token | codebook | pre | emb |  | 0.038626 | 0.060689 | 0.085886 | 0.025640 | 0.032738 | 0.039086 |
-| causal_tiger_Beauty_mse0.5_mean_codebook_next_emb.log | Beauty | mse | 0.5 | mean | codebook | next | emb |  | 0.039570 | 0.060510 | 0.087584 | 0.026969 | 0.033711 | 0.040552 |
-| causal_tiger_Beauty_mse0.5_mean_codebook_pre_emb.log | Beauty | mse | 0.5 | mean | codebook | pre | emb |  | 0.038716 | 0.060830 | 0.088392 | 0.025848 | 0.032969 | 0.039894 |
-| causal_tiger_Beauty_mse0.5_token_codebook_next_emb.log | Beauty | mse | 0.5 | token | codebook | next | emb |  | 0.041095 | 0.062489 | 0.091258 | 0.028064 | 0.034965 | 0.042224 |
-| causal_tiger_Beauty_mse0.5_token_codebook_pre_emb.log | Beauty | mse | 0.5 | token | codebook | pre | emb |  | 0.039525 | 0.060251 | 0.087458 | 0.026195 | 0.032895 | 0.039732 |
-| causal_tiger_Beauty_mse1_mean_codebook_next_emb.log | Beauty | mse | 1 | mean | codebook | next | emb |  | 0.040692 | 0.062124 | 0.088302 | 0.027407 | 0.034279 | 0.040837 |
-| causal_tiger_Beauty_mse1_mean_codebook_pre_emb.log | Beauty | mse | 1 | mean | codebook | pre | emb |  | 0.040645 | 0.060425 | 0.087234 | 0.026921 | 0.033267 | 0.040007 |
-| causal_tiger_Beauty_mse1_token_codebook_next_emb.log | Beauty | mse | 1 | token | codebook | next | emb |  | 0.041201 | 0.061645 | 0.088218 | 0.027366 | 0.033935 | 0.040606 |
-| causal_tiger_Beauty_mse1_token_codebook_pre_emb.log | Beauty | mse | 1 | token | codebook | pre | emb |  | 0.041410 | 0.063291 | 0.089194 | 0.027931 | 0.034973 | 0.041508 |
-| causal_tiger_Beauty_mse2_mean_codebook_next_emb.log | Beauty | mse | 2 | mean | codebook | next | emb |  | 0.039264 | 0.058640 | 0.083735 | 0.026008 | 0.032238 | 0.038577 |
-| causal_tiger_Beauty_mse2_mean_codebook_pre_emb.log | Beauty | mse | 2 | mean | codebook | pre | emb |  | 0.039394 | 0.060781 | 0.085525 | 0.026446 | 0.033297 | 0.039522 |
-| causal_tiger_Beauty_mse2_token_codebook_next_emb.log | Beauty | mse | 2 | token | codebook | next | emb |  | 0.038534 | 0.058180 | 0.085304 | 0.025956 | 0.032257 | 0.039118 |
-| causal_tiger_Beauty_mse2_token_codebook_pre_emb.log | Beauty | mse | 2 | token | codebook | pre | emb |  | 0.041177 | 0.061719 | 0.089549 | 0.028223 | 0.034791 | 0.041768 |
-| causal_tiger_Beauty_mse5_mean_codebook_next_emb.log | Beauty | mse | 5 | mean | codebook | next | emb |  | 0.040479 | 0.059978 | 0.087855 | 0.027036 | 0.033327 | 0.040335 |
-| causal_tiger_Beauty_mse5_mean_codebook_pre_emb.log | Beauty | mse | 5 | mean | codebook | pre | emb |  | 0.039493 | 0.058962 | 0.084274 | 0.026003 | 0.032283 | 0.038676 |
-| causal_tiger_Beauty_mse5_token_codebook_next_emb.log | Beauty | mse | 5 | token | codebook | next | emb |  | 0.040017 | 0.061493 | 0.087219 | 0.026654 | 0.033549 | 0.040049 |
-| causal_tiger_Beauty_mse5_token_codebook_pre_emb.log | Beauty | mse | 5 | token | codebook | pre | emb |  | 0.038951 | 0.059044 | 0.087008 | 0.026018 | 0.032458 | 0.039513 |
+| file | dataset | loss_type | weight | mode | align_target | align_item | phase | lm_head | seed | Recall@5 | Recall@10 | Recall@20 | NDCG@5 | NDCG@10 | NDCG@20 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| causal_tiger_Beauty_cos2_mean_item_next_emb_seed1.log | Beauty | cos | 2 | mean | codebook | item | next | emb | 1 | 0.037163 | 0.058277 | 0.085255 | 0.025025 | 0.031789 | 0.038587 |
+| causal_tiger_Beauty_cos2_mean_item_pre_emb_seed1.log | Beauty | cos | 2 | mean | codebook | item | pre | emb | 1 | 0.040884 | 0.061190 | 0.090448 | 0.027368 | 0.033885 | 0.041260 |
+| causal_tiger_Beauty_cos2_mean_latent_next_emb_seed1.log | Beauty | cos | 2 | mean | codebook | latent | next | emb | 1 | 0.040834 | 0.061056 | 0.088123 | 0.027118 | 0.033634 | 0.040437 |
+| causal_tiger_Beauty_cos2_mean_latent_pre_emb_seed1.log | Beauty | cos | 2 | mean | codebook | latent | pre | emb | 1 | 0.040777 | 0.061190 | 0.087862 | 0.027498 | 0.034033 | 0.040756 |
+| causal_tiger_Beauty_cos2_mean_quantized_next_emb_seed1.log | Beauty | cos | 2 | mean | codebook | quantized | next | emb | 1 | 0.039443 | 0.060070 | 0.089326 | 0.027201 | 0.033872 | 0.041244 |
+| causal_tiger_Beauty_cos2_mean_quantized_pre_emb_seed1.log | Beauty | cos | 2 | mean | codebook | quantized | pre | emb | 1 | 0.043246 | 0.063796 | 0.092159 | 0.028989 | 0.035606 | 0.042741 |
+| causal_tiger_Beauty_cos2_token_item_next_emb_seed1.log | Beauty | cos | 2 | token | codebook | item | next | emb | 1 | 0.038149 | 0.059715 | 0.087766 | 0.026109 | 0.033025 | 0.040076 |
+| causal_tiger_Beauty_cos2_token_item_pre_emb_seed1.log | Beauty | cos | 2 | token | codebook | item | pre | emb | 1 | 0.037965 | 0.057825 | 0.085255 | 0.025273 | 0.031633 | 0.038543 |
+| causal_tiger_Beauty_cos2_token_latent_next_emb_seed1.log | Beauty | cos | 2 | token | codebook | latent | next | emb | 1 | 0.038422 | 0.059181 | 0.087172 | 0.025981 | 0.032662 | 0.039734 |
+| causal_tiger_Beauty_cos2_token_latent_pre_emb_seed1.log | Beauty | cos | 2 | token | codebook | latent | pre | emb | 1 | 0.041683 | 0.062966 | 0.091069 | 0.029071 | 0.035920 | 0.043037 |
+| causal_tiger_Beauty_cos2_token_quantized_next_emb_seed1.log | Beauty | cos | 2 | token | codebook | quantized | next | emb | 1 | 0.040024 | 0.059218 | 0.086650 | 0.026520 | 0.032697 | 0.039589 |
+| causal_tiger_Beauty_cos2_token_quantized_pre_emb_seed1.log | Beauty | cos | 2 | token | codebook | quantized | pre | emb | 1 | 0.041641 | 0.061640 | 0.089119 | 0.028259 | 0.034702 | 0.041640 |
+| causal_tiger_Beauty_cos5_mean_item_next_emb_seed1.log | Beauty | cos | 5 | mean | codebook | item | next | emb | 1 | 0.036808 | 0.056404 | 0.083151 | 0.024813 | 0.031102 | 0.037857 |
+| causal_tiger_Beauty_cos5_mean_item_pre_emb_seed1.log | Beauty | cos | 5 | mean | codebook | item | pre | emb | 1 | 0.039033 | 0.059124 | 0.087987 | 0.026810 | 0.033247 | 0.040544 |
+| causal_tiger_Beauty_cos5_mean_latent_next_emb_seed1.log | Beauty | cos | 5 | mean | codebook | latent | next | emb | 1 | 0.041097 | 0.062974 | 0.089109 | 0.027458 | 0.034458 | 0.041042 |
+| causal_tiger_Beauty_cos5_mean_latent_pre_emb_seed1.log | Beauty | cos | 5 | mean | codebook | latent | pre | emb | 1 | 0.043914 | 0.065254 | 0.093411 | 0.030598 | 0.037434 | 0.044540 |
+| causal_tiger_Beauty_cos5_mean_quantized_next_emb_seed1.log | Beauty | cos | 5 | mean | codebook | quantized | next | emb | 1 | 0.039652 | 0.062261 | 0.089765 | 0.026373 | 0.033586 | 0.040505 |
+| causal_tiger_Beauty_cos5_mean_quantized_pre_emb_seed1.log | Beauty | cos | 5 | mean | codebook | quantized | pre | emb | 1 | 0.044940 | 0.066560 | 0.093493 | 0.031494 | 0.038375 | 0.045178 |
+| causal_tiger_Beauty_cos5_token_item_next_emb_seed1.log | Beauty | cos | 5 | token | codebook | item | next | emb | 1 | 0.038464 | 0.058453 | 0.084492 | 0.024878 | 0.031293 | 0.037863 |
+| causal_tiger_Beauty_cos5_token_item_pre_emb_seed1.log | Beauty | cos | 5 | token | codebook | item | pre | emb | 1 | 0.039438 | 0.060964 | 0.086780 | 0.026709 | 0.033621 | 0.040150 |
+| causal_tiger_Beauty_cos5_token_latent_next_emb_seed1.log | Beauty | cos | 5 | token | codebook | latent | next | emb | 1 | 0.037742 | 0.058240 | 0.084500 | 0.025439 | 0.032025 | 0.038636 |
+| causal_tiger_Beauty_cos5_token_latent_pre_emb_seed1.log | Beauty | cos | 5 | token | codebook | latent | pre | emb | 1 | 0.042650 | 0.063969 | 0.091213 | 0.029730 | 0.036633 | 0.043537 |
+| causal_tiger_Beauty_cos5_token_quantized_next_emb_seed1.log | Beauty | cos | 5 | token | codebook | quantized | next | emb | 1 | 0.037590 | 0.058935 | 0.086323 | 0.024925 | 0.031757 | 0.038644 |
+| causal_tiger_Beauty_cos5_token_quantized_pre_emb_seed1.log | Beauty | cos | 5 | token | codebook | quantized | pre | emb | 1 | 0.042039 | 0.062524 | 0.088523 | 0.028672 | 0.035259 | 0.041803 |
+| causal_tiger_Beauty_mse2_mean_item_next_emb_seed1.log | Beauty | mse | 2 | mean | codebook | item | next | emb | 1 | 0.041847 | 0.062169 | 0.090220 | 0.028585 | 0.035164 | 0.042230 |
+| causal_tiger_Beauty_mse2_mean_item_pre_emb_seed1.log | Beauty | mse | 2 | mean | codebook | item | pre | emb | 1 | 0.038676 | 0.058180 | 0.084721 | 0.025279 | 0.031629 | 0.038302 |
+| causal_tiger_Beauty_mse2_mean_latent_next_emb_seed1.log | Beauty | mse | 2 | mean | codebook | latent | next | emb | 1 | 0.037640 | 0.057149 | 0.085394 | 0.024885 | 0.031136 | 0.038279 |
+| causal_tiger_Beauty_mse2_mean_latent_pre_emb_seed1.log | Beauty | mse | 2 | mean | codebook | latent | pre | emb | 1 | 0.036520 | 0.057256 | 0.085178 | 0.024481 | 0.031174 | 0.038217 |
+| causal_tiger_Beauty_mse2_mean_quantized_next_emb_seed1.log | Beauty | mse | 2 | mean | codebook | quantized | next | emb | 1 | 0.036530 | 0.058329 | 0.085491 | 0.024103 | 0.031115 | 0.037972 |
+| causal_tiger_Beauty_mse2_mean_quantized_pre_emb_seed1.log | Beauty | mse | 2 | mean | codebook | quantized | pre | emb | 1 | 0.037836 | 0.057875 | 0.086785 | 0.025266 | 0.031710 | 0.039008 |
+| causal_tiger_Beauty_mse2_token_item_next_emb_seed1.log | Beauty | mse | 2 | token | codebook | item | next | emb | 1 | 0.038107 | 0.058108 | 0.083019 | 0.025209 | 0.031634 | 0.037902 |
+| causal_tiger_Beauty_mse2_token_item_pre_emb_seed1.log | Beauty | mse | 2 | token | codebook | item | pre | emb | 1 | 0.037695 | 0.059117 | 0.085118 | 0.024971 | 0.031890 | 0.038425 |
+| causal_tiger_Beauty_mse2_token_latent_next_emb_seed1.log | Beauty | mse | 2 | token | codebook | latent | next | emb | 1 | 0.037834 | 0.058553 | 0.086420 | 0.024636 | 0.031285 | 0.038281 |
+| causal_tiger_Beauty_mse2_token_latent_pre_emb_seed1.log | Beauty | mse | 2 | token | codebook | latent | pre | emb | 1 | 0.037508 | 0.059298 | 0.085784 | 0.024834 | 0.031853 | 0.038536 |
+| causal_tiger_Beauty_mse2_token_quantized_next_emb_seed1.log | Beauty | mse | 2 | token | codebook | quantized | next | emb | 1 | 0.038229 | 0.059082 | 0.086559 | 0.024899 | 0.031592 | 0.038506 |
+| causal_tiger_Beauty_mse2_token_quantized_pre_emb_seed1.log | Beauty | mse | 2 | token | codebook | quantized | pre | emb | 1 | 0.036885 | 0.059131 | 0.087497 | 0.025081 | 0.032208 | 0.039366 |
+| causal_tiger_Beauty_mse5_mean_item_next_emb_seed1.log | Beauty | mse | 5 | mean | codebook | item | next | emb | 1 | 0.039935 | 0.061287 | 0.088796 | 0.026469 | 0.033307 | 0.040233 |
+| causal_tiger_Beauty_mse5_mean_item_pre_emb_seed1.log | Beauty | mse | 5 | mean | codebook | item | pre | emb | 1 | 0.039669 | 0.060470 | 0.088076 | 0.026775 | 0.033439 | 0.040391 |
+| causal_tiger_Beauty_mse5_mean_latent_next_emb_seed1.log | Beauty | mse | 5 | mean | codebook | latent | next | emb | 1 | 0.039078 | 0.058960 | 0.087274 | 0.026754 | 0.033177 | 0.040313 |
+| causal_tiger_Beauty_mse5_mean_latent_pre_emb_seed1.log | Beauty | mse | 5 | mean | codebook | latent | pre | emb | 1 | 0.040384 | 0.059315 | 0.086603 | 0.026638 | 0.032724 | 0.039611 |
+| causal_tiger_Beauty_mse5_mean_quantized_next_emb_seed1.log | Beauty | mse | 5 | mean | codebook | quantized | next | emb | 1 | 0.039520 | 0.059978 | 0.086107 | 0.026911 | 0.033520 | 0.040099 |
+| causal_tiger_Beauty_mse5_mean_quantized_pre_emb_seed1.log | Beauty | mse | 5 | mean | codebook | quantized | pre | emb | 1 | 0.040834 | 0.061324 | 0.089862 | 0.027386 | 0.033947 | 0.041143 |
+| causal_tiger_Beauty_mse5_token_item_next_emb_seed1.log | Beauty | mse | 5 | token | codebook | item | next | emb | 1 | 0.037372 | 0.059658 | 0.087438 | 0.024694 | 0.031798 | 0.038813 |
+| causal_tiger_Beauty_mse5_token_item_pre_emb_seed1.log | Beauty | mse | 5 | token | codebook | item | pre | emb | 1 | 0.040474 | 0.059750 | 0.085299 | 0.027424 | 0.033599 | 0.040068 |
+| causal_tiger_Beauty_mse5_token_latent_next_emb_seed1.log | Beauty | mse | 5 | token | codebook | latent | next | emb | 1 | 0.036167 | 0.056359 | 0.083879 | 0.024171 | 0.030647 | 0.037559 |
+| causal_tiger_Beauty_mse5_token_latent_pre_emb_seed1.log | Beauty | mse | 5 | token | codebook | latent | pre | emb | 1 | 0.037488 | 0.058016 | 0.083695 | 0.024707 | 0.031282 | 0.037784 |
+| causal_tiger_Beauty_mse5_token_quantized_next_emb_seed1.log | Beauty | mse | 5 | token | codebook | quantized | next | emb | 1 | 0.040161 | 0.060559 | 0.089921 | 0.027197 | 0.033721 | 0.041150 |
+| causal_tiger_Beauty_mse5_token_quantized_pre_emb_seed1.log | Beauty | mse | 5 | token | codebook | quantized | pre | emb | 1 | 0.037744 | 0.057567 | 0.083596 | 0.025083 | 0.031426 | 0.037994 |
