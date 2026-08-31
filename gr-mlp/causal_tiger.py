@@ -72,9 +72,15 @@ class T5RelativePositionBias(nn.Module):
         )
         return relative_buckets
 
-    def forward(self, query_length: int, key_length: int, device: torch.device) -> torch.Tensor:
-        context_position = torch.arange(query_length, dtype=torch.long, device=device)[:, None]
-        memory_position = torch.arange(key_length, dtype=torch.long, device=device)[None, :]
+    def forward(
+        self, query_length: int, key_length: int, device: torch.device
+    ) -> torch.Tensor:
+        context_position = torch.arange(query_length, dtype=torch.long, device=device)[
+            :, None
+        ]
+        memory_position = torch.arange(key_length, dtype=torch.long, device=device)[
+            None, :
+        ]
         relative_position = memory_position - context_position
         relative_position_bucket = self._relative_position_bucket(
             relative_position=relative_position,
@@ -144,7 +150,9 @@ class CausalMultiHeadAttention(nn.Module):
             dtype=torch.bool,
             device=hidden_states.device,
         ).tril()
-        scores = scores.masked_fill(~causal_mask.view(1, 1, seq_len, seq_len), torch.finfo(scores.dtype).min)
+        scores = scores.masked_fill(
+            ~causal_mask.view(1, 1, seq_len, seq_len), torch.finfo(scores.dtype).min
+        )
 
         if attention_mask is not None:
             key_mask = attention_mask.to(torch.bool).view(batch_size, 1, 1, seq_len)
@@ -153,10 +161,14 @@ class CausalMultiHeadAttention(nn.Module):
         attn_weights = F.softmax(scores.float(), dim=-1).to(scores.dtype)
         attn_weights = self.dropout(attn_weights)
         attn_output = torch.matmul(attn_weights, value_states)
-        attn_output = attn_output.transpose(1, 2).contiguous().view(
-            batch_size,
-            seq_len,
-            self.num_heads * self.d_kv,
+        attn_output = (
+            attn_output.transpose(1, 2)
+            .contiguous()
+            .view(
+                batch_size,
+                seq_len,
+                self.num_heads * self.d_kv,
+            )
         )
         return self.o(attn_output)
 
@@ -164,7 +176,9 @@ class CausalMultiHeadAttention(nn.Module):
 class T5FeedForward(nn.Module):
     """T5 feed-forward block; relu mode matches the current main.py default."""
 
-    def __init__(self, d_model: int, d_ff: int, dropout_rate: float, feed_forward_proj: str):
+    def __init__(
+        self, d_model: int, d_ff: int, dropout_rate: float, feed_forward_proj: str
+    ):
         super().__init__()
         self.feed_forward_proj = feed_forward_proj
         self.dropout = nn.Dropout(dropout_rate)
@@ -229,7 +243,9 @@ class CausalBlock(nn.Module):
         attn_output = self.self_attn(self.self_attn_norm(hidden_states), attention_mask)
         hidden_states = hidden_states + self.dropout(attn_output)
         if self.extra_attention:
-            extra_output = self.extra_attn(self.extra_attn_norm(hidden_states), attention_mask)
+            extra_output = self.extra_attn(
+                self.extra_attn_norm(hidden_states), attention_mask
+            )
             hidden_states = hidden_states + self.dropout(extra_output)
         ffn_output = self.ffn(self.ffn_norm(hidden_states))
         return hidden_states + self.dropout(ffn_output)
@@ -253,7 +269,9 @@ class CausalTIGER(nn.Module):
         self.d_model = config["d_model"]
         self.pad_token_id = config["pad_token_id"]
         self.eos_token_id = config["eos_token_id"]
-        self.decoder_start_token_id = config.get("decoder_start_token_id", self.pad_token_id)
+        self.decoder_start_token_id = config.get(
+            "decoder_start_token_id", self.pad_token_id
+        )
         self.item_emb_dim = config.get("item_emb_dim", 0)
         self.mse_loss_weight = config.get("mse_loss_weight", 0.0)
         self.mse_loss_mode = config.get("mse_loss_mode", "token")
@@ -346,7 +364,7 @@ class CausalTIGER(nn.Module):
         hidden_states = self.dropout(self.context_final_layer_norm(hidden_states))
         for block in self.decoder_blocks:
             hidden_states = block(hidden_states, attention_mask)
-        hidden_states = self.dropout(self.decoder_final_layer_norm(hidden_states))
+            hidden_states = self.dropout(self.decoder_final_layer_norm(hidden_states))
         if return_shallow_layer is not None:
             if shallow_states is None:
                 raise ValueError(f"Unsupported shallow_layer: {return_shallow_layer}")
@@ -356,7 +374,7 @@ class CausalTIGER(nn.Module):
     def _lm_logits(self, hidden_states: torch.Tensor) -> torch.Tensor:
         if self.lm_head is not None:
             return self.lm_head(hidden_states)
-        hidden_states = hidden_states * (self.d_model ** -0.5)
+        hidden_states = hidden_states * (self.d_model**-0.5)
         return torch.matmul(hidden_states, self.shared.weight.transpose(0, 1))
 
     def forward(
@@ -370,20 +388,15 @@ class CausalTIGER(nn.Module):
             hidden_states = self._encode_tokens(input_ids, attention_mask)
             return None, self._lm_logits(hidden_states)
 
-        batch_size = input_ids.size(0)
-        start_tokens = torch.full(
-            (batch_size, 1),
-            self.decoder_start_token_id,
-            dtype=input_ids.dtype,
-            device=input_ids.device,
-        )
-        decoder_input_ids = torch.cat([start_tokens, labels[:, :-1]], dim=1)
+        decoder_input_ids = labels[:, :-1]
         model_input_ids = torch.cat([input_ids, decoder_input_ids], dim=1)
 
         if attention_mask is None:
             attention_mask = torch.ones_like(input_ids)
         decoder_attention_mask = torch.ones_like(decoder_input_ids)
-        model_attention_mask = torch.cat([attention_mask, decoder_attention_mask], dim=1)
+        model_attention_mask = torch.cat(
+            [attention_mask, decoder_attention_mask], dim=1
+        )
 
         hidden_states = self._encode_tokens(model_input_ids, model_attention_mask)
         target_hidden_states = hidden_states[:, -labels.size(1) :, :]
@@ -409,7 +422,9 @@ class CausalTIGER(nn.Module):
                 max_shallow_len = input_ids.size(1)
                 if shallow_input_ids.size(1) > max_shallow_len:
                     shallow_input_ids = shallow_input_ids[:, -max_shallow_len:]
-                    shallow_attention_mask = shallow_attention_mask[:, -max_shallow_len:]
+                    shallow_attention_mask = shallow_attention_mask[
+                        :, -max_shallow_len:
+                    ]
                 _, shallow_states = self._encode_tokens(
                     shallow_input_ids,
                     shallow_attention_mask,
@@ -419,17 +434,29 @@ class CausalTIGER(nn.Module):
 
             if self.mse_loss_mode == "mean":
                 if self.align_target == "codebook":
-                    valid_codebook = target_item_emb.abs().sum(dim=-1).gt(0).to(target_hidden_states.dtype)
+                    valid_codebook = (
+                        target_item_emb.abs()
+                        .sum(dim=-1)
+                        .gt(0)
+                        .to(target_hidden_states.dtype)
+                    )
                     denom = valid_codebook.sum(dim=1, keepdim=True).clamp_min(1.0)
-                    pooled_hidden = (target_hidden_states * valid_codebook.unsqueeze(-1)).sum(dim=1) / denom
-                    target_emb = (target_item_emb * valid_codebook.unsqueeze(-1)).sum(dim=1) / denom
+                    pooled_hidden = (
+                        target_hidden_states * valid_codebook.unsqueeze(-1)
+                    ).sum(dim=1) / denom
+                    target_emb = (target_item_emb * valid_codebook.unsqueeze(-1)).sum(
+                        dim=1
+                    ) / denom
                     target_emb = target_emb.to(pooled_hidden.dtype)
                 else:
                     pooled_hidden = target_hidden_states.mean(dim=1)
                     target_emb = target_item_emb.mean(dim=1).to(pooled_hidden.dtype)
                 pred_item_emb = self.hidden_to_item_emb(pooled_hidden)
                 if self.align_loss_type == "cos":
-                    align_loss = 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
+                    align_loss = (
+                        1.0
+                        - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
+                    )
                 else:
                     align_loss = F.mse_loss(pred_item_emb, target_emb, reduction="mean")
             else:
@@ -438,12 +465,23 @@ class CausalTIGER(nn.Module):
                 if self.align_target == "codebook":
                     valid_codebook = target_item_emb.abs().sum(dim=-1).gt(0)
                     if self.align_loss_type == "cos":
-                        token_loss = 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1)
+                        token_loss = 1.0 - F.cosine_similarity(
+                            pred_item_emb, target_emb, dim=-1
+                        )
                     else:
-                        token_loss = F.mse_loss(pred_item_emb, target_emb, reduction="none").mean(dim=-1)
-                    align_loss = token_loss[valid_codebook].mean() if valid_codebook.any() else mse_loss
+                        token_loss = F.mse_loss(
+                            pred_item_emb, target_emb, reduction="none"
+                        ).mean(dim=-1)
+                    align_loss = (
+                        token_loss[valid_codebook].mean()
+                        if valid_codebook.any()
+                        else mse_loss
+                    )
                 elif self.align_loss_type == "cos":
-                    align_loss = 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
+                    align_loss = (
+                        1.0
+                        - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
+                    )
                 else:
                     align_loss = F.mse_loss(pred_item_emb, target_emb, reduction="mean")
         else:
@@ -494,9 +532,8 @@ class CausalTIGER(nn.Module):
             if attention_mask is not None
             else None
         )
-        generated = torch.full(
-            (batch_size * num_beams, 1),
-            self.decoder_start_token_id,
+        generated = torch.empty(
+            (batch_size * num_beams, 0),
             dtype=input_ids.dtype,
             device=device,
         )
@@ -507,18 +544,24 @@ class CausalTIGER(nn.Module):
         )
         beam_scores[:, 0] = 0.0
 
-        for _ in range(1, max_length):
-            logits = self._next_token_logits(beam_input_ids, beam_attention_mask, generated)
+        for _ in range(max_length):
+            logits = self._next_token_logits(
+                beam_input_ids, beam_attention_mask, generated
+            )
             log_probs = F.log_softmax(logits.float(), dim=-1)
 
             if prefix_allowed_tokens_fn is not None:
                 allowed_mask = torch.zeros_like(log_probs, dtype=torch.bool)
                 for flat_idx in range(generated.size(0)):
                     batch_idx = flat_idx // num_beams
-                    allowed_tokens = prefix_allowed_tokens_fn(batch_idx, generated[flat_idx])
+                    allowed_tokens = prefix_allowed_tokens_fn(
+                        batch_idx, generated[flat_idx]
+                    )
                     if allowed_tokens:
                         allowed_mask[flat_idx, allowed_tokens] = True
-                log_probs = log_probs.masked_fill(~allowed_mask, torch.finfo(log_probs.dtype).min)
+                log_probs = log_probs.masked_fill(
+                    ~allowed_mask, torch.finfo(log_probs.dtype).min
+                )
 
             next_scores = log_probs + beam_scores.view(-1, 1)
             next_scores = next_scores.view(batch_size, num_beams * vocab_size)
@@ -531,7 +574,10 @@ class CausalTIGER(nn.Module):
             )
             gather_indices = (batch_offsets + next_beam_indices).reshape(-1)
             generated = torch.cat(
-                [generated[gather_indices], next_tokens.reshape(-1, 1).to(input_ids.dtype)],
+                [
+                    generated[gather_indices],
+                    next_tokens.reshape(-1, 1).to(input_ids.dtype),
+                ],
                 dim=1,
             )
             beam_input_ids = beam_input_ids[gather_indices]

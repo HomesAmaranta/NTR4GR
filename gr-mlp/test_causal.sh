@@ -1,7 +1,7 @@
 dataset=Beauty
-seed=2025
+seed=1
 align_loss_type=${1:-cos}
-mse_loss_weight=${2:-0}
+mse_loss_weight=${2:-5}
 mse_loss_mode=${3:-mean}
 align_target=${4:-quantized}
 align_item=${5:-pre}
@@ -62,6 +62,9 @@ log_path="./logs/causal_tiger_${dataset}_${align_loss_type}${mse_loss_weight}_${
 
 mkdir -p ./ckpt ./logs
 
+PROJECT_DIR="/mlx_devbox/users/fengyuebo/playground/TIGER/gr-mlp"
+CHECKPOINT="${PROJECT_DIR}/ckpt/causal_tiger_Beauty_cos5_mean_quantized_pre_emb_seed1.pth"
+
 /usr/bin/python main.py \
   --model_type causal \
   --dataset_path $dataset_path \
@@ -96,4 +99,7 @@ mkdir -p ./ckpt ./logs
   --lr 1e-3 \
   --early_stop 10 \
   --beam_size 20 \
-  --seed $seed 
+  --seed $seed \
+  --mode evaluation \
+  --save_path "${CHECKPOINT}" \
+
