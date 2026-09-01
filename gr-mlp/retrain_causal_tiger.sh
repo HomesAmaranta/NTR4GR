@@ -5,7 +5,7 @@ mse_loss_weight=${2:-0}
 mse_loss_mode=${3:-mean}
 align_target=${4:-quantized}
 align_item=${5:-pre}
-lm_head=${6:-emb}
+lm_head=${6:-mlp}
 shallow_layer=${7:-1}
 early_stop_metric=ce
 
@@ -46,10 +46,10 @@ case "$align_item" in
     ;;
 esac
 case "$lm_head" in
-  emb|linear)
+  emb|linear|mlp)
     ;;
   *)
-    echo "Unknown lm_head: ${lm_head}. Use emb or linear." >&2
+    echo "Unknown lm_head: ${lm_head}. Use emb, linear, or mlp." >&2
     exit 1
     ;;
 esac

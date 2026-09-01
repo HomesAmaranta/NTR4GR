@@ -540,8 +540,8 @@ if __name__ == "__main__":
         "--lm_head",
         type=str,
         default="emb",
-        choices=["emb", "linear"],
-        help="LM head type: tied embedding or independent linear layer",
+        choices=["emb", "linear", "mlp"],
+        help="LM head type: tied embedding, independent linear layer, or MLP",
     )
     parser.add_argument(
         "--early_stop_metric",

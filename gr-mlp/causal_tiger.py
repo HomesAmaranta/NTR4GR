@@ -299,8 +299,8 @@ class CausalTIGER(nn.Module):
             raise ValueError("mse_loss_mode must be 'token' or 'mean'")
         if self.align_loss_type not in {"mse", "cos"}:
             raise ValueError("align_loss_type must be 'mse' or 'cos'")
-        if self.lm_head_type not in {"emb", "linear"}:
-            raise ValueError("lm_head must be 'emb' or 'linear'")
+        if self.lm_head_type not in {"emb", "linear", "mlp"}:
+            raise ValueError("lm_head must be 'emb', 'linear' or 'mlp'")
         if self.shallow_layer < 1 or self.shallow_layer > config["num_layers"]:
             raise ValueError(f"shallow_layer must be in [1, {config['num_layers']}]")
         self.dropout = nn.Dropout(config["dropout_rate"])
@@ -308,13 +308,22 @@ class CausalTIGER(nn.Module):
         # the parallel training mode to keep the visible history bounded.
         self.attention_window = config.get("attention_window", None)
         self.shared = nn.Embedding(config["vocab_size"], config["d_model"])
-        self.lm_head = (
-            nn.Linear(config["d_model"], config["vocab_size"], bias=False)
-            if self.lm_head_type == "linear"
-            else None
-        )
+        if self.lm_head_type == "linear":
+            self.lm_head = nn.Linear(config["d_model"], config["vocab_size"], bias=False)
+        elif self.lm_head_type == "mlp":
+            self.lm_head = nn.Sequential(
+                nn.Linear(config["d_model"], config["d_model"]),
+                nn.GELU(),
+                nn.Linear(config["d_model"], config["vocab_size"], bias=False),
+            )
+        else:
+            self.lm_head = None
         self.hidden_to_item_emb = (
-            nn.Linear(config["d_model"], self.item_emb_dim, bias=False)
+            nn.Sequential(
+                nn.Linear(config["d_model"], config["d_model"]),
+                nn.GELU(),
+                nn.Linear(config["d_model"], self.item_emb_dim, bias=False),
+            )
             if self.item_emb_dim > 0
             else None
         )
