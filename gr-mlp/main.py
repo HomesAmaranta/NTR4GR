@@ -208,6 +208,40 @@ def train(model, train_loader, optimizer, device):
         "avg_cosine_token4": 0.0,
     }
     for batch in train_loader:
+        parallel = "labels" in batch
+        if parallel:
+            input_ids = batch["input_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            labels = batch["labels"].to(device)
+            optimizer.zero_grad()
+            loss, _ = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                parallel=True,
+            )
+            loss.backward()
+            optimizer.step()
+
+            loss_dict = getattr(model, "last_loss_dict", None)
+            totals["total"] += loss.item()
+            totals["ce"] += (
+                loss_dict["ce"].item()
+                if loss_dict is not None and "ce" in loss_dict
+                else loss.item()
+            )
+            totals["align"] += (
+                loss_dict["align"].item()
+                if loss_dict is not None and "align" in loss_dict
+                else 0.0
+            )
+            hidden_states = getattr(model, "last_target_hidden_states", None)
+            if hidden_states is not None:
+                geometry = compute_geometry_metrics(hidden_states)
+                for key, value in geometry.items():
+                    totals[key] += value
+            continue
+
         input_ids = batch["history"].to(device)
         attention_mask = batch["attention_mask"].to(device)
         labels = batch["target"].to(device)
@@ -414,6 +448,34 @@ if __name__ == "__main__":
         help="Maximum length for padding or truncation",
     )
     parser.add_argument(
+        "--train_mode",
+        type=str,
+        default="sliding",
+        choices=["sliding", "parallel"],
+        help="Training data mode: 'sliding' expands one sample per position, "
+        "'parallel' feeds whole overlapping blocks with token-shifted labels "
+        "(causal model only)",
+    )
+    parser.add_argument(
+        "--block_items",
+        type=int,
+        default=40,
+        help="Block size in items for parallel training mode",
+    )
+    parser.add_argument(
+        "--stride_items",
+        type=int,
+        default=20,
+        help="Sliding stride in items between blocks for parallel training mode",
+    )
+    parser.add_argument(
+        "--attention_window",
+        type=int,
+        default=None,
+        help="Sliding-window attention span in tokens for the causal model "
+        "(e.g. 80 = 20 items x 4 codes). None means full causal attention",
+    )
+    parser.add_argument(
         "--dataset_path", type=str, default="../data/Beauty", help="Path to the dataset"
     )
     parser.add_argument(
@@ -553,6 +615,8 @@ if __name__ == "__main__":
         model = CausalTIGER(config)
     else:
         model = TIGER(config)
+    if config["train_mode"] == "parallel" and config["model_type"] != "causal":
+        raise ValueError("train_mode='parallel' is only supported for model_type='causal'")
     print(model.n_parameters)
     logging.info(model.n_parameters)
     # Check if the device is available
@@ -561,12 +625,14 @@ if __name__ == "__main__":
     train_dataset = GenRecDataset(
         dataset_path=config["dataset_path"] + "/train.parquet",
         code_path=config["code_path"],
-        mode="train",
+        mode="train_parallel" if config["train_mode"] == "parallel" else "train",
         max_len=config["max_len"],
         item_emb_path=(
             config["item_emb_path"] if config["mse_loss_weight"] > 0 else None
         ),
         align_item=config["align_item"],
+        block_items=config["block_items"],
+        stride_items=config["stride_items"],
     )
     validation_dataset = GenRecDataset(
         dataset_path=config["dataset_path"] + "/valid.parquet",

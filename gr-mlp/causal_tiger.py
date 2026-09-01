@@ -104,11 +104,13 @@ class CausalMultiHeadAttention(nn.Module):
         has_relative_attention_bias: bool = False,
         relative_attention_num_buckets: int = 32,
         relative_attention_max_distance: int = 128,
+        attention_window: Optional[int] = None,
     ):
         super().__init__()
         inner_dim = num_heads * d_kv
         self.num_heads = num_heads
         self.d_kv = d_kv
+        self.attention_window = attention_window
         self.q = nn.Linear(d_model, inner_dim, bias=False)
         self.k = nn.Linear(d_model, inner_dim, bias=False)
         self.v = nn.Linear(d_model, inner_dim, bias=False)
@@ -150,6 +152,15 @@ class CausalMultiHeadAttention(nn.Module):
             dtype=torch.bool,
             device=hidden_states.device,
         ).tril()
+        if self.attention_window is not None:
+            # Sliding-window causal mask: each query may attend to at most
+            # `attention_window` most-recent tokens (itself included), so the
+            # visible history stays bounded regardless of the full block length.
+            positions = torch.arange(seq_len, device=hidden_states.device)
+            within_window = (
+                positions[:, None] - positions[None, :]
+            ) < self.attention_window
+            causal_mask = causal_mask & within_window
         scores = scores.masked_fill(
             ~causal_mask.view(1, 1, seq_len, seq_len), torch.finfo(scores.dtype).min
         )
@@ -211,6 +222,7 @@ class CausalBlock(nn.Module):
         feed_forward_proj: str,
         has_relative_attention_bias: bool = False,
         extra_attention: bool = False,
+        attention_window: Optional[int] = None,
     ):
         super().__init__()
         self.self_attn_norm = T5LayerNorm(d_model)
@@ -220,6 +232,7 @@ class CausalBlock(nn.Module):
             d_kv=d_kv,
             dropout_rate=dropout_rate,
             has_relative_attention_bias=has_relative_attention_bias,
+            attention_window=attention_window,
         )
         self.extra_attention = extra_attention
         if extra_attention:
@@ -230,6 +243,7 @@ class CausalBlock(nn.Module):
                 d_kv=d_kv,
                 dropout_rate=dropout_rate,
                 has_relative_attention_bias=False,
+                attention_window=attention_window,
             )
         self.ffn_norm = T5LayerNorm(d_model)
         self.ffn = T5FeedForward(d_model, d_ff, dropout_rate, feed_forward_proj)
@@ -290,6 +304,9 @@ class CausalTIGER(nn.Module):
         if self.shallow_layer < 1 or self.shallow_layer > config["num_layers"]:
             raise ValueError(f"shallow_layer must be in [1, {config['num_layers']}]")
         self.dropout = nn.Dropout(config["dropout_rate"])
+        # Sliding-window attention span in tokens (None = full causal). Used by
+        # the parallel training mode to keep the visible history bounded.
+        self.attention_window = config.get("attention_window", None)
         self.shared = nn.Embedding(config["vocab_size"], config["d_model"])
         self.lm_head = (
             nn.Linear(config["d_model"], config["vocab_size"], bias=False)
@@ -313,6 +330,7 @@ class CausalTIGER(nn.Module):
                     feed_forward_proj=config["feed_forward_proj"],
                     has_relative_attention_bias=(layer_idx == 0),
                     extra_attention=False,
+                    attention_window=self.attention_window,
                 )
                 for layer_idx in range(config["num_layers"])
             ]
@@ -329,6 +347,7 @@ class CausalTIGER(nn.Module):
                     feed_forward_proj=config["feed_forward_proj"],
                     has_relative_attention_bias=(layer_idx == 0),
                     extra_attention=True,
+                    attention_window=self.attention_window,
                 )
                 for layer_idx in range(config["num_decoder_layers"])
             ]
@@ -383,10 +402,33 @@ class CausalTIGER(nn.Module):
         attention_mask: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         target_item_emb: Optional[torch.Tensor] = None,
+        parallel: bool = False,
     ):
         if labels is None:
             hidden_states = self._encode_tokens(input_ids, attention_mask)
             return None, self._lm_logits(hidden_states)
+
+        if parallel:
+            # Parallel next-token training: input_ids and labels are already
+            # token-aligned (labels = input shifted by one token, with -100 on
+            # context/pad positions). A single forward computes CE over every
+            # supervised position at once.
+            if attention_mask is None:
+                attention_mask = torch.ones_like(input_ids)
+            hidden_states = self._encode_tokens(input_ids, attention_mask)
+            self.last_target_hidden_states = hidden_states.detach()
+            logits = self._lm_logits(hidden_states)
+            ce_loss = F.cross_entropy(
+                logits.reshape(-1, logits.size(-1)),
+                labels.reshape(-1),
+                ignore_index=-100,
+            )
+            self.last_loss_dict = {
+                "total": ce_loss.detach(),
+                "ce": ce_loss.detach(),
+                "align": torch.zeros((), dtype=ce_loss.dtype, device=ce_loss.device),
+            }
+            return ce_loss, logits
 
         decoder_input_ids = labels[:, :-1]
         model_input_ids = torch.cat([input_ids, decoder_input_ids], dim=1)

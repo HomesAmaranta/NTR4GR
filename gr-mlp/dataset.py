@@ -3,14 +3,17 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-def process_data(file_path, mode, max_len, PAD_TOKEN=0):
+def process_data(file_path, mode, max_len, PAD_TOKEN=0,
+                 block_items=40, stride_items=20):
     """
-    Process parquet data based on mode ('train' or 'evaluation').
+    Process parquet data based on mode ('train', 'train_parallel' or 'evaluation').
 
     Args:
         file_path (str): Path to the parquet file.
-        mode (str): Mode of operation ('train' or 'evaluation').
+        mode (str): Mode of operation ('train', 'train_parallel' or 'evaluation').
         max_len (int): Maximum length for padding or truncation.
+        block_items (int): Block size in items for 'train_parallel' mode.
+        stride_items (int): Sliding stride in items for 'train_parallel' mode.
 
     Returns:
         list: Processed data.
@@ -33,6 +36,33 @@ def process_data(file_path, mode, max_len, PAD_TOKEN=0):
                     'target': sequence[i],
                     'pre_item': sequence[i - 1],
                 })
+    elif mode == 'train_parallel':
+        # Cut each user sequence into overlapping big blocks. Each block keeps
+        # the whole item sequence so the causal model can predict every
+        # next token in a single forward pass. The first `context_items` items
+        # of a block (the part overlapping the previous block) only serve as
+        # context and are excluded from the loss.
+        processed_data = []
+        for row in data.itertuples(index=False):
+            sequence = row.sequence
+            n = len(sequence)
+            if n < 2:
+                continue
+            start = 0
+            while True:
+                block = sequence[start:start + block_items]
+                # Overlap items (kept for context only) = items before `start`
+                # that still live inside this block window. For the first
+                # block it is 0; for later blocks it is block_items - stride.
+                context_items = 0 if start == 0 else (block_items - stride_items)
+                context_items = min(context_items, len(block) - 1)
+                processed_data.append({
+                    'block': block,
+                    'context_items': context_items,
+                })
+                if start + block_items >= n:
+                    break
+                start += stride_items
     elif mode == 'evaluation':
         # Use the last item as target and the rest as history
         processed_data = []
@@ -45,11 +75,14 @@ def process_data(file_path, mode, max_len, PAD_TOKEN=0):
                 'pre_item': history[-1] if history else sequence[-1],
             })
     else:
-        raise ValueError("Mode must be 'train' or 'evaluation'.")
+        raise ValueError("Mode must be 'train', 'train_parallel' or 'evaluation'.")
 
-    # Apply padding or truncation
-    for item in processed_data:
-        item['history'] = pad_or_truncate(item['history'], max_len)
+    # Apply padding or truncation (only for modes that use fixed-length history;
+    # train_parallel keeps variable-length blocks and pads at the token level
+    # inside collate_fn).
+    if mode != 'train_parallel':
+        for item in processed_data:
+            item['history'] = pad_or_truncate(item['history'], max_len)
 
     return processed_data
 
@@ -104,21 +137,26 @@ def load_item_embeddings(item_emb_path):
     }
 
 class GenRecDataset(Dataset):
-    def __init__(self, dataset_path, code_path, mode, max_len, PAD_TOKEN=0, item_emb_path=None, align_item='next'):
+    def __init__(self, dataset_path, code_path, mode, max_len, PAD_TOKEN=0, item_emb_path=None, align_item='next',
+                 block_items=40, stride_items=20):
         """
         Initialize the GenRecDataset.
         Args:
             dataset_path (str): Path to the dataset file.
             code_path (str): Path to the item-to-code mapping file.
-            mode (str): Mode of operation ('train' or 'evaluation').
+            mode (str): Mode of operation ('train', 'train_parallel' or 'evaluation').
             max_len (int): Maximum length for padding or truncation.
             PAD_TOKEN (int, optional): Token used for padding. Defaults to 0.
+            block_items (int): Block size in items for 'train_parallel' mode.
+            stride_items (int): Sliding stride in items for 'train_parallel' mode.
         """
         self.dataset_path = dataset_path
         self.code_path = code_path
         self.mode = mode
         self.max_len = max_len
         self.PAD_TOKEN = PAD_TOKEN
+        self.block_items = block_items
+        self.stride_items = stride_items
         if align_item not in {'pre', 'next'}:
             raise ValueError(f"Unsupported align_item: {align_item}")
         self.align_item = align_item
@@ -136,8 +174,19 @@ class GenRecDataset(Dataset):
         """
         # Process the data using the process_data function
         processed_data = process_data(
-            self.dataset_path, self.mode, self.max_len, self.PAD_TOKEN
+            self.dataset_path, self.mode, self.max_len, self.PAD_TOKEN,
+            block_items=self.block_items, stride_items=self.stride_items,
         )
+        if self.mode == 'train_parallel':
+            # Convert each block's items into their 4-token codes. The block
+            # stays as a list of per-item code arrays; flattening / label
+            # shifting happens in the dataloader collate_fn.
+            for item in processed_data:
+                item['block'] = [
+                    self.item_to_code.get(x, np.array([self.PAD_TOKEN] * 4))
+                    for x in item['block']
+                ]
+            return processed_data
         # Convert items to codes
         for item in processed_data:
             target_item = item['target']
