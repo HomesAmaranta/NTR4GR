@@ -190,6 +190,30 @@ def compute_geometry_metrics(hidden_states: torch.Tensor) -> Dict[str, float]:
     return metrics
 
 
+def compute_geometry_metrics_by_phase(
+    hidden_states: torch.Tensor, code_phase: torch.Tensor, code_per_item: int = 4
+) -> Dict[str, float]:
+    # Parallel mode: hidden_states is [batch, seq, d] over a whole block. Group
+    # every supervised position by its code phase (1..code_per_item) so token1..4
+    # match the sliding-window definition (predicting code1..code4). Positions
+    # with phase 0 (padding / context / ignored) are skipped.
+    flat_hidden = hidden_states.reshape(-1, hidden_states.size(-1))
+    flat_phase = code_phase.reshape(-1)
+    metrics = {}
+    ranks = []
+    cosines = []
+    for phase in range(1, code_per_item + 1):
+        sel = flat_hidden[flat_phase == phase]
+        cur = compute_single_geometry(sel)
+        metrics[f"effective_rank_token{phase}"] = cur["effective_rank"]
+        metrics[f"avg_cosine_token{phase}"] = cur["avg_cosine"]
+        ranks.append(cur["effective_rank"])
+        cosines.append(cur["avg_cosine"])
+    metrics["effective_rank"] = sum(ranks) / len(ranks) if ranks else 0.0
+    metrics["avg_cosine"] = sum(cosines) / len(cosines) if cosines else 0.0
+    return metrics
+
+
 def train(model, train_loader, optimizer, device):
     model.train()
     totals = {
@@ -213,11 +237,19 @@ def train(model, train_loader, optimizer, device):
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device)
+            target_item_emb = batch.get("block_item_emb")
+            target_item_emb = (
+                target_item_emb.to(device) if target_item_emb is not None else None
+            )
+            item_group = batch.get("item_group")
+            item_group = item_group.to(device) if item_group is not None else None
             optimizer.zero_grad()
             loss, _ = model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 labels=labels,
+                target_item_emb=target_item_emb,
+                item_group=item_group,
                 parallel=True,
             )
             loss.backward()
@@ -237,7 +269,10 @@ def train(model, train_loader, optimizer, device):
             )
             hidden_states = getattr(model, "last_target_hidden_states", None)
             if hidden_states is not None:
-                geometry = compute_geometry_metrics(hidden_states)
+                code_phase = batch["code_phase"].to(hidden_states.device)
+                geometry = compute_geometry_metrics_by_phase(
+                    hidden_states, code_phase
+                )
                 for key, value in geometry.items():
                     totals[key] += value
             continue
@@ -379,6 +414,23 @@ def set_seed(seed):
     torch.use_deterministic_algorithms(True, warn_only=True)
 
 
+def average_train_sequence_length(train_dataset):
+    if len(train_dataset) == 0:
+        return 0.0
+    total_len = 0
+    for item in train_dataset.data:
+        if "block" in item:
+            total_len += len(item["block"])
+        else:
+            history_len = sum(
+                1
+                for code in item["history"]
+                if not np.all(np.asarray(code) == train_dataset.PAD_TOKEN)
+            )
+            total_len += history_len + 1
+    return total_len / len(train_dataset)
+
+
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
     random.seed(worker_seed)
@@ -469,13 +521,6 @@ if __name__ == "__main__":
         help="Sliding stride in items between blocks for parallel training mode",
     )
     parser.add_argument(
-        "--attention_window",
-        type=int,
-        default=None,
-        help="Sliding-window attention span in tokens for the causal model "
-        "(e.g. 80 = 20 items x 4 codes). None means full causal attention",
-    )
-    parser.add_argument(
         "--dataset_path", type=str, default="../data/Beauty", help="Path to the dataset"
     )
     parser.add_argument(
@@ -540,8 +585,8 @@ if __name__ == "__main__":
         "--lm_head",
         type=str,
         default="emb",
-        choices=["emb", "linear", "mlp"],
-        help="LM head type: tied embedding, independent linear layer, or MLP",
+        choices=["emb", "linear", "mlp", "mlp-emb"],
+        help="LM head type: tied embedding, independent linear layer, MLP, or MLP then tied embedding",
     )
     parser.add_argument(
         "--early_stop_metric",
@@ -594,6 +639,12 @@ if __name__ == "__main__":
     config = vars(parser.parse_args())
     if config["item_emb_path"] in {"", "None"}:
         config["item_emb_path"] = None
+    # Sliding-window attention span (in tokens) for parallel training: keep the
+    # visible history equal to max_len items (max_len x 4 codes). Full causal
+    # attention (None) otherwise.
+    config["attention_window"] = (
+        config["max_len"] * 4 if config["train_mode"] == "parallel" else None
+    )
         # Set up logging
     logging.basicConfig(
         filename=config["log_path"],
@@ -722,6 +773,15 @@ if __name__ == "__main__":
     best_epoch = 0
     for epoch in tqdm(range(config["num_epochs"])):
         logging.info(f"Epoch {epoch + 1}/{config['num_epochs']}")
+        if epoch == 0:
+            avg_seq_len = average_train_sequence_length(train_dataset)
+            sequence_count_msg = (
+                f"Train sequence count: {len(train_dataset)}, "
+                f"train batches per epoch: {len(train_dataloader)}, "
+                f"average train sequence length: {avg_seq_len:.2f}"
+            )
+            print(sequence_count_msg)
+            logging.info(sequence_count_msg)
         train_losses = train(model, train_dataloader, optimizer, device)
         logging.info(f"Training total loss: {train_losses['total']}")
         logging.info(f"Training CE loss: {train_losses['ce']}")

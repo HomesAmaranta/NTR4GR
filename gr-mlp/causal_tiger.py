@@ -299,8 +299,8 @@ class CausalTIGER(nn.Module):
             raise ValueError("mse_loss_mode must be 'token' or 'mean'")
         if self.align_loss_type not in {"mse", "cos"}:
             raise ValueError("align_loss_type must be 'mse' or 'cos'")
-        if self.lm_head_type not in {"emb", "linear", "mlp"}:
-            raise ValueError("lm_head must be 'emb', 'linear' or 'mlp'")
+        if self.lm_head_type not in {"emb", "linear", "mlp", "mlp-emb"}:
+            raise ValueError("lm_head must be 'emb', 'linear', 'mlp' or 'mlp-emb'")
         if self.shallow_layer < 1 or self.shallow_layer > config["num_layers"]:
             raise ValueError(f"shallow_layer must be in [1, {config['num_layers']}]")
         self.dropout = nn.Dropout(config["dropout_rate"])
@@ -308,6 +308,9 @@ class CausalTIGER(nn.Module):
         # the parallel training mode to keep the visible history bounded.
         self.attention_window = config.get("attention_window", None)
         self.shared = nn.Embedding(config["vocab_size"], config["d_model"])
+        # For 'mlp-emb', hidden states pass through a dimension-preserving MLP
+        # before being multiplied with the (tied) embedding table, like 'emb'.
+        self.lm_head_mlp = None
         if self.lm_head_type == "linear":
             self.lm_head = nn.Linear(config["d_model"], config["vocab_size"], bias=False)
         elif self.lm_head_type == "mlp":
@@ -318,6 +321,12 @@ class CausalTIGER(nn.Module):
             )
         else:
             self.lm_head = None
+            if self.lm_head_type == "mlp-emb":
+                self.lm_head_mlp = nn.Sequential(
+                    nn.Linear(config["d_model"], config["d_model"]),
+                    nn.GELU(),
+                    nn.Linear(config["d_model"], config["d_model"]),
+                )
         self.hidden_to_item_emb = (
             nn.Sequential(
                 nn.Linear(config["d_model"], config["d_model"]),
@@ -402,8 +411,68 @@ class CausalTIGER(nn.Module):
     def _lm_logits(self, hidden_states: torch.Tensor) -> torch.Tensor:
         if self.lm_head is not None:
             return self.lm_head(hidden_states)
+        if self.lm_head_mlp is not None:
+            hidden_states = self.lm_head_mlp(hidden_states)
         hidden_states = hidden_states * (self.d_model**-0.5)
         return torch.matmul(hidden_states, self.shared.weight.transpose(0, 1))
+
+    def _parallel_align_loss(
+        self,
+        hidden_states: torch.Tensor,
+        target_item_emb: torch.Tensor,
+        item_group: torch.Tensor,
+    ) -> torch.Tensor:
+        # Per-item mean-pool alignment for parallel training. Every supervised
+        # position carries the block-item index it predicts (item_group >= 0);
+        # ignored positions are -1. We average the hidden states of the code
+        # positions belonging to the same predicted item, project them through
+        # hidden_to_item_emb, and align with that item's target embedding
+        # (target_item_emb is [B, max_items, dim]).
+        batch_size, _, d_model = hidden_states.shape
+        max_items = target_item_emb.size(1)
+        device = hidden_states.device
+
+        valid = item_group >= 0  # [B, seq]
+        if not valid.any():
+            return hidden_states.new_zeros(())
+
+        # Unique slot id per (batch, item) pair so we can scatter-mean.
+        num_slots = batch_size * max_items
+        batch_idx = (
+            torch.arange(batch_size, device=device)
+            .unsqueeze(1)
+            .expand_as(item_group)
+        )
+        slot = batch_idx * max_items + item_group.clamp_min(0)  # [B, seq]
+        flat_slot = slot.reshape(-1)[valid.reshape(-1)]
+        flat_hidden = hidden_states.reshape(-1, d_model)[valid.reshape(-1)]
+        flat_target_emb = target_item_emb.reshape(num_slots, -1)[flat_slot].to(
+            flat_hidden.dtype
+        )
+
+        if self.mse_loss_mode == "token":
+            pred_item_emb = self.hidden_to_item_emb(flat_hidden)
+            if self.align_loss_type == "cos":
+                return 1.0 - F.cosine_similarity(
+                    pred_item_emb, flat_target_emb, dim=-1
+                ).mean()
+            return F.mse_loss(pred_item_emb, flat_target_emb, reduction="mean")
+
+        sum_hidden = hidden_states.new_zeros((num_slots, d_model))
+        sum_hidden.index_add_(0, flat_slot, flat_hidden)
+        counts = hidden_states.new_zeros((num_slots,))
+        counts.index_add_(0, flat_slot, torch.ones_like(flat_slot, dtype=counts.dtype))
+
+        active = counts > 0
+        pooled_hidden = sum_hidden[active] / counts[active].unsqueeze(-1)
+        pred_item_emb = self.hidden_to_item_emb(pooled_hidden)
+        target_emb = target_item_emb.reshape(num_slots, -1)[active].to(
+            pred_item_emb.dtype
+        )
+
+        if self.align_loss_type == "cos":
+            return 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
+        return F.mse_loss(pred_item_emb, target_emb, reduction="mean")
 
     def forward(
         self,
@@ -411,6 +480,7 @@ class CausalTIGER(nn.Module):
         attention_mask: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         target_item_emb: Optional[torch.Tensor] = None,
+        item_group: Optional[torch.Tensor] = None,
         parallel: bool = False,
     ):
         if labels is None:
@@ -432,12 +502,26 @@ class CausalTIGER(nn.Module):
                 labels.reshape(-1),
                 ignore_index=-100,
             )
+            align_loss = torch.zeros(
+                (), dtype=ce_loss.dtype, device=ce_loss.device
+            )
+            if (
+                target_item_emb is not None
+                and item_group is not None
+                and self.hidden_to_item_emb is not None
+                and self.mse_loss_weight > 0
+            ):
+                align_loss = self._parallel_align_loss(
+                    hidden_states, target_item_emb, item_group
+                )
+            loss = ce_loss + self.mse_loss_weight * align_loss
             self.last_loss_dict = {
-                "total": ce_loss.detach(),
+                "total": loss.detach(),
                 "ce": ce_loss.detach(),
-                "align": torch.zeros((), dtype=ce_loss.dtype, device=ce_loss.device),
+                "align": align_loss.detach(),
             }
-            return ce_loss, logits
+            return loss, logits
+
 
         decoder_input_ids = labels[:, :-1]
         model_input_ids = torch.cat([input_ids, decoder_input_ids], dim=1)

@@ -180,12 +180,32 @@ class GenRecDataset(Dataset):
         if self.mode == 'train_parallel':
             # Convert each block's items into their 4-token codes. The block
             # stays as a list of per-item code arrays; flattening / label
-            # shifting happens in the dataloader collate_fn.
+            # shifting happens in the dataloader collate_fn. When item
+            # embeddings are provided (for the auxiliary alignment loss), also
+            # attach the per-item target embedding. In next-token parallel
+            # training the position that predicts item k is aligned with the
+            # embedding of item k itself (align_item='next'); with
+            # align_item='pre' it is aligned with the previous item (k-1).
             for item in processed_data:
+                item_ids = list(item['block'])
                 item['block'] = [
                     self.item_to_code.get(x, np.array([self.PAD_TOKEN] * 4))
-                    for x in item['block']
+                    for x in item_ids
                 ]
+                if self.item_embeddings is not None:
+                    block_item_emb = []
+                    for k, x in enumerate(item_ids):
+                        if self.align_item == 'pre':
+                            src = item_ids[k - 1] if k > 0 else x
+                        else:
+                            src = x
+                        src = int(src)
+                        if src not in self.item_embeddings:
+                            raise KeyError(
+                                f"Missing item embedding for align item id: {src}"
+                            )
+                        block_item_emb.append(self.item_embeddings[src])
+                    item['block_item_emb'] = block_item_emb
             return processed_data
         # Convert items to codes
         for item in processed_data:

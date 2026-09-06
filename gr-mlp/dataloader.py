@@ -87,6 +87,10 @@ class GenRecDataLoader(DataLoader):
         token_seqs = []
         input_list = []
         label_list = []
+        phase_list = []
+        group_list = []
+        block_item_embs = [sample.get('block_item_emb') for sample in batch]
+        has_item_emb = block_item_embs[0] is not None
         for sample in batch:
             block = sample['block']
             context_items = sample.get('context_items', 0)
@@ -99,29 +103,77 @@ class GenRecDataLoader(DataLoader):
             # belongs to the first `context_items` items is context-only.
             # A label at index i predicts token (i + 1); mask it while that
             # target token still lives inside the context region.
+            #
+            # Additionally, never supervise the 3 intra-item predictions of the
+            # very first item ((x1)_1->(x1)_2, ..., (x1)_3->(x1)_4): x1 only
+            # serves as history in the sliding-window setup, so we align with it
+            # by requiring the target token index >= code_per_item. The cross-
+            # item prediction (x1)_4->(x2)_1 (target index == code_per_item) is
+            # kept. For context blocks, context_tokens already covers this.
             context_tokens = context_items * code_per_item
+            loss_start = max(context_tokens, code_per_item)
             labels = [
-                (lab if (i + 1) >= context_tokens else -100)
+                (lab if (i + 1) >= loss_start else -100)
+                for i, lab in enumerate(labels)
+            ]
+            # Code phase (1..code_per_item) of the target token each position
+            # predicts. labels[i] predicts the token at absolute index (i + 1)
+            # in the flattened sequence; its intra-item code position is
+            # ((i + 1) % code_per_item) + 1  (index 0 -> code1, 1 -> code2, ...).
+            # Supervised positions get their phase; ignored (-100) positions 0.
+            phases = [
+                (0 if lab == -100 else ((i + 1) % code_per_item) + 1)
+                for i, lab in enumerate(labels)
+            ]
+            # Item group of the target token each position predicts: the token
+            # at absolute index (i + 1) belongs to block item ((i + 1) //
+            # code_per_item). Used to mean-pool the hidden states of the 4 code
+            # positions belonging to the same predicted item for the alignment
+            # loss. Ignored (-100) positions get group -1.
+            groups = [
+                (-1 if lab == -100 else ((i + 1) // code_per_item))
                 for i, lab in enumerate(labels)
             ]
             input_list.append(input_ids)
             label_list.append(labels)
+            phase_list.append(phases)
+            group_list.append(groups)
             token_seqs.append(len(input_ids))
 
         max_len = max(token_seqs)
         padded_inputs = []
         padded_labels = []
+        padded_phases = []
+        padded_groups = []
         attention_masks = []
-        for input_ids, labels in zip(input_list, label_list):
+        for input_ids, labels, phases, groups in zip(
+            input_list, label_list, phase_list, group_list
+        ):
             pad = max_len - len(input_ids)
             # Left pad so the most recent tokens stay right-aligned.
             padded_inputs.append([pad_token] * pad + input_ids)
             padded_labels.append([-100] * pad + labels)
+            padded_phases.append([0] * pad + phases)
+            padded_groups.append([-1] * pad + groups)
             attention_masks.append([0] * pad + [1] * len(input_ids))
 
         output = {
             'input_ids': torch.tensor(padded_inputs, dtype=torch.int64),
             'labels': torch.tensor(padded_labels, dtype=torch.int64),
+            'code_phase': torch.tensor(padded_phases, dtype=torch.int64),
+            'item_group': torch.tensor(padded_groups, dtype=torch.int64),
             'attention_mask': torch.tensor(attention_masks, dtype=torch.int64),
         }
+        if has_item_emb:
+            # Pad the per-item target embeddings to [B, max_items, dim]. Item
+            # groups index into this tensor (group g -> block_item_emb[g]).
+            max_items = max(len(emb) for emb in block_item_embs)
+            emb_dim = len(np.asarray(block_item_embs[0][0]))
+            padded_embs = np.zeros(
+                (len(batch), max_items, emb_dim), dtype=np.float32
+            )
+            for b, embs in enumerate(block_item_embs):
+                for k, emb in enumerate(embs):
+                    padded_embs[b, k] = np.asarray(emb, dtype=np.float32)
+            output['block_item_emb'] = torch.from_numpy(padded_embs)
         return output
