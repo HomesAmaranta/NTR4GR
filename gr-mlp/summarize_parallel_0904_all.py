@@ -98,7 +98,7 @@ def main():
     args = parser.parse_args()
 
     rows = []
-    for log_path in sorted(Path(args.logs_dir).glob("*_0904.log")):
+    for log_path in sorted(Path(args.logs_dir).glob("*.log")):
         config = parse_config(log_path)
         if not config or config.get("train_mode") != "parallel":
             continue
@@ -108,8 +108,6 @@ def main():
         recalls, ndcgs = metrics
         epoch_seconds = parse_epoch_seconds(log_path)
         align = f"{config.get('align_loss_type')}{fmt_float(config.get('mse_loss_weight'))}"
-        if align != "cos0":
-            continue
         rows.append(
             [
                 fmt(config.get("train_mode")),
@@ -134,7 +132,7 @@ def main():
         )
 
     if not rows:
-        print(f"No finished 0904 parallel logs found in {args.logs_dir}")
+        print(f"No finished parallel logs found in {args.logs_dir}")
         return
 
     table = build_table(rows)

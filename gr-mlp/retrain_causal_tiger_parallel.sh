@@ -43,8 +43,12 @@ case "$align_target" in
     item_emb_path="../data/${dataset}/item_emb_rqvae_quantized_latent.parquet"
     item_emb_dim=32
     ;;
+  codebook)
+    item_emb_path="../data/${dataset}/item_emb_rqvae_codebook.parquet"
+    item_emb_dim=32
+    ;;
   *)
-    echo "Unknown align_target: ${align_target}. Use item, latent, or quantized." >&2
+    echo "Unknown align_target: ${align_target}. Use item, latent, quantized, or codebook." >&2
     exit 1
     ;;
 esac

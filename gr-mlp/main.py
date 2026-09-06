@@ -243,6 +243,8 @@ def train(model, train_loader, optimizer, device):
             )
             item_group = batch.get("item_group")
             item_group = item_group.to(device) if item_group is not None else None
+            code_phase = batch.get("code_phase")
+            code_phase = code_phase.to(device) if code_phase is not None else None
             optimizer.zero_grad()
             loss, _ = model(
                 input_ids=input_ids,
@@ -250,6 +252,7 @@ def train(model, train_loader, optimizer, device):
                 labels=labels,
                 target_item_emb=target_item_emb,
                 item_group=item_group,
+                code_phase=code_phase,
                 parallel=True,
             )
             loss.backward()

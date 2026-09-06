@@ -165,12 +165,12 @@ class GenRecDataLoader(DataLoader):
             'attention_mask': torch.tensor(attention_masks, dtype=torch.int64),
         }
         if has_item_emb:
-            # Pad the per-item target embeddings to [B, max_items, dim]. Item
+            # Pad the per-item target embeddings to [B, max_items, ...]. Item
             # groups index into this tensor (group g -> block_item_emb[g]).
             max_items = max(len(emb) for emb in block_item_embs)
-            emb_dim = len(np.asarray(block_item_embs[0][0]))
+            emb_shape = np.asarray(block_item_embs[0][0]).shape
             padded_embs = np.zeros(
-                (len(batch), max_items, emb_dim), dtype=np.float32
+                (len(batch), max_items, *emb_shape), dtype=np.float32
             )
             for b, embs in enumerate(block_item_embs):
                 for k, emb in enumerate(embs):

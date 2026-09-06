@@ -10,7 +10,7 @@ lr=1e-3
 lm_head=mlp
 mse_loss_weight=5
 align_loss_type=cos
-log_dir=0905_cos5_item_latent
+log_dir=0905_cos5_codebook
 
 seeds=(1 2025 42)
 align_targets=(codebook)

@@ -421,18 +421,26 @@ class CausalTIGER(nn.Module):
         hidden_states: torch.Tensor,
         target_item_emb: torch.Tensor,
         item_group: torch.Tensor,
+        code_phase: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         # Per-item mean-pool alignment for parallel training. Every supervised
         # position carries the block-item index it predicts (item_group >= 0);
         # ignored positions are -1. We average the hidden states of the code
         # positions belonging to the same predicted item, project them through
         # hidden_to_item_emb, and align with that item's target embedding
-        # (target_item_emb is [B, max_items, dim]).
+        # (target_item_emb is [B, max_items, dim], or [B, max_items, 4, dim]
+        # for codebook targets).
         batch_size, _, d_model = hidden_states.shape
         max_items = target_item_emb.size(1)
         device = hidden_states.device
 
         valid = item_group >= 0  # [B, seq]
+        if self.align_target == "codebook":
+            if code_phase is None:
+                raise ValueError("code_phase is required for parallel codebook align")
+            # The fourth RQ layer has no codebook vector, so only align target
+            # code phases 1/2/3.
+            valid = valid & (code_phase >= 1) & (code_phase <= 3)
         if not valid.any():
             return hidden_states.new_zeros(())
 
@@ -446,9 +454,15 @@ class CausalTIGER(nn.Module):
         slot = batch_idx * max_items + item_group.clamp_min(0)  # [B, seq]
         flat_slot = slot.reshape(-1)[valid.reshape(-1)]
         flat_hidden = hidden_states.reshape(-1, d_model)[valid.reshape(-1)]
-        flat_target_emb = target_item_emb.reshape(num_slots, -1)[flat_slot].to(
-            flat_hidden.dtype
-        )
+        if self.align_target == "codebook":
+            flat_phase = code_phase.reshape(-1)[valid.reshape(-1)] - 1
+            flat_target_emb = target_item_emb.reshape(
+                num_slots, target_item_emb.size(-2), target_item_emb.size(-1)
+            )[flat_slot, flat_phase].to(flat_hidden.dtype)
+        else:
+            flat_target_emb = target_item_emb.reshape(num_slots, -1)[flat_slot].to(
+                flat_hidden.dtype
+            )
 
         if self.mse_loss_mode == "token":
             pred_item_emb = self.hidden_to_item_emb(flat_hidden)
@@ -466,9 +480,14 @@ class CausalTIGER(nn.Module):
         active = counts > 0
         pooled_hidden = sum_hidden[active] / counts[active].unsqueeze(-1)
         pred_item_emb = self.hidden_to_item_emb(pooled_hidden)
-        target_emb = target_item_emb.reshape(num_slots, -1)[active].to(
-            pred_item_emb.dtype
-        )
+        if self.align_target == "codebook":
+            target_emb = target_item_emb.reshape(
+                num_slots, target_item_emb.size(-2), target_item_emb.size(-1)
+            )[active, :3].mean(dim=1).to(pred_item_emb.dtype)
+        else:
+            target_emb = target_item_emb.reshape(num_slots, -1)[active].to(
+                pred_item_emb.dtype
+            )
 
         if self.align_loss_type == "cos":
             return 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
@@ -481,6 +500,7 @@ class CausalTIGER(nn.Module):
         labels: Optional[torch.Tensor] = None,
         target_item_emb: Optional[torch.Tensor] = None,
         item_group: Optional[torch.Tensor] = None,
+        code_phase: Optional[torch.Tensor] = None,
         parallel: bool = False,
     ):
         if labels is None:
@@ -512,7 +532,7 @@ class CausalTIGER(nn.Module):
                 and self.mse_loss_weight > 0
             ):
                 align_loss = self._parallel_align_loss(
-                    hidden_states, target_item_emb, item_group
+                    hidden_states, target_item_emb, item_group, code_phase
                 )
             loss = ce_loss + self.mse_loss_weight * align_loss
             self.last_loss_dict = {
