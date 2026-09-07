@@ -9,7 +9,7 @@ bs=128
 lr=1e-3
 lm_head=mlp
 align_loss_type=cos
-log_dir=test
+log_dir=0906_cos_shallow
 
 seeds=(1)
 align_targets=(shallow)

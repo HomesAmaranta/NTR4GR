@@ -1,12 +1,12 @@
 dataset=Beauty
-seed=1
 align_loss_type=${1:-cos}
-mse_loss_weight=${2:-5}
+mse_loss_weight=${2:-0}
 mse_loss_mode=${3:-mean}
 align_target=${4:-quantized}
 align_item=${5:-pre}
-lm_head=${6:-mlp}
+lm_head=${6:-mlp-emb}
 shallow_layer=${7:-1}
+seed=${8:-1}
 early_stop_metric=ce
 
 dataset_path="../data/${dataset}"
@@ -46,10 +46,10 @@ case "$align_item" in
     ;;
 esac
 case "$lm_head" in
-  emb|linear|mlp)
+  emb|linear|mlp|mlp-emb)
     ;;
   *)
-    echo "Unknown lm_head: ${lm_head}. Use emb or linear." >&2
+    echo "Unknown lm_head: ${lm_head}. Use emb, linear, or mlp, mlp-emb." >&2
     exit 1
     ;;
 esac
@@ -59,11 +59,9 @@ if [ "$align_target" = "shallow" ]; then
 fi
 save_path="./ckpt/causal_tiger_${dataset}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}_${lm_head}${shallow_suffix}_seed${seed}.pth"
 log_path="./logs/causal_tiger_${dataset}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}_${lm_head}${shallow_suffix}_seed${seed}.log"
+cd /mlx_devbox/users/fengyuebo/playground/TIGER/gr-mlp
 
 mkdir -p ./ckpt ./logs
-
-PROJECT_DIR="/mlx_devbox/users/fengyuebo/playground/TIGER/gr-mlp"
-CHECKPOINT="${PROJECT_DIR}/ckpt/causal_tiger_Beauty_parallel_b80_s60_bs128_lr2e-3_headmlp_seed2025_0904.pth"
 
 /usr/bin/python main.py \
   --model_type causal \
@@ -99,7 +97,4 @@ CHECKPOINT="${PROJECT_DIR}/ckpt/causal_tiger_Beauty_parallel_b80_s60_bs128_lr2e-
   --lr 1e-3 \
   --early_stop 10 \
   --beam_size 20 \
-  --seed $seed \
-  --mode evaluation \
-  --save_path "${CHECKPOINT}" \
-
+  --seed $seed 

@@ -6,14 +6,14 @@
 #   - length >  block_items : multiple sliding blocks; in each non-first block
 #     the first `block_items - stride_items` items serve as history only
 #     (masked out of the loss).
-# `attention_window` is derived automatically as max_len x 4 tokens (parallel
-# mode only), keeping the visible history equal to max_len items.
+# `attention_window` is derived automatically from max_len in parallel mode,
+# keeping the visible history equal to max_len items.
 
 dataset=Beauty
-block_items=${1:-80}
-stride_items=${2:-60}
-batch_size=${3:-128}
-lr=${4:-2e-3}
+block_items=${1:-999}
+stride_items=${2:-999}
+batch_size=${3:-64}
+lr=${4:-1e-3}
 lm_head=${5:-mlp}
 mse_loss_weight=${6:-0}
 align_target=${7:-quantized}
@@ -110,7 +110,7 @@ save_path="./ckpt/${file_stem}.pth"
 log_path="${log_dir_path}/${file_stem}.log"
 
 mkdir -p ./ckpt "$log_dir_path"
-cd /mlx_devbox/users/fengyuebo/playground/TIGER/gr-mlp
+cd /mlx_devbox/users/fengyuebo/playground/TIGER/v3
 /usr/bin/python main.py \
   --model_type causal \
   --train_mode parallel \
@@ -131,7 +131,7 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/gr-mlp
   --log_path $log_path \
   --batch_size $batch_size \
   --infer_size 96 \
-  --num_epochs 12000 \
+  --num_epochs 120 \
   --max_len 20 \
   --num_layers 4 \
   --num_decoder_layers 0 \
@@ -146,6 +146,6 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/gr-mlp
   --feed_forward_proj relu \
   --lm_head $lm_head \
   --lr $lr \
-  --early_stop 99999 \
+  --early_stop 10 \
   --beam_size 20 \
   --seed $seed

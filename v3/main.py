@@ -700,11 +700,13 @@ if __name__ == "__main__":
     config = vars(parser.parse_args())
     if config["item_emb_path"] in {"", "None"}:
         config["item_emb_path"] = None
-    # Sliding-window attention span (in tokens) for parallel training: keep the
-    # visible history equal to max_len items (max_len x 4 codes). Full causal
-    # attention (None) otherwise.
+    # Causal v3 uses one model position per item. In parallel NTP mode, feed a
+    # long user block but cap each position's visible history to max_len items.
+    config["item_average_io"] = config["model_type"] == "causal"
     config["attention_window"] = (
-        config["max_len"] * 4 if config["train_mode"] == "parallel" else None
+        config["max_len"]
+        if config["item_average_io"]
+        else (config["max_len"] * 4 if config["train_mode"] == "parallel" else None)
     )
         # Set up logging
     logging.basicConfig(

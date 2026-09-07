@@ -292,6 +292,7 @@ class CausalTIGER(nn.Module):
         self.align_loss_type = config.get("align_loss_type", "mse")
         self.align_target = config.get("align_target", "item")
         self.align_item = config.get("align_item", "next")
+        self.item_average_io = config.get("item_average_io", True)
         if self.align_target == "shallow" and self.item_emb_dim <= 0:
             self.item_emb_dim = self.d_model
         self.shallow_layer = config.get("shallow_layer", 1)
@@ -340,6 +341,16 @@ class CausalTIGER(nn.Module):
             )
             if self.item_emb_dim > 0
             else None
+        )
+        self.sid_heads = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(config["d_model"], config["d_model"]),
+                    nn.GELU(),
+                    nn.Linear(config["d_model"], config["vocab_size"], bias=False),
+                )
+                for _ in range(4)
+            ]
         )
 
         self.context_blocks = nn.ModuleList(
@@ -413,6 +424,50 @@ class CausalTIGER(nn.Module):
             return hidden_states, shallow_states
         return hidden_states
 
+    def _mean_item_embeddings(self, item_code_ids: torch.Tensor) -> torch.Tensor:
+        # item_code_ids: [B, items, 4]. Padding items are masked outside this
+        # function; averaging their pad embeddings is harmless.
+        return self.shared(item_code_ids).mean(dim=2)
+
+    def _encode_item_codes(
+        self,
+        item_code_ids: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        return_shallow_layer: Optional[int] = None,
+    ) -> torch.Tensor:
+        hidden_states = self.dropout(self._mean_item_embeddings(item_code_ids))
+        shallow_states = None
+        for layer_idx, block in enumerate(self.context_blocks, start=1):
+            hidden_states = block(hidden_states, attention_mask)
+            if return_shallow_layer == layer_idx:
+                shallow_states = hidden_states
+        hidden_states = self.dropout(self.context_final_layer_norm(hidden_states))
+        for block in self.decoder_blocks:
+            hidden_states = block(hidden_states, attention_mask)
+            hidden_states = self.dropout(self.decoder_final_layer_norm(hidden_states))
+        if return_shallow_layer is not None:
+            if shallow_states is None:
+                raise ValueError(f"Unsupported shallow_layer: {return_shallow_layer}")
+            return hidden_states, shallow_states
+        return hidden_states
+
+    def _sid_logits(self, item_hidden_states: torch.Tensor) -> torch.Tensor:
+        return torch.stack(
+            [head(item_hidden_states) for head in self.sid_heads],
+            dim=-2,
+        )
+
+    def _last_item_hidden(
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        if attention_mask is None:
+            return hidden_states[:, -1, :]
+        lengths = attention_mask.long().sum(dim=1).clamp_min(1) - 1
+        gather_index = lengths.view(-1, 1, 1).expand(-1, 1, hidden_states.size(-1))
+        return hidden_states.gather(1, gather_index).squeeze(1)
+
     def _lm_logits(self, hidden_states: torch.Tensor) -> torch.Tensor:
         if self.lm_head is not None:
             return self.lm_head(hidden_states)
@@ -438,6 +493,37 @@ class CausalTIGER(nn.Module):
         batch_size, _, d_model = hidden_states.shape
         max_items = target_item_emb.size(1)
         device = hidden_states.device
+
+        if item_group.dim() == 2:
+            valid = item_group >= 0
+            if not valid.any():
+                return hidden_states.new_zeros(())
+            batch_idx = (
+                torch.arange(batch_size, device=device)
+                .unsqueeze(1)
+                .expand_as(item_group)
+            )
+            flat_slot = (
+                batch_idx * max_items + item_group.clamp_min(0)
+            ).reshape(-1)[valid.reshape(-1)]
+            flat_hidden = hidden_states.reshape(-1, d_model)[valid.reshape(-1)]
+            pred_item_emb = self.hidden_to_item_emb(flat_hidden)
+            if self.align_target == "codebook":
+                target_emb = target_item_emb.reshape(
+                    batch_size * max_items,
+                    target_item_emb.size(-2),
+                    target_item_emb.size(-1),
+                )[flat_slot, :3].mean(dim=1)
+            else:
+                target_emb = target_item_emb.reshape(batch_size * max_items, -1)[
+                    flat_slot
+                ]
+            target_emb = target_emb.to(pred_item_emb.dtype)
+            if self.align_loss_type == "cos":
+                return 1.0 - F.cosine_similarity(
+                    pred_item_emb, target_emb, dim=-1
+                ).mean()
+            return F.mse_loss(pred_item_emb, target_emb, reduction="mean")
 
         valid = item_group >= 0  # [B, seq]
         if self.align_target == "codebook":
@@ -667,10 +753,80 @@ class CausalTIGER(nn.Module):
         parallel: bool = False,
     ):
         if labels is None:
+            if self.item_average_io and input_ids.dim() == 3:
+                hidden_states = self._encode_item_codes(input_ids, attention_mask)
+                return None, self._sid_logits(hidden_states)
             hidden_states = self._encode_tokens(input_ids, attention_mask)
             return None, self._lm_logits(hidden_states)
 
         if parallel:
+            if self.item_average_io and input_ids.dim() == 3:
+                if attention_mask is None:
+                    attention_mask = (input_ids != self.pad_token_id).any(dim=-1).long()
+                shallow_states = None
+                if self.align_target == "shallow" and self.mse_loss_weight > 0:
+                    hidden_states, shallow_states = self._encode_item_codes(
+                        input_ids,
+                        attention_mask,
+                        return_shallow_layer=self.shallow_layer,
+                    )
+                else:
+                    hidden_states = self._encode_item_codes(input_ids, attention_mask)
+                logits = self._sid_logits(hidden_states)
+                ce_loss = F.cross_entropy(
+                    logits.reshape(-1, logits.size(-1)),
+                    labels.reshape(-1),
+                    ignore_index=-100,
+                )
+                self.last_target_hidden_states = (
+                    hidden_states.unsqueeze(2)
+                    .expand(-1, -1, 4, -1)
+                    .reshape(hidden_states.size(0), -1, hidden_states.size(-1))
+                    .detach()
+                )
+                align_loss = torch.zeros(
+                    (), dtype=ce_loss.dtype, device=ce_loss.device
+                )
+                if (
+                    self.align_target == "shallow"
+                    and shallow_states is not None
+                    and item_group is not None
+                    and self.hidden_to_item_emb is not None
+                    and self.mse_loss_weight > 0
+                ):
+                    valid = item_group >= 0
+                    if valid.any():
+                        pred_hidden = self.hidden_to_item_emb(hidden_states[valid])
+                        target_hidden = shallow_states[valid].detach()
+                        if self.align_loss_type == "cos":
+                            align_loss = 1.0 - F.cosine_similarity(
+                                pred_hidden,
+                                target_hidden.to(pred_hidden.dtype),
+                                dim=-1,
+                            ).mean()
+                        else:
+                            align_loss = F.mse_loss(
+                                pred_hidden,
+                                target_hidden.to(pred_hidden.dtype),
+                                reduction="mean",
+                            )
+                elif (
+                    target_item_emb is not None
+                    and item_group is not None
+                    and self.hidden_to_item_emb is not None
+                    and self.mse_loss_weight > 0
+                ):
+                    align_loss = self._parallel_align_loss(
+                        hidden_states, target_item_emb, item_group, code_phase
+                    )
+                loss = ce_loss + self.mse_loss_weight * align_loss
+                self.last_loss_dict = {
+                    "total": loss.detach(),
+                    "ce": ce_loss.detach(),
+                    "align": align_loss.detach(),
+                }
+                return loss, logits
+
             # Parallel next-token training: input_ids and labels are already
             # token-aligned (labels = input shifted by one token, with -100 on
             # context/pad positions). A single forward computes CE over every
@@ -735,6 +891,62 @@ class CausalTIGER(nn.Module):
             }
             return loss, logits
 
+
+        if self.item_average_io:
+            batch_size = input_ids.size(0)
+            item_input_ids = input_ids.view(batch_size, -1, 4)
+            if attention_mask is None:
+                item_attention_mask = (item_input_ids != self.pad_token_id).any(
+                    dim=-1
+                ).long()
+            else:
+                item_attention_mask = attention_mask.view(batch_size, -1, 4).any(
+                    dim=-1
+                ).long()
+            hidden_states = self._encode_item_codes(item_input_ids, item_attention_mask)
+            target_hidden = self._last_item_hidden(hidden_states, item_attention_mask)
+            self.last_target_hidden_states = (
+                target_hidden.unsqueeze(1).expand(-1, labels.size(1), -1).detach()
+            )
+            logits = self._sid_logits(target_hidden).view(
+                batch_size, labels.size(1), self.vocab_size
+            )
+            ce_loss = F.cross_entropy(
+                logits.reshape(-1, logits.size(-1)),
+                labels.reshape(-1),
+                ignore_index=-100,
+            )
+            align_loss = torch.zeros((), dtype=ce_loss.dtype, device=ce_loss.device)
+            if (
+                target_item_emb is not None
+                and self.hidden_to_item_emb is not None
+                and self.mse_loss_weight > 0
+            ):
+                pred_item_emb = self.hidden_to_item_emb(target_hidden)
+                if target_item_emb.dim() == 3:
+                    valid_emb = target_item_emb.abs().sum(dim=-1).gt(0)
+                    denom = valid_emb.sum(dim=1, keepdim=True).clamp_min(1)
+                    target_emb = (
+                        target_item_emb * valid_emb.unsqueeze(-1)
+                    ).sum(dim=1) / denom
+                    target_emb = target_emb.to(pred_item_emb.dtype)
+                else:
+                    target_emb = target_item_emb.to(pred_item_emb.dtype)
+                if self.align_loss_type == "cos":
+                    align_loss = 1.0 - F.cosine_similarity(
+                        pred_item_emb, target_emb, dim=-1
+                    ).mean()
+                else:
+                    align_loss = F.mse_loss(
+                        pred_item_emb, target_emb, reduction="mean"
+                    )
+            loss = ce_loss + self.mse_loss_weight * align_loss
+            self.last_loss_dict = {
+                "total": loss.detach(),
+                "ce": ce_loss.detach(),
+                "align": align_loss.detach(),
+            }
+            return loss, logits
 
         decoder_input_ids = labels[:, :-1]
         model_input_ids = torch.cat([input_ids, decoder_input_ids], dim=1)
@@ -874,6 +1086,59 @@ class CausalTIGER(nn.Module):
         batch_size = input_ids.size(0)
         vocab_size = self.vocab_size
         device = input_ids.device
+        if self.item_average_io:
+            item_input_ids = input_ids.view(batch_size, -1, 4)
+            if attention_mask is None:
+                item_attention_mask = (item_input_ids != self.pad_token_id).any(
+                    dim=-1
+                ).long()
+            else:
+                item_attention_mask = attention_mask.view(batch_size, -1, 4).any(
+                    dim=-1
+                ).long()
+            hidden_states = self._encode_item_codes(item_input_ids, item_attention_mask)
+            last_hidden = self._last_item_hidden(hidden_states, item_attention_mask)
+            step_log_probs = F.log_softmax(self._sid_logits(last_hidden).float(), dim=-1)
+            max_length = min(max_length, step_log_probs.size(1))
+            all_outputs = []
+            for batch_idx in range(batch_size):
+                beams = [([], step_log_probs.new_tensor(0.0))]
+                for step in range(max_length):
+                    candidates = []
+                    for prefix, score in beams:
+                        if prefix_allowed_tokens_fn is None:
+                            token_scores, token_ids = torch.topk(
+                                step_log_probs[batch_idx, step], num_beams
+                            )
+                            allowed_pairs = zip(token_ids.tolist(), token_scores)
+                        else:
+                            prefix_tensor = torch.tensor(
+                                prefix, dtype=input_ids.dtype, device=device
+                            )
+                            allowed_tokens = prefix_allowed_tokens_fn(
+                                batch_idx, prefix_tensor
+                            )
+                            if not allowed_tokens:
+                                continue
+                            token_scores = step_log_probs[
+                                batch_idx,
+                                step,
+                                torch.tensor(
+                                    allowed_tokens, dtype=torch.long, device=device
+                                ),
+                            ]
+                            allowed_pairs = zip(allowed_tokens, token_scores)
+                        for token_id, token_score in allowed_pairs:
+                            candidates.append((prefix + [int(token_id)], score + token_score))
+                    if not candidates:
+                        candidates = beams
+                    candidates.sort(key=lambda x: float(x[1]), reverse=True)
+                    beams = candidates[:num_beams]
+                while len(beams) < num_return_sequences:
+                    beams.append(beams[-1])
+                all_outputs.extend([seq for seq, _ in beams[:num_return_sequences]])
+            return torch.tensor(all_outputs, dtype=input_ids.dtype, device=device)
+
         beam_input_ids = input_ids.repeat_interleave(num_beams, dim=0)
         beam_attention_mask = (
             attention_mask.repeat_interleave(num_beams, dim=0)
