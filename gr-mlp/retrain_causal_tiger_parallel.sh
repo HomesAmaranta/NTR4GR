@@ -48,17 +48,21 @@ case "$align_target" in
     item_emb_path="../data/${dataset}/item_emb_rqvae_codebook.parquet"
     item_emb_dim=32
     ;;
+  vocab)
+    item_emb_path=None
+    item_emb_dim=128
+    ;;
   shallow)
     item_emb_path=None
     item_emb_dim=128
     ;;
   *)
-    echo "Unknown align_target: ${align_target}. Use item, latent, quantized, codebook, or shallow." >&2
+    echo "Unknown align_target: ${align_target}. Use item, latent, quantized, codebook, vocab, or shallow." >&2
     exit 1
     ;;
 esac
 if [ -z "$align_item" ]; then
-  if [ "$align_target" = "shallow" ]; then
+  if [ "$align_target" = "shallow" ] || [ "$align_target" = "vocab" ]; then
     align_item=next
   else
     align_item=pre
@@ -76,11 +80,15 @@ if [ "$align_item" = "near" ] && [ "$align_target" != "shallow" ]; then
   echo "align_item=near is only supported when align_target=shallow." >&2
   exit 1
 fi
+if [ "$align_target" = "vocab" ] && [ "$align_item" != "next" ]; then
+  echo "align_target=vocab only supports align_item=next." >&2
+  exit 1
+fi
 case "$mse_loss_mode" in
-  mean|token)
+  mean|token|pre-first)
     ;;
   *)
-    echo "Unknown mse_loss_mode: ${mse_loss_mode}. Use mean or token." >&2
+    echo "Unknown mse_loss_mode: ${mse_loss_mode}. Use mean, token, or pre-first." >&2
     exit 1
     ;;
 esac
@@ -131,7 +139,7 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/gr-mlp
   --log_path $log_path \
   --batch_size $batch_size \
   --infer_size 96 \
-  --num_epochs 12000 \
+  --num_epochs 120 \
   --max_len 20 \
   --num_layers 4 \
   --num_decoder_layers 0 \
@@ -146,6 +154,6 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/gr-mlp
   --feed_forward_proj relu \
   --lm_head $lm_head \
   --lr $lr \
-  --early_stop 99999 \
+  --early_stop 10 \
   --beam_size 20 \
   --seed $seed

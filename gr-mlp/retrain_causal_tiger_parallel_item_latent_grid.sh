@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")"
+cd /mlx_devbox/users/fengyuebo/playground/TIGER/gr-mlp
 
 block_items=80
 stride_items=60
@@ -9,14 +9,14 @@ bs=128
 lr=1e-3
 lm_head=mlp
 align_loss_type=cos
-log_dir=test
+log_dir=0908_vocab
 
-seeds=(1)
-align_targets=(shallow)
-align_items=(near)
+seeds=(1 42 2025)
+align_targets=(vocab)
+align_items=(next)
 mse_loss_weights=(5)
-mse_loss_modes=(mean)
-shallow_layers=(1 2)
+mse_loss_modes=(mean token)
+shallow_layers=(1)
 
 for seed in "${seeds[@]}"; do
   for align_target in "${align_targets[@]}"; do

@@ -6,11 +6,11 @@ from torch.utils.data import Dataset
 def process_data(file_path, mode, max_len, PAD_TOKEN=0,
                  block_items=40, stride_items=20):
     """
-    Process parquet data based on mode ('train_parallel' or 'evaluation').
+    Process parquet data based on mode ('train', 'train_parallel' or 'evaluation').
 
     Args:
         file_path (str): Path to the parquet file.
-        mode (str): Mode of operation ('train_parallel' or 'evaluation').
+        mode (str): Mode of operation ('train', 'train_parallel' or 'evaluation').
         max_len (int): Maximum length for padding or truncation.
         block_items (int): Block size in items for 'train_parallel' mode.
         stride_items (int): Sliding stride in items for 'train_parallel' mode.
@@ -25,7 +25,18 @@ def process_data(file_path, mode, max_len, PAD_TOKEN=0,
     # Important: Ensure 'history' is a list and 'target' is appended correctly
     data['sequence'] = data['history'].apply(lambda x: list(x)) + data['target'].apply(lambda x: [x])
 
-    if mode == 'train_parallel':
+    if mode == 'train':
+        # Sliding window processing
+        processed_data = []
+        for row in data.itertuples(index=False):
+            sequence = row.sequence
+            for i in range(1, len(sequence)):
+                processed_data.append({
+                    'history': sequence[:i],
+                    'target': sequence[i],
+                    'pre_item': sequence[i - 1],
+                })
+    elif mode == 'train_parallel':
         # Cut each user sequence into overlapping big blocks. Each block keeps
         # the whole item sequence so the causal model can predict every
         # next token in a single forward pass. The first `context_items` items
@@ -64,7 +75,7 @@ def process_data(file_path, mode, max_len, PAD_TOKEN=0,
                 'pre_item': history[-1] if history else sequence[-1],
             })
     else:
-        raise ValueError("Mode must be 'train_parallel' or 'evaluation'.")
+        raise ValueError("Mode must be 'train', 'train_parallel' or 'evaluation'.")
 
     # Apply padding or truncation (only for modes that use fixed-length history;
     # train_parallel keeps variable-length blocks and pads at the token level
@@ -133,7 +144,7 @@ class GenRecDataset(Dataset):
         Args:
             dataset_path (str): Path to the dataset file.
             code_path (str): Path to the item-to-code mapping file.
-            mode (str): Mode of operation ('train_parallel' or 'evaluation').
+            mode (str): Mode of operation ('train', 'train_parallel' or 'evaluation').
             max_len (int): Maximum length for padding or truncation.
             PAD_TOKEN (int, optional): Token used for padding. Defaults to 0.
             block_items (int): Block size in items for 'train_parallel' mode.
@@ -146,7 +157,9 @@ class GenRecDataset(Dataset):
         self.PAD_TOKEN = PAD_TOKEN
         self.block_items = block_items
         self.stride_items = stride_items
-        if align_item not in {'pre', 'next', 'near'}:
+        if align_item == 'pre':
+            align_item = 'current'
+        if align_item not in {'current', 'next', 'near'}:
             raise ValueError(f"Unsupported align_item: {align_item}")
         self.align_item = align_item
         # Load item-to-code mapping
@@ -170,11 +183,8 @@ class GenRecDataset(Dataset):
             # Convert each block's items into their 4-token codes. The block
             # stays as a list of per-item code arrays; flattening / label
             # shifting happens in the dataloader collate_fn. When item
-            # embeddings are provided (for the auxiliary alignment loss), also
-            # attach the per-item target embedding. In next-token parallel
-            # training the position that predicts item k is aligned with the
-            # embedding of item k itself (align_item='next'); with
-            # align_item='pre' it is aligned with the previous item (k-1).
+            # embeddings are provided (for the auxiliary alignment loss), keep
+            # each block item's own embedding. The model chooses current/next.
             for item in processed_data:
                 item_ids = list(item['block'])
                 item['block'] = [
@@ -183,11 +193,8 @@ class GenRecDataset(Dataset):
                 ]
                 if self.item_embeddings is not None:
                     block_item_emb = []
-                    for k, x in enumerate(item_ids):
-                        if self.align_item == 'pre':
-                            src = item_ids[k - 1] if k > 0 else x
-                        else:
-                            src = x
+                    for x in item_ids:
+                        src = x
                         src = int(src)
                         if src not in self.item_embeddings:
                             raise KeyError(
@@ -199,7 +206,7 @@ class GenRecDataset(Dataset):
         # Convert items to codes
         for item in processed_data:
             target_item = item['target']
-            align_item = item['pre_item'] if self.align_item == 'pre' else target_item
+            align_item = item['pre_item'] if self.align_item == 'current' else target_item
             item['history'] = [self.item_to_code.get(x, np.array([self.PAD_TOKEN]*4)) for x in item['history']]
             item['target'] = self.item_to_code.get(item['target'], np.array([self.PAD_TOKEN]*4))
             if self.item_embeddings is not None:

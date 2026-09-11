@@ -251,6 +251,15 @@ def compute_geometry_metrics_by_phase(
     flat_hidden = hidden_states.reshape(-1, hidden_states.size(-1))
     flat_phase = code_phase.reshape(-1)
     metrics = {}
+    if flat_hidden.size(0) != flat_phase.size(0):
+        cur = compute_single_geometry(flat_hidden)
+        for phase in range(1, code_per_item + 1):
+            metrics[f"effective_rank_token{phase}"] = cur["effective_rank"]
+            metrics[f"avg_cosine_token{phase}"] = cur["avg_cosine"]
+        metrics["effective_rank"] = cur["effective_rank"]
+        metrics["avg_cosine"] = cur["avg_cosine"]
+        return metrics
+
     ranks = []
     cosines = []
     for phase in range(1, code_per_item + 1):
@@ -283,27 +292,74 @@ def train(model, train_loader, optimizer, device):
         "avg_cosine_token4": 0.0,
     }
     for batch in train_loader:
-        input_ids = batch["input_ids"].to(device)
+        parallel = "labels" in batch
+        if parallel:
+            input_ids = batch["input_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            labels = batch["labels"].to(device)
+            target_item_emb = batch.get("block_item_emb")
+            target_item_emb = (
+                target_item_emb.to(device) if target_item_emb is not None else None
+            )
+            item_group = batch.get("item_group")
+            item_group = item_group.to(device) if item_group is not None else None
+            code_phase = batch.get("code_phase")
+            code_phase = code_phase.to(device) if code_phase is not None else None
+            optimizer.zero_grad()
+            loss, _ = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                target_item_emb=target_item_emb,
+                item_group=item_group,
+                code_phase=code_phase,
+                parallel=True,
+            )
+            loss.backward()
+            optimizer.step()
+
+            loss_dict = getattr(model, "last_loss_dict", None)
+            totals["total"] += loss.item()
+            totals["ce"] += (
+                loss_dict["ce"].item()
+                if loss_dict is not None and "ce" in loss_dict
+                else loss.item()
+            )
+            totals["align"] += (
+                loss_dict["align"].item()
+                if loss_dict is not None and "align" in loss_dict
+                else 0.0
+            )
+            hidden_states = getattr(model, "last_target_hidden_states", None)
+            if hidden_states is not None:
+                code_phase = batch["code_phase"].to(hidden_states.device)
+                geometry = compute_geometry_metrics_by_phase(
+                    hidden_states, code_phase
+                )
+                for key, value in geometry.items():
+                    totals[key] += value
+            continue
+
+        input_ids = batch["history"].to(device)
         attention_mask = batch["attention_mask"].to(device)
-        labels = batch["labels"].to(device)
-        target_item_emb = batch.get("block_item_emb")
+        labels = batch["target"].to(device)
+        target_item_emb = batch.get("target_item_emb")
         target_item_emb = (
             target_item_emb.to(device) if target_item_emb is not None else None
         )
-        item_group = batch.get("item_group")
-        item_group = item_group.to(device) if item_group is not None else None
-        code_phase = batch.get("code_phase")
-        code_phase = code_phase.to(device) if code_phase is not None else None
 
         optimizer.zero_grad()
-        loss, _ = model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels,
-            target_item_emb=target_item_emb,
-            item_group=item_group,
-            code_phase=code_phase,
-        )
+        if model.__class__.__name__ == "CausalTIGER":
+            loss, _ = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                target_item_emb=target_item_emb,
+            )
+        else:
+            loss, _ = model(
+                input_ids=input_ids, attention_mask=attention_mask, labels=labels
+            )
         loss.backward()
         optimizer.step()
 
@@ -321,8 +377,7 @@ def train(model, train_loader, optimizer, device):
         )
         hidden_states = getattr(model, "last_target_hidden_states", None)
         if hidden_states is not None:
-            code_phase = batch["code_phase"].to(hidden_states.device)
-            geometry = compute_geometry_metrics_by_phase(hidden_states, code_phase)
+            geometry = compute_geometry_metrics(hidden_states)
             for key, value in geometry.items():
                 totals[key] += value
     return {k: v / len(train_loader) for k, v in totals.items()}
@@ -370,6 +425,7 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
     model.eval()
     recalls = {"Recall@" + str(k): [] for k in topk_list}
     ndcgs = {"NDCG@" + str(k): [] for k in topk_list}
+    ce_losses = []
     sid_topks = [k for k in (5, 10) if k <= beam_size]
     sid_stats = {
         name: {k: [0.0, 0.0, 0.0, 0.0] for k in sid_topks}
@@ -383,6 +439,17 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
             labels = batch["target"].to(device)
 
             is_causal = model.__class__.__name__ == "CausalTIGER"
+            loss, _ = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+            )
+            loss_dict = getattr(model, "last_loss_dict", None)
+            ce_losses.append(
+                loss_dict["ce"].item()
+                if loss_dict is not None and "ce" in loss_dict
+                else loss.item()
+            )
             generate_kwargs = {
                 "input_ids": input_ids,
                 "attention_mask": attention_mask,
@@ -412,8 +479,9 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
                 # Calculate average recalls and ndcgs
     avg_recalls = {k: sum(v) / len(v) for k, v in recalls.items()}
     avg_ndcgs = {k: sum(v) / len(v) for k, v in ndcgs.items()}
+    avg_ce_loss = sum(ce_losses) / len(ce_losses)
     sid_hr = finalize_sid_hr_stats(sid_stats)
-    return avg_recalls, avg_ndcgs, sid_hr
+    return avg_recalls, avg_ndcgs, sid_hr, avg_ce_loss
 
 
 def set_seed(seed):
@@ -479,6 +547,12 @@ if __name__ == "__main__":
         "--num_layers", type=int, default=4, help="Number of layers in the model"
     )
     parser.add_argument(
+        "--hidden_layer",
+        type=int,
+        default=-1,
+        help="Layer hidden state used as model output; -1 keeps final output, positive is 1-based, negative counts from the end",
+    )
+    parser.add_argument(
         "--num_decoder_layers",
         type=int,
         default=4,
@@ -513,6 +587,15 @@ if __name__ == "__main__":
         type=int,
         default=20,
         help="Maximum length for padding or truncation",
+    )
+    parser.add_argument(
+        "--train_mode",
+        type=str,
+        default="sliding",
+        choices=["sliding", "parallel"],
+        help="Training data mode: 'sliding' expands one sample per position, "
+        "'parallel' feeds whole overlapping blocks with token-shifted labels "
+        "(causal model only)",
     )
     parser.add_argument(
         "--block_items",
@@ -557,8 +640,8 @@ if __name__ == "__main__":
         "--mse_loss_mode",
         type=str,
         default="token",
-        choices=["token", "mean", "near"],
-        help="Auxiliary MSE mode: per-token, mean-pooled, or shallow next-token hidden alignment",
+        choices=["token", "mean", "mean-bar", "pre-first"],
+        help="Auxiliary MSE mode: per-token, phase mean, base item hidden, or first pre-item hidden alignment",
     )
     parser.add_argument(
         "--align_loss_type",
@@ -571,15 +654,23 @@ if __name__ == "__main__":
         "--align_target",
         type=str,
         default="item",
-        choices=["item", "latent", "quantized", "codebook", "shallow"],
+        choices=[
+            "item",
+            "latent",
+            "quantized",
+            "codebook",
+            "shallow",
+            "vocab",
+            "only-hidden",
+        ],
         help="Auxiliary alignment target source",
     )
     parser.add_argument(
         "--align_item",
         type=str,
         default="next",
-        choices=["pre", "next", "near"],
-        help="Item embedding to align: previous history item or next target item",
+        choices=["current", "pre", "next", "near"],
+        help="Item embedding to align: current history item or next target item",
     )
     parser.add_argument(
         "--shallow_layer",
@@ -634,6 +725,12 @@ if __name__ == "__main__":
         "--early_stop", type=int, default=10, help="Early stopping patience"
     )
     parser.add_argument(
+        "--test_interval",
+        type=int,
+        default=-1,
+        help="Run test every N epochs during training; -1 means only final test",
+    )
+    parser.add_argument(
         "--topk_list",
         type=list,
         default=[5, 10, 20],
@@ -645,8 +742,18 @@ if __name__ == "__main__":
     config = vars(parser.parse_args())
     if config["item_emb_path"] in {"", "None"}:
         config["item_emb_path"] = None
-    # Causal v3 is fixed to item-level parallel training.
-    config["attention_window"] = config["max_len"]
+    if config["test_interval"] == 0 or config["test_interval"] < -1:
+        raise ValueError("test_interval must be -1 or a positive integer")
+    if config["hidden_layer"] != -1 and config["mse_loss_weight"] > 0:
+        config["align_target"] = "only-hidden"
+        config["item_emb_path"] = None
+        config["item_emb_dim"] = config["d_model"]
+    # Sliding-window attention span (in tokens) for parallel training: keep the
+    # visible history equal to max_len items (max_len x 4 codes). Full causal
+    # attention (None) otherwise.
+    config["attention_window"] = (
+        config["max_len"] * 4 if config["train_mode"] == "parallel" else None
+    )
         # Set up logging
     logging.basicConfig(
         filename=config["log_path"],
@@ -673,8 +780,8 @@ if __name__ == "__main__":
         model = CausalTIGER(config)
     else:
         model = TIGER(config)
-    if config["model_type"] != "causal":
-        raise ValueError("v3 training is fixed to model_type='causal'")
+    if config["train_mode"] == "parallel" and config["model_type"] != "causal":
+        raise ValueError("train_mode='parallel' is only supported for model_type='causal'")
     print(model.n_parameters)
     logging.info(model.n_parameters)
     # Check if the device is available
@@ -683,7 +790,7 @@ if __name__ == "__main__":
     train_dataset = GenRecDataset(
         dataset_path=config["dataset_path"] + "/train.parquet",
         code_path=config["code_path"],
-        mode="train_parallel",
+        mode="train_parallel" if config["train_mode"] == "parallel" else "train",
         max_len=config["max_len"],
         item_emb_path=(
             config["item_emb_path"] if config["mse_loss_weight"] > 0 else None
@@ -748,7 +855,7 @@ if __name__ == "__main__":
     if config["mode"] == "evaluation":
         logging.info(f"Loading model from {config['save_path']} for testing...")
         model.load_state_dict(torch.load(config["save_path"], map_location=device))
-        test_avg_recalls, test_avg_ndcgs, test_sid_hr = evaluate(
+        test_avg_recalls, test_avg_ndcgs, test_sid_hr, test_ce_loss = evaluate(
             model,
             test_dataloader,
             config["topk_list"],
@@ -759,9 +866,11 @@ if __name__ == "__main__":
         logging.info(f"Test Recalls: {test_avg_recalls}")
         logging.info(f"Test NDCGs: {test_avg_ndcgs}")
         logging.info(f"Test SID HRs: {test_sid_hr}")
+        logging.info(f"Test CE loss: {test_ce_loss}")
         print(f"Test Recalls: {test_avg_recalls}")
         print(f"Test NDCGs: {test_avg_ndcgs}")
         print(f"Test SID HRs: {test_sid_hr}")
+        print(f"Test CE loss: {test_ce_loss}")
         raise SystemExit
         # print(f"Train dataset size: {len(train_dataset)}")
         # print(f"Validation dataset size: {len(validation_dataset)}")
@@ -839,6 +948,32 @@ if __name__ == "__main__":
         writer.add_scalar("valid/loss_total", valid_losses["total"], epoch + 1)
         writer.add_scalar("valid/loss_ce", valid_losses["ce"], epoch + 1)
         writer.add_scalar("valid/loss_align", valid_losses["align"], epoch + 1)
+        if (
+            config["test_interval"] > 0
+            and (epoch + 1) % config["test_interval"] == 0
+        ):
+            test_avg_recalls, test_avg_ndcgs, test_sid_hr, test_ce_loss = evaluate(
+                model,
+                test_dataloader,
+                config["topk_list"],
+                config["beam_size"],
+                device,
+                trie=item_trie,
+            )
+            logging.info(f"Epoch {epoch + 1} Test Recalls: {test_avg_recalls}")
+            logging.info(f"Epoch {epoch + 1} Test NDCGs: {test_avg_ndcgs}")
+            logging.info(f"Epoch {epoch + 1} Test SID HRs: {test_sid_hr}")
+            logging.info(f"Epoch {epoch + 1} Test CE loss: {test_ce_loss}")
+            print(f"Epoch {epoch + 1} Test Recalls: {test_avg_recalls}")
+            print(f"Epoch {epoch + 1} Test NDCGs: {test_avg_ndcgs}")
+            print(f"Epoch {epoch + 1} Test SID HRs: {test_sid_hr}")
+            print(f"Epoch {epoch + 1} Test CE loss: {test_ce_loss}")
+            writer.add_scalar("test/loss_ce", test_ce_loss, epoch + 1)
+            for metric_name, metric_value in test_avg_recalls.items():
+                writer.add_scalar(f"test/{metric_name}", metric_value, epoch + 1)
+            for metric_name, metric_value in test_avg_ndcgs.items():
+                writer.add_scalar(f"test/{metric_name}", metric_value, epoch + 1)
+            model.train()
         if valid_loss < best_loss:
             best_loss = valid_loss
             best_epoch = epoch
@@ -861,7 +996,7 @@ if __name__ == "__main__":
     writer.close()
     logging.info("Loading best model for final testing...")
     model.load_state_dict(torch.load(config["save_path"], map_location=device))
-    test_avg_recalls, test_avg_ndcgs, test_sid_hr = evaluate(
+    test_avg_recalls, test_avg_ndcgs, test_sid_hr, test_ce_loss = evaluate(
         model,
         test_dataloader,
         config["topk_list"],
@@ -873,7 +1008,9 @@ if __name__ == "__main__":
     logging.info(f"Final Test Recalls: {test_avg_recalls}")
     logging.info(f"Final Test NDCGs: {test_avg_ndcgs}")
     logging.info(f"Final Test SID HRs: {test_sid_hr}")
+    logging.info(f"Final Test CE loss: {test_ce_loss}")
     print(f"Final Epoch: {best_epoch + 1}")
     print(f"Final Test Recalls: {test_avg_recalls}")
     print(f"Final Test NDCGs: {test_avg_ndcgs}")
     print(f"Final Test SID HRs: {test_sid_hr}")
+    print(f"Final Test CE loss: {test_ce_loss}")

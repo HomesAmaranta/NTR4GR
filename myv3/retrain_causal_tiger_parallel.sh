@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
-# Item-level parallel next-item training for CausalTIGER.
+# Parallel next-token training for CausalTIGER.
+# Each user sequence is cut into overlapping blocks of `block_items` items with
+# stride `stride_items` (overlap = block_items - stride_items):
+#   - length <= block_items : one block, every position supervised.
+#   - length >  block_items : multiple sliding blocks; in each non-first block
+#     the first `block_items - stride_items` items serve as history only
+#     (masked out of the loss).
+# `attention_window` is derived automatically as max_len x 4 tokens (parallel
+# mode only), keeping the visible history equal to max_len items.
 
 dataset=Beauty
-block_items=${1:-80}
-stride_items=${2:-60}
-batch_size=${3:-128}
-lr=${4:-2e-3}
+block_items=${1:-999}
+stride_items=${2:-999}
+batch_size=${3:-64}
+lr=${4:-1e-3}
 lm_head=${5:-mlp}
 mse_loss_weight=${6:-0}
 align_target=${7:-quantized}
@@ -16,10 +24,16 @@ seed=${11:-1}
 log_dir=${12:-}
 mse_loss_mode=${13:-mean}
 shallow_layer=${14:-1}
+test_interval=${15:--1}
+hidden_layer=${16:--1}
 early_stop_metric=ce
 
 dataset_path="../data/${dataset}"
 code_path="../data/${dataset}/${dataset}_t5_rqvae.npy"
+
+if [ "$hidden_layer" != "-1" ] && [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ]; then
+  align_target=only-hidden
+fi
 
 # Auxiliary alignment loss supports token-level or mean-pooled per-item hidden
 # states. Shallow uses the next item's shallow hidden states as targets.
@@ -40,27 +54,38 @@ case "$align_target" in
     item_emb_path="../data/${dataset}/item_emb_rqvae_codebook.parquet"
     item_emb_dim=32
     ;;
+  vocab)
+    item_emb_path=None
+    item_emb_dim=128
+    ;;
+  only-hidden)
+    item_emb_path=None
+    item_emb_dim=128
+    ;;
   shallow)
     item_emb_path=None
     item_emb_dim=128
     ;;
   *)
-    echo "Unknown align_target: ${align_target}. Use item, latent, quantized, codebook, or shallow." >&2
+    echo "Unknown align_target: ${align_target}. Use item, latent, quantized, codebook, vocab, shallow, or only-hidden." >&2
     exit 1
     ;;
 esac
 if [ -z "$align_item" ]; then
-  if [ "$align_target" = "shallow" ]; then
+  if [ "$align_target" = "shallow" ] || [ "$align_target" = "vocab" ]; then
     align_item=next
   else
-    align_item=pre
+    align_item=current
   fi
 fi
+if [ "$align_item" = "pre" ]; then
+  align_item=current
+fi
 case "$align_item" in
-  pre|next|near)
+  current|next|near)
     ;;
   *)
-    echo "Unknown align_item: ${align_item}. Use pre, next, or near." >&2
+    echo "Unknown align_item: ${align_item}. Use current, next, or near." >&2
     exit 1
     ;;
 esac
@@ -68,11 +93,15 @@ if [ "$align_item" = "near" ] && [ "$align_target" != "shallow" ]; then
   echo "align_item=near is only supported when align_target=shallow." >&2
   exit 1
 fi
+if [ "$align_target" = "vocab" ] && [ "$align_item" != "next" ]; then
+  echo "align_target=vocab only supports align_item=next." >&2
+  exit 1
+fi
 case "$mse_loss_mode" in
-  mean|token)
+  mean|mean-bar|token|pre-first)
     ;;
   *)
-    echo "Unknown mse_loss_mode: ${mse_loss_mode}. Use mean or token." >&2
+    echo "Unknown mse_loss_mode: ${mse_loss_mode}. Use mean, mean-bar, token, or pre-first." >&2
     exit 1
     ;;
 esac
@@ -83,6 +112,8 @@ align_suffix=""
 if [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ]; then
   if [ "$align_target" = "shallow" ]; then
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_shallowL${shallow_layer}_${align_item}"
+  elif [ "$align_target" = "only-hidden" ]; then
+    align_suffix="_${align_loss_type}${mse_loss_weight}_only-hidden_${align_item}"
   else
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}"
   fi
@@ -92,7 +123,12 @@ if [ -n "$name_suffix" ]; then
   name_suffix="_${name_suffix}"
 fi
 
-file_stem="causal_tiger_${dataset}_parallel_b${block_items}_s${stride_items}_bs${batch_size}_lr${lr}_head${lm_head}${align_suffix}_seed${seed}${name_suffix}"
+hidden_suffix=""
+if [ "$hidden_layer" != "-1" ]; then
+  hidden_suffix="_hiddenL${hidden_layer}"
+fi
+
+file_stem="causal_tiger_${dataset}_parallel_b${block_items}_s${stride_items}_bs${batch_size}_lr${lr}_head${lm_head}${align_suffix}${hidden_suffix}_seed${seed}${name_suffix}"
 log_dir_path="./logs"
 if [ -n "$log_dir" ]; then
   log_dir_path="${log_dir_path}/${log_dir}"
@@ -102,9 +138,10 @@ save_path="./ckpt/${file_stem}.pth"
 log_path="${log_dir_path}/${file_stem}.log"
 
 mkdir -p ./ckpt "$log_dir_path"
-cd /mlx_devbox/users/fengyuebo/playground/TIGER/v3
+cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3
 /usr/bin/python main.py \
   --model_type causal \
+  --train_mode parallel \
   --block_items $block_items \
   --stride_items $stride_items \
   --dataset_path $dataset_path \
@@ -117,12 +154,13 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/v3
   --align_target $align_target \
   --align_item $align_item \
   --shallow_layer $shallow_layer \
+  --hidden_layer $hidden_layer \
   --early_stop_metric $early_stop_metric \
   --save_path $save_path \
   --log_path $log_path \
   --batch_size $batch_size \
   --infer_size 96 \
-  --num_epochs 70 \
+  --num_epochs 120 \
   --max_len 20 \
   --num_layers 4 \
   --num_decoder_layers 0 \
@@ -137,6 +175,7 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/v3
   --feed_forward_proj relu \
   --lm_head $lm_head \
   --lr $lr \
-  --early_stop 90 \
+  --early_stop 10 \
+  --test_interval $test_interval \
   --beam_size 20 \
   --seed $seed

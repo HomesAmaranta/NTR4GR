@@ -292,50 +292,68 @@ class CausalTIGER(nn.Module):
         self.align_loss_type = config.get("align_loss_type", "mse")
         self.align_target = config.get("align_target", "item")
         self.align_item = config.get("align_item", "next")
-        if self.align_target in {"shallow", "vocab"} and self.item_emb_dim <= 0:
+        self.code_per_item = 4
+        self.hidden_layer = config.get("hidden_layer", -1)
+        if self.hidden_layer != -1 and self.mse_loss_weight > 0:
+            self.align_target = "only-hidden"
+        if self.align_target in {"shallow", "vocab", "only-hidden"} and self.item_emb_dim <= 0:
             self.item_emb_dim = self.d_model
         self.shallow_layer = config.get("shallow_layer", 1)
         self.lm_head_type = config.get("lm_head", "emb")
-        if self.mse_loss_mode not in {"token", "mean", "pre-first"}:
-            raise ValueError("mse_loss_mode must be 'token', 'mean' or 'pre-first'")
-        if self.align_item not in {"pre", "next", "near"}:
-            raise ValueError("align_item must be 'pre', 'next' or 'near'")
+        if self.mse_loss_mode not in {"token", "mean", "mean-bar", "pre-first"}:
+            raise ValueError(
+                "mse_loss_mode must be 'token', 'mean', 'mean-bar' or 'pre-first'"
+            )
+        if self.mse_loss_mode == "mean-bar" and self.align_target != "shallow":
+            raise ValueError("mse_loss_mode='mean-bar' only supports shallow align")
+        if self.align_item == "pre":
+            self.align_item = "current"
+        if self.align_item not in {"current", "next", "near"}:
+            raise ValueError("align_item must be 'current', 'next' or 'near'")
         if self.align_item == "near" and self.align_target != "shallow":
             raise ValueError("align_item='near' is only supported for shallow align")
         if self.align_target == "vocab" and self.align_item != "next":
             raise ValueError("align_target='vocab' requires align_item='next'")
+        if self.align_target == "only-hidden" and self.align_item == "near":
+            raise ValueError("align_target='only-hidden' supports current/next only")
         if self.mse_loss_mode == "pre-first" and self.align_item != "pre":
             raise ValueError("mse_loss_mode='pre-first' requires align_item='pre'")
         if self.align_loss_type not in {"mse", "cos"}:
             raise ValueError("align_loss_type must be 'mse' or 'cos'")
-        if self.lm_head_type not in {"emb", "linear", "mlp", "mlp-emb"}:
-            raise ValueError("lm_head must be 'emb', 'linear', 'mlp' or 'mlp-emb'")
+        if self.lm_head_type not in {"emb", "mlp"}:
+            raise ValueError("lm_head must be 'emb' or 'mlp'")
         if self.shallow_layer < 1 or self.shallow_layer > config["num_layers"]:
             raise ValueError(f"shallow_layer must be in [1, {config['num_layers']}]")
+        self.selected_hidden_layer = self._resolve_hidden_layer(
+            self.hidden_layer,
+            config["num_layers"],
+        )
         self.dropout = nn.Dropout(config["dropout_rate"])
         # Sliding-window attention span in tokens (None = full causal). Used by
         # the parallel training mode to keep the visible history bounded.
         self.attention_window = config.get("attention_window", None)
         self.shared = nn.Embedding(config["vocab_size"], config["d_model"])
-        # For 'mlp-emb', hidden states pass through a dimension-preserving MLP
-        # before being multiplied with the (tied) embedding table, like 'emb'.
-        self.lm_head_mlp = None
-        if self.lm_head_type == "linear":
-            self.lm_head = nn.Linear(config["d_model"], config["vocab_size"], bias=False)
-        elif self.lm_head_type == "mlp":
-            self.lm_head = nn.Sequential(
-                nn.Linear(config["d_model"], config["d_model"]),
-                nn.GELU(),
-                nn.Linear(config["d_model"], config["vocab_size"], bias=False),
+        self.sid_token_proj = nn.Linear(config["d_model"], config["d_model"], bias=False)
+        if self.lm_head_type == "mlp":
+            self.lm_head = nn.ModuleList(
+                [
+                    nn.Sequential(
+                        nn.Linear(config["d_model"], config["d_model"]),
+                        nn.GELU(),
+                        nn.Linear(config["d_model"], config["vocab_size"], bias=False),
+                    )
+                    for _ in range(self.code_per_item)
+                ]
             )
+            self.item_output_mlp = None
         else:
             self.lm_head = None
-            if self.lm_head_type == "mlp-emb":
-                self.lm_head_mlp = nn.Sequential(
-                    nn.Linear(config["d_model"], config["d_model"]),
-                    nn.GELU(),
-                    nn.Linear(config["d_model"], config["d_model"]),
-                )
+            item_output_dim = self.code_per_item * config["d_model"]
+            self.item_output_mlp = nn.Sequential(
+                nn.Linear(item_output_dim, item_output_dim),
+                nn.GELU(),
+                nn.Linear(item_output_dim, item_output_dim),
+            )
         self.hidden_to_item_emb = (
             nn.Sequential(
                 nn.Linear(config["d_model"], config["d_model"]),
@@ -395,35 +413,332 @@ class CausalTIGER(nn.Module):
     def get_input_embeddings(self) -> nn.Embedding:
         return self.shared
 
+    def _resolve_hidden_layer(self, hidden_layer: int, num_layers: int) -> Optional[int]:
+        if hidden_layer == -1:
+            return None
+        if hidden_layer == 0:
+            raise ValueError("hidden_layer must be -1, a negative layer index, or a 1-based layer index")
+        if hidden_layer > 0:
+            resolved = hidden_layer
+        else:
+            resolved = num_layers + hidden_layer + 1
+        if resolved < 1 or resolved > num_layers:
+            raise ValueError(
+                f"hidden_layer={hidden_layer} resolves to {resolved}, "
+                f"but must be within [1, {num_layers}]"
+            )
+        return resolved
+
     def _encode_tokens(
         self,
         token_ids: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
         return_shallow_layer: Optional[int] = None,
     ) -> torch.Tensor:
-        hidden_states = self.dropout(self.shared(token_ids))
+        batch_size, seq_len = token_ids.shape
+        code_per_item = self.code_per_item
+        if seq_len % code_per_item != 0:
+            print(
+                "CausalTIGER _encode_tokens invalid sequence length: "
+                f"batch_size={batch_size}, seq_len={seq_len}, "
+                f"code_per_item={code_per_item}"
+            )
+            if attention_mask is not None:
+                print(
+                    "CausalTIGER _encode_tokens attention lengths: "
+                    f"{attention_mask.sum(dim=1).detach().cpu().tolist()}"
+                )
+            raise ValueError("token sequence length must be divisible by 4")
+        item_len = seq_len // code_per_item
+        token_embeds = self.shared(token_ids).view(
+            batch_size,
+            item_len,
+            code_per_item,
+            self.d_model,
+        )
+        hidden_states = self.dropout(token_embeds.mean(dim=2))
+        if attention_mask is not None:
+            attention_mask = attention_mask.view(batch_size, item_len, code_per_item)
+            item_attention_mask = attention_mask[:, :, 0]
+            if not torch.equal(
+                attention_mask,
+                item_attention_mask.unsqueeze(-1).expand_as(attention_mask),
+            ):
+                raise ValueError("attention_mask must be identical within each 4-token item")
+            attention_mask = item_attention_mask
         shallow_states = None
+        selected_hidden_states = None
         for layer_idx, block in enumerate(self.context_blocks, start=1):
             hidden_states = block(hidden_states, attention_mask)
             if return_shallow_layer == layer_idx:
                 shallow_states = hidden_states
+            if self.selected_hidden_layer == layer_idx:
+                selected_hidden_states = hidden_states
+        if selected_hidden_states is not None:
+            hidden_states = selected_hidden_states
         hidden_states = self.dropout(self.context_final_layer_norm(hidden_states))
-        for block in self.decoder_blocks:
-            hidden_states = block(hidden_states, attention_mask)
-            hidden_states = self.dropout(self.decoder_final_layer_norm(hidden_states))
+        if selected_hidden_states is None:
+            for block in self.decoder_blocks:
+                hidden_states = block(hidden_states, attention_mask)
+                hidden_states = self.dropout(self.decoder_final_layer_norm(hidden_states))
         if return_shallow_layer is not None:
             if shallow_states is None:
                 raise ValueError(f"Unsupported shallow_layer: {return_shallow_layer}")
             return hidden_states, shallow_states
         return hidden_states
 
-    def _lm_logits(self, hidden_states: torch.Tensor) -> torch.Tensor:
+    def _lm_logits(
+        self,
+        hidden_states: torch.Tensor,
+        labels: Optional[torch.Tensor] = None,
+        return_phase_hidden: bool = False,
+    ) -> torch.Tensor:
+        batch_size, item_len, _ = hidden_states.shape
+        phase_hidden_states = None
         if self.lm_head is not None:
-            return self.lm_head(hidden_states)
-        if self.lm_head_mlp is not None:
-            hidden_states = self.lm_head_mlp(hidden_states)
+            if labels is None:
+                phase_hidden = hidden_states
+                phase_logits = []
+                phase_hiddens = []
+                for phase_idx, head in enumerate(self.lm_head):
+                    phase_hiddens.append(phase_hidden)
+                    logits = head(phase_hidden)
+                    phase_logits.append(logits)
+                    if phase_idx + 1 < self.code_per_item:
+                        phase_hidden = phase_hidden + self.sid_token_proj(
+                            self.shared(logits.argmax(dim=-1))
+                        )
+                logits = torch.stack(phase_logits, dim=2)
+                phase_hidden_states = torch.stack(phase_hiddens, dim=2)
+            else:
+                if labels.size(1) != item_len * self.code_per_item:
+                    raise ValueError("labels length must match item_len * 4")
+                label_groups = labels.view(batch_size, item_len, self.code_per_item)
+                label_groups = label_groups.masked_fill(label_groups == -100, self.pad_token_id)
+
+                s1_logits = self.lm_head[0](hidden_states)
+                s1_phase_hidden = hidden_states
+                s1_hidden = hidden_states + self.sid_token_proj(
+                    self.shared(label_groups[:, :, 0])
+                )
+                s2_logits = self.lm_head[1](s1_hidden)
+                s2_phase_hidden = s1_hidden
+                s2_hidden = s1_hidden + self.sid_token_proj(
+                    self.shared(label_groups[:, :, 1])
+                )
+                s3_logits = self.lm_head[2](s2_hidden)
+                s3_phase_hidden = s2_hidden
+                s3_hidden = s2_hidden + self.sid_token_proj(
+                    self.shared(label_groups[:, :, 2])
+                )
+                s4_logits = self.lm_head[3](s3_hidden)
+                s4_phase_hidden = s3_hidden
+
+                logits = torch.stack(
+                    [s1_logits, s2_logits, s3_logits, s4_logits],
+                    dim=2,
+                )
+                phase_hidden_states = torch.stack(
+                    [
+                        s1_phase_hidden,
+                        s2_phase_hidden,
+                        s3_phase_hidden,
+                        s4_phase_hidden,
+                    ],
+                    dim=2,
+                )
+            logits = logits.view(
+                batch_size, item_len * self.code_per_item, self.vocab_size
+            )
+            if return_phase_hidden:
+                return logits, phase_hidden_states
+            return logits
+        hidden_states = hidden_states.unsqueeze(2).expand(
+            batch_size,
+            item_len,
+            self.code_per_item,
+            self.d_model,
+        )
+        hidden_states = self.item_output_mlp(
+            hidden_states.reshape(batch_size, item_len, self.code_per_item * self.d_model)
+        ).view(batch_size, item_len, self.code_per_item, self.d_model)
         hidden_states = hidden_states * (self.d_model**-0.5)
-        return torch.matmul(hidden_states, self.shared.weight.transpose(0, 1))
+        logits = torch.matmul(hidden_states, self.shared.weight.transpose(0, 1))
+        logits = logits.view(batch_size, item_len * self.code_per_item, self.vocab_size)
+        if return_phase_hidden:
+            return logits, hidden_states
+        return logits
+
+    def _align_loss_from_hidden(
+        self,
+        pred_emb: torch.Tensor,
+        target_emb: torch.Tensor,
+    ) -> torch.Tensor:
+        target_emb = target_emb.to(pred_emb.dtype)
+        if self.align_loss_type == "cos":
+            return 1.0 - F.cosine_similarity(pred_emb, target_emb, dim=-1).mean()
+        return F.mse_loss(pred_emb, target_emb, reduction="mean")
+
+    def _only_hidden_align_loss(
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        if self.hidden_to_item_emb is None:
+            return hidden_states.new_zeros(())
+        batch_size, item_len, _ = hidden_states.shape
+        if attention_mask is None:
+            valid_item = torch.ones(
+                (batch_size, item_len),
+                dtype=torch.bool,
+                device=hidden_states.device,
+            )
+        else:
+            if attention_mask.size(1) == item_len * self.code_per_item:
+                valid_item = attention_mask.view(
+                    batch_size,
+                    item_len,
+                    self.code_per_item,
+                )[:, :, 0].bool()
+            elif attention_mask.size(1) == item_len:
+                valid_item = attention_mask.bool()
+            else:
+                raise ValueError("attention_mask length does not match hidden_states")
+        if self.align_item == "next":
+            if item_len <= 1:
+                return hidden_states.new_zeros(())
+            pred_hidden = hidden_states[:, :-1]
+            target_hidden = hidden_states[:, 1:].detach()
+            valid_item = valid_item[:, :-1] & valid_item[:, 1:]
+        else:
+            pred_hidden = hidden_states
+            target_hidden = hidden_states.detach()
+        if not valid_item.any():
+            return hidden_states.new_zeros(())
+        pred_emb = self.hidden_to_item_emb(pred_hidden[valid_item])
+        return self._align_loss_from_hidden(pred_emb, target_hidden[valid_item])
+
+    def _item_level_align_loss(
+        self,
+        phase_hidden_states: torch.Tensor,
+        target_item_emb: torch.Tensor,
+        item_group: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        if self.align_target not in {"item", "latent", "quantized", "codebook", "shallow"}:
+            raise ValueError(
+                "item-level align only supports item/latent/quantized/codebook/shallow"
+            )
+        if self.mse_loss_mode not in {"token", "mean", "mean-bar"}:
+            raise ValueError(
+                "item-level align only supports token, mean or mean-bar mode"
+            )
+        if self.mse_loss_mode == "mean-bar" and self.align_target != "shallow":
+            raise ValueError("mean-bar align only supports shallow target")
+
+        batch_size, item_len, _, _ = phase_hidden_states.shape
+        if item_group is None:
+            if self.align_target == "codebook":
+                if target_item_emb.dim() == 3:
+                    target_item_emb = target_item_emb.unsqueeze(1)
+            else:
+                if target_item_emb.dim() == 2:
+                    target_item_emb = target_item_emb.unsqueeze(1)
+                elif target_item_emb.dim() == 3 and target_item_emb.size(1) != item_len:
+                    target_item_emb = target_item_emb.mean(dim=1).unsqueeze(1)
+            valid_item = phase_hidden_states.new_ones(
+                (batch_size, target_item_emb.size(1)), dtype=torch.bool
+            )
+            item_hidden = phase_hidden_states[:, : target_item_emb.size(1)]
+            item_target = target_item_emb
+        else:
+            group_by_item = item_group.view(batch_size, item_len, self.code_per_item)[
+                :, :, 0
+            ]
+            target_group = group_by_item if self.align_item == "next" else group_by_item - 1
+            max_items = target_item_emb.size(1)
+            valid_item = (target_group >= 0) & (target_group < max_items)
+            safe_group = target_group.clamp(0, max_items - 1)
+            batch_idx = torch.arange(
+                batch_size, device=phase_hidden_states.device
+            ).unsqueeze(1)
+            item_hidden = phase_hidden_states
+            item_target = target_item_emb[batch_idx, safe_group]
+
+        if self.align_target == "codebook":
+            phase_hidden = item_hidden[:, :, :3]
+            phase_target = item_target[:, :, :3]
+            valid_phase = valid_item.unsqueeze(-1) & phase_target.abs().sum(dim=-1).gt(0)
+        else:
+            phase_hidden = item_hidden
+            phase_target = item_target.unsqueeze(2).expand(
+                -1, -1, self.code_per_item, -1
+            )
+            valid_phase = valid_item.unsqueeze(-1).expand(
+                -1, -1, self.code_per_item
+            )
+
+        if self.mse_loss_mode == "token":
+            if not valid_phase.any():
+                print(
+                    "CausalTIGER align warning: no valid token phases "
+                    f"target={self.align_target}, item={self.align_item}, "
+                    f"phase_hidden_shape={tuple(phase_hidden.shape)}, "
+                    f"phase_target_shape={tuple(phase_target.shape)}"
+                )
+                return phase_hidden_states.new_zeros(())
+            pred_emb = self.hidden_to_item_emb(phase_hidden[valid_phase])
+            return self._align_loss_from_hidden(pred_emb, phase_target[valid_phase])
+
+        if not valid_item.any():
+            return phase_hidden_states.new_zeros(())
+        if self.mse_loss_mode == "mean-bar":
+            pooled_hidden = phase_hidden[:, :, 0]
+            pooled_target = item_target
+        elif self.align_target == "codebook":
+            counts = valid_phase.to(phase_hidden.dtype).sum(dim=2).clamp_min(1.0)
+            pooled_hidden = (
+                phase_hidden * valid_phase.unsqueeze(-1).to(phase_hidden.dtype)
+            ).sum(dim=2) / counts.unsqueeze(-1)
+            pooled_target = (
+                phase_target * valid_phase.unsqueeze(-1).to(phase_target.dtype)
+            ).sum(dim=2) / counts.unsqueeze(-1)
+        else:
+            pooled_hidden = phase_hidden.mean(dim=2)
+            pooled_target = item_target
+        pred_emb = self.hidden_to_item_emb(pooled_hidden[valid_item])
+        return self._align_loss_from_hidden(pred_emb, pooled_target[valid_item])
+
+    def _shallow_align_targets(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        batch_size = input_ids.size(0)
+        if self.align_item == "next":
+            pad_item = input_ids.new_full(
+                (batch_size, self.code_per_item),
+                self.pad_token_id,
+            )
+            pad_attention = torch.ones(
+                (batch_size, self.code_per_item),
+                dtype=attention_mask.dtype,
+                device=attention_mask.device,
+            )
+            shallow_input_ids = torch.cat([input_ids, pad_item], dim=1)
+            shallow_attention_mask = torch.cat([attention_mask, pad_attention], dim=1)
+            _, shallow_states = self._encode_tokens(
+                shallow_input_ids,
+                shallow_attention_mask,
+                return_shallow_layer=self.shallow_layer,
+            )
+            return shallow_states[:, 1:].detach()
+
+        _, shallow_states = self._encode_tokens(
+            input_ids,
+            attention_mask,
+            return_shallow_layer=self.shallow_layer,
+        )
+        return shallow_states.detach()
 
     def _parallel_align_loss(
         self,
@@ -718,23 +1033,11 @@ class CausalTIGER(nn.Module):
             # supervised position at once.
             if attention_mask is None:
                 attention_mask = torch.ones_like(input_ids)
-            shallow_states = None
-            full_attention_mask = None
-            if self.align_target == "shallow" and self.mse_loss_weight > 0:
-                last_labels = labels[:, -1:].clamp_min(0)
-                full_input_ids = torch.cat([input_ids, last_labels], dim=1)
-                last_attention = (labels[:, -1:] != -100).to(attention_mask.dtype)
-                full_attention_mask = torch.cat([attention_mask, last_attention], dim=1)
-                full_hidden_states, shallow_states = self._encode_tokens(
-                    full_input_ids,
-                    full_attention_mask,
-                    return_shallow_layer=self.shallow_layer,
-                )
-                hidden_states = full_hidden_states[:, :-1]
-            else:
-                hidden_states = self._encode_tokens(input_ids, attention_mask)
+            hidden_states = self._encode_tokens(input_ids, attention_mask)
             self.last_target_hidden_states = hidden_states.detach()
-            logits = self._lm_logits(hidden_states)
+            logits, phase_hidden_states = self._lm_logits(
+                hidden_states, labels, return_phase_hidden=True
+            )
             ce_loss = F.cross_entropy(
                 logits.reshape(-1, logits.size(-1)),
                 labels.reshape(-1),
@@ -744,29 +1047,33 @@ class CausalTIGER(nn.Module):
                 (), dtype=ce_loss.dtype, device=ce_loss.device
             )
             if (
-                self.align_target == "shallow"
-                and item_group is not None
-                and code_phase is not None
-                and shallow_states is not None
-                and full_attention_mask is not None
+                self.align_target == "only-hidden"
                 and self.hidden_to_item_emb is not None
                 and self.mse_loss_weight > 0
             ):
-                align_loss = self._parallel_shallow_align_loss(
-                    hidden_states,
-                    shallow_states,
-                    item_group,
-                    code_phase,
-                    full_attention_mask,
+                align_loss = self._only_hidden_align_loss(hidden_states, attention_mask)
+            elif (
+                self.align_target == "shallow"
+                and self.hidden_to_item_emb is not None
+                and self.mse_loss_weight > 0
+            ):
+                shallow_targets = self._shallow_align_targets(input_ids, attention_mask)
+                align_loss = self._item_level_align_loss(
+                    phase_hidden_states,
+                    shallow_targets,
+                    item_group=None,
                 )
             elif (
-                (target_item_emb is not None or self.align_target == "vocab")
+                target_item_emb is not None
+                and self.align_target in {"item", "latent", "quantized", "codebook"}
                 and item_group is not None
                 and self.hidden_to_item_emb is not None
                 and self.mse_loss_weight > 0
             ):
-                align_loss = self._parallel_align_loss(
-                    hidden_states, target_item_emb, item_group, code_phase, labels
+                align_loss = self._item_level_align_loss(
+                    phase_hidden_states,
+                    target_item_emb,
+                    item_group,
                 )
             loss = ce_loss + self.mse_loss_weight * align_loss
             self.last_loss_dict = {
@@ -777,20 +1084,15 @@ class CausalTIGER(nn.Module):
             return loss, logits
 
 
-        decoder_input_ids = labels[:, :-1]
-        model_input_ids = torch.cat([input_ids, decoder_input_ids], dim=1)
-
         if attention_mask is None:
             attention_mask = torch.ones_like(input_ids)
-        decoder_attention_mask = torch.ones_like(decoder_input_ids)
-        model_attention_mask = torch.cat(
-            [attention_mask, decoder_attention_mask], dim=1
-        )
 
-        hidden_states = self._encode_tokens(model_input_ids, model_attention_mask)
-        target_hidden_states = hidden_states[:, -labels.size(1) :, :]
+        hidden_states = self._encode_tokens(input_ids, attention_mask)
+        target_hidden_states = hidden_states[:, -1:, :]
         self.last_target_hidden_states = target_hidden_states.detach()
-        logits = self._lm_logits(target_hidden_states)
+        logits, phase_hidden_states = self._lm_logits(
+            target_hidden_states, labels, return_phase_hidden=True
+        )
         ce_loss = F.cross_entropy(
             logits.reshape(-1, logits.size(-1)),
             labels.reshape(-1),
@@ -798,133 +1100,33 @@ class CausalTIGER(nn.Module):
         )
         mse_loss = torch.zeros((), dtype=ce_loss.dtype, device=ce_loss.device)
         if (
-            (
-                target_item_emb is not None
-                or self.align_target in {"shallow", "vocab"}
-            )
+            self.align_target == "only-hidden"
             and self.hidden_to_item_emb is not None
             and self.mse_loss_weight > 0
         ):
-            if self.align_target == "shallow":
-                shallow_input_ids = torch.cat([input_ids, labels], dim=1)
-                shallow_attention_mask = torch.cat(
-                    [attention_mask, torch.ones_like(labels)],
-                    dim=1,
-                )
-                max_shallow_len = input_ids.size(1)
-                if shallow_input_ids.size(1) > max_shallow_len:
-                    shallow_input_ids = shallow_input_ids[:, -max_shallow_len:]
-                    shallow_attention_mask = shallow_attention_mask[
-                        :, -max_shallow_len:
-                    ]
-                _, shallow_states = self._encode_tokens(
-                    shallow_input_ids,
-                    shallow_attention_mask,
-                    return_shallow_layer=self.shallow_layer,
-                )
-                target_item_emb = shallow_states[:, -labels.size(1) :, :].detach()
-
-            if self.mse_loss_mode == "mean":
-                if self.align_target == "codebook":
-                    valid_codebook = (
-                        target_item_emb.abs()
-                        .sum(dim=-1)
-                        .gt(0)
-                        .to(target_hidden_states.dtype)
-                    )
-                    denom = valid_codebook.sum(dim=1, keepdim=True).clamp_min(1.0)
-                    pooled_hidden = (
-                        target_hidden_states * valid_codebook.unsqueeze(-1)
-                    ).sum(dim=1) / denom
-                    target_emb = (target_item_emb * valid_codebook.unsqueeze(-1)).sum(
-                        dim=1
-                    ) / denom
-                    target_emb = target_emb.to(pooled_hidden.dtype)
-                elif self.align_target == "vocab":
-                    valid_vocab = labels != -100
-                    denom = valid_vocab.sum(dim=1, keepdim=True).clamp_min(1)
-                    vocab_emb = self.shared(labels.clamp_min(0)).detach()
-                    pooled_hidden = (
-                        target_hidden_states * valid_vocab.unsqueeze(-1)
-                    ).sum(dim=1) / denom
-                    target_emb = (
-                        vocab_emb * valid_vocab.unsqueeze(-1)
-                    ).sum(dim=1) / denom
-                    target_emb = target_emb.to(pooled_hidden.dtype)
-                else:
-                    pooled_hidden = target_hidden_states.mean(dim=1)
-                    target_emb = target_item_emb.mean(dim=1).to(pooled_hidden.dtype)
-                pred_item_emb = self.hidden_to_item_emb(pooled_hidden)
-                if self.align_loss_type == "cos":
-                    align_loss = (
-                        1.0
-                        - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
-                    )
-                else:
-                    align_loss = F.mse_loss(pred_item_emb, target_emb, reduction="mean")
-            elif self.mse_loss_mode == "pre-first":
-                first_hidden = target_hidden_states[:, 0, :]
-                pred_item_emb = self.hidden_to_item_emb(first_hidden)
-                if target_item_emb.dim() == 3:
-                    target_emb = target_item_emb[:, 0, :].to(pred_item_emb.dtype)
-                else:
-                    target_emb = target_item_emb.to(pred_item_emb.dtype)
-                if self.align_loss_type == "cos":
-                    align_loss = (
-                        1.0
-                        - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
-                    )
-                else:
-                    align_loss = F.mse_loss(pred_item_emb, target_emb, reduction="mean")
-            else:
-                pred_item_emb = self.hidden_to_item_emb(target_hidden_states)
-                if self.align_target == "vocab":
-                    valid_vocab = labels != -100
-                    target_emb = self.shared(labels.clamp_min(0)).detach().to(
-                        pred_item_emb.dtype
-                    )
-                    if self.align_loss_type == "cos":
-                        token_loss = 1.0 - F.cosine_similarity(
-                            pred_item_emb, target_emb, dim=-1
-                        )
-                    else:
-                        token_loss = F.mse_loss(
-                            pred_item_emb, target_emb, reduction="none"
-                        ).mean(dim=-1)
-                    align_loss = (
-                        token_loss[valid_vocab].mean()
-                        if valid_vocab.any()
-                        else mse_loss
-                    )
-                elif self.align_target == "codebook":
-                    target_emb = target_item_emb.to(pred_item_emb.dtype)
-                    valid_codebook = target_item_emb.abs().sum(dim=-1).gt(0)
-                    if self.align_loss_type == "cos":
-                        token_loss = 1.0 - F.cosine_similarity(
-                            pred_item_emb, target_emb, dim=-1
-                        )
-                    else:
-                        token_loss = F.mse_loss(
-                            pred_item_emb, target_emb, reduction="none"
-                        ).mean(dim=-1)
-                    align_loss = (
-                        token_loss[valid_codebook].mean()
-                        if valid_codebook.any()
-                        else mse_loss
-                    )
-                else:
-                    target_emb = target_item_emb.to(pred_item_emb.dtype)
-                    if self.align_loss_type == "cos":
-                        align_loss = (
-                            1.0
-                            - F.cosine_similarity(
-                                pred_item_emb, target_emb, dim=-1
-                            ).mean()
-                        )
-                    else:
-                        align_loss = F.mse_loss(
-                            pred_item_emb, target_emb, reduction="mean"
-                        )
+            align_loss = self._only_hidden_align_loss(hidden_states, attention_mask)
+        elif (
+            self.align_target == "shallow"
+            and self.hidden_to_item_emb is not None
+            and self.mse_loss_weight > 0
+        ):
+            shallow_targets = self._shallow_align_targets(input_ids, attention_mask)[:, -1:]
+            align_loss = self._item_level_align_loss(
+                phase_hidden_states,
+                shallow_targets,
+                item_group=None,
+            )
+        elif (
+            target_item_emb is not None
+            and self.align_target in {"item", "latent", "quantized", "codebook"}
+            and self.hidden_to_item_emb is not None
+            and self.mse_loss_weight > 0
+        ):
+            align_loss = self._item_level_align_loss(
+                phase_hidden_states,
+                target_item_emb,
+                item_group=None,
+            )
         else:
             align_loss = mse_loss
         loss = ce_loss + self.mse_loss_weight * align_loss
@@ -953,12 +1155,16 @@ class CausalTIGER(nn.Module):
         self,
         input_ids: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
-        max_length: int = 5,
+        max_length: int = 4,
         num_beams: int = 20,
         num_return_sequences: Optional[int] = None,
         prefix_allowed_tokens_fn: Optional[Callable[[int, torch.Tensor], Any]] = None,
         **kwargs,
     ) -> torch.Tensor:
+        if self.lm_head is None:
+            raise ValueError("autoregressive generate requires lm_head='mlp'")
+        if max_length != self.code_per_item:
+            raise ValueError("max_length must be 4 for item-level SID generation")
         if num_return_sequences is None:
             num_return_sequences = num_beams
         if num_return_sequences > num_beams:
@@ -967,12 +1173,8 @@ class CausalTIGER(nn.Module):
         batch_size = input_ids.size(0)
         vocab_size = self.vocab_size
         device = input_ids.device
-        beam_input_ids = input_ids.repeat_interleave(num_beams, dim=0)
-        beam_attention_mask = (
-            attention_mask.repeat_interleave(num_beams, dim=0)
-            if attention_mask is not None
-            else None
-        )
+        hidden_states = self._encode_tokens(input_ids, attention_mask)
+        beam_hidden = hidden_states[:, -1, :].repeat_interleave(num_beams, dim=0)
         generated = torch.empty(
             (batch_size * num_beams, 0),
             dtype=input_ids.dtype,
@@ -985,10 +1187,8 @@ class CausalTIGER(nn.Module):
         )
         beam_scores[:, 0] = 0.0
 
-        for _ in range(max_length):
-            logits = self._next_token_logits(
-                beam_input_ids, beam_attention_mask, generated
-            )
+        for phase_idx in range(max_length):
+            logits = self.lm_head[phase_idx](beam_hidden)
             log_probs = F.log_softmax(logits.float(), dim=-1)
 
             if prefix_allowed_tokens_fn is not None:
@@ -1021,9 +1221,11 @@ class CausalTIGER(nn.Module):
                 ],
                 dim=1,
             )
-            beam_input_ids = beam_input_ids[gather_indices]
-            if beam_attention_mask is not None:
-                beam_attention_mask = beam_attention_mask[gather_indices]
+            beam_hidden = beam_hidden[gather_indices]
+            if phase_idx + 1 < max_length:
+                beam_hidden = beam_hidden + self.sid_token_proj(
+                    self.shared(next_tokens.reshape(-1))
+                )
             beam_scores = top_scores
 
         generated = generated.view(batch_size, num_beams, max_length)

@@ -1,11 +1,10 @@
 import argparse
 import ast
 import re
-from datetime import datetime
 from pathlib import Path
 
 
-EPOCH_RE = re.compile(r"^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}).* - Epoch \d+/\d+")
+FINAL_EPOCH_RE = re.compile(r"Final Epoch:\s*(?P<epoch>\d+)")
 
 
 def parse_config(log_path: Path):
@@ -33,17 +32,13 @@ def parse_last_metrics(log_path: Path):
     return last_recalls, last_ndcgs
 
 
-def parse_epoch_seconds(log_path: Path):
-    times = []
+def parse_converged_epoch(log_path: Path):
+    converged_epoch = None
     for line in log_path.read_text(errors="ignore").splitlines():
-        match = EPOCH_RE.match(line)
-        if match is None:
-            continue
-        times.append(datetime.strptime(match.group("ts"), "%Y-%m-%d %H:%M:%S,%f"))
-    if len(times) < 2:
-        return None
-    gaps = [(times[idx] - times[idx - 1]).total_seconds() for idx in range(1, len(times))]
-    return sum(gaps) / len(gaps)
+        match = FINAL_EPOCH_RE.search(line)
+        if match is not None:
+            converged_epoch = int(match.group("epoch"))
+    return converged_epoch
 
 
 def fmt(value):
@@ -81,7 +76,7 @@ def build_table(rows):
         "NDCG@5",
         "NDCG@10",
         "NDCG@20",
-        "epoch_sec",
+        "conv_epoch",
     ]
     lines = [
         "| " + " | ".join(headers) + " |",
@@ -118,7 +113,7 @@ def main():
         if metrics is None:
             continue
         recalls, ndcgs = metrics
-        epoch_seconds = parse_epoch_seconds(log_path)
+        converged_epoch = parse_converged_epoch(log_path)
         align = f"{config.get('align_loss_type')}{fmt_float(config.get('mse_loss_weight'))}"
         rows.append(
             [
@@ -144,7 +139,7 @@ def main():
                 f"{ndcgs.get('NDCG@5', float('nan')):.6f}",
                 f"{ndcgs.get('NDCG@10', float('nan')):.6f}",
                 f"{ndcgs.get('NDCG@20', float('nan')):.6f}",
-                "-" if epoch_seconds is None else f"{epoch_seconds:.2f}",
+                fmt(converged_epoch),
             ]
         )
 
@@ -153,9 +148,9 @@ def main():
         return
 
     table = build_table(rows)
-    Path(args.output).write_text(table + "\n")
+    # Path(args.output).write_text(table + "\n")
     print(table)
-    print(f"\nsaved to {args.output}")
+    # print(f"\nsaved to {args.output}")
 
 
 if __name__ == "__main__":

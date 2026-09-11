@@ -612,8 +612,8 @@ if __name__ == "__main__":
         "--mse_loss_mode",
         type=str,
         default="token",
-        choices=["token", "mean", "near"],
-        help="Auxiliary MSE mode: per-token, mean-pooled, or shallow next-token hidden alignment",
+        choices=["token", "mean", "pre-first"],
+        help="Auxiliary MSE mode: per-token, mean-pooled, or first pre-item hidden alignment",
     )
     parser.add_argument(
         "--align_loss_type",
@@ -626,7 +626,7 @@ if __name__ == "__main__":
         "--align_target",
         type=str,
         default="item",
-        choices=["item", "latent", "quantized", "codebook", "shallow"],
+        choices=["item", "latent", "quantized", "codebook", "shallow", "vocab"],
         help="Auxiliary alignment target source",
     )
     parser.add_argument(
