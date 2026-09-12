@@ -295,6 +295,10 @@ def train(model, train_loader, optimizer, device):
         parallel = "labels" in batch
         if parallel:
             input_ids = batch["input_ids"].to(device)
+            input_code_mask = batch.get("input_code_mask")
+            input_code_mask = (
+                input_code_mask.to(device) if input_code_mask is not None else None
+            )
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device)
             target_item_emb = batch.get("block_item_emb")
@@ -313,6 +317,7 @@ def train(model, train_loader, optimizer, device):
                 target_item_emb=target_item_emb,
                 item_group=item_group,
                 code_phase=code_phase,
+                input_code_mask=input_code_mask,
                 parallel=True,
             )
             loss.backward()

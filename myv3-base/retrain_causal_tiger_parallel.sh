@@ -10,10 +10,10 @@
 # mode only), keeping the visible history equal to max_len items.
 
 dataset=Beauty
-block_items=${1:-999}
-stride_items=${2:-999}
-batch_size=${3:-64}
-lr=${4:-1e-3}
+block_items=${1:-80}
+stride_items=${2:-60}
+batch_size=${3:-128}
+lr=${4:-2e-3}
 lm_head=${5:-mlp}
 mse_loss_weight=${6:-0}
 align_target=${7:-quantized}
@@ -121,7 +121,10 @@ if [ -n "$name_suffix" ]; then
   name_suffix="_${name_suffix}"
 fi
 
-hidden_suffix="_hiddenL${hidden_layer}"
+hidden_suffix=""
+if [ "$hidden_layer" != "-1" ]; then
+  hidden_suffix="_hiddenL${hidden_layer}"
+fi
 
 file_stem="causal_tiger_${dataset}_parallel_b${block_items}_s${stride_items}_bs${batch_size}_lr${lr}_head${lm_head}${align_suffix}${hidden_suffix}_seed${seed}${name_suffix}"
 log_dir_path="./logs"
@@ -133,7 +136,7 @@ save_path="./ckpt/${file_stem}.pth"
 log_path="${log_dir_path}/${file_stem}.log"
 
 mkdir -p ./ckpt "$log_dir_path"
-cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3
+cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3-base
 /usr/bin/python main.py \
   --model_type causal \
   --train_mode parallel \

@@ -333,27 +333,15 @@ class CausalTIGER(nn.Module):
         # the parallel training mode to keep the visible history bounded.
         self.attention_window = config.get("attention_window", None)
         self.shared = nn.Embedding(config["vocab_size"], config["d_model"])
-        self.sid_token_proj = nn.Linear(config["d_model"], config["d_model"], bias=False)
         if self.lm_head_type == "mlp":
-            self.lm_head = nn.ModuleList(
-                [
-                    nn.Sequential(
-                        nn.Linear(config["d_model"], config["d_model"]),
-                        nn.GELU(),
-                        nn.Linear(config["d_model"], config["vocab_size"], bias=False),
-                    )
-                    for _ in range(self.code_per_item)
-                ]
+            self.lm_head = nn.Sequential(
+                nn.Linear(config["d_model"], config["d_model"]),
+                nn.GELU(),
+                nn.Linear(config["d_model"], config["vocab_size"], bias=False),
             )
-            self.item_output_mlp = None
         else:
             self.lm_head = None
-            item_output_dim = self.code_per_item * config["d_model"]
-            self.item_output_mlp = nn.Sequential(
-                nn.Linear(item_output_dim, item_output_dim),
-                nn.GELU(),
-                nn.Linear(item_output_dim, item_output_dim),
-            )
+        self.item_output_mlp = None
         self.hidden_to_item_emb = (
             nn.Sequential(
                 nn.Linear(config["d_model"], config["d_model"]),
@@ -433,39 +421,58 @@ class CausalTIGER(nn.Module):
         self,
         token_ids: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
+        input_code_mask: Optional[torch.Tensor] = None,
         return_shallow_layer: Optional[int] = None,
     ) -> torch.Tensor:
-        batch_size, seq_len = token_ids.shape
         code_per_item = self.code_per_item
-        if seq_len % code_per_item != 0:
-            print(
-                "CausalTIGER _encode_tokens invalid sequence length: "
-                f"batch_size={batch_size}, seq_len={seq_len}, "
-                f"code_per_item={code_per_item}"
-            )
-            if attention_mask is not None:
+        if token_ids.dim() == 3:
+            batch_size, item_len, code_width = token_ids.shape
+            if code_width != code_per_item:
+                raise ValueError("mixed token input must have width 4")
+            token_embeds = self.shared(token_ids)
+            if input_code_mask is None:
+                input_code_mask = torch.ones_like(token_ids)
+            input_code_mask = input_code_mask.to(token_embeds.dtype).unsqueeze(-1)
+            denom = input_code_mask.sum(dim=2).clamp_min(1.0)
+            hidden_states = (token_embeds * input_code_mask).sum(dim=2) / denom
+            hidden_states = self.dropout(hidden_states)
+        elif token_ids.dim() == 2:
+            batch_size, seq_len = token_ids.shape
+            if seq_len % code_per_item != 0:
                 print(
-                    "CausalTIGER _encode_tokens attention lengths: "
-                    f"{attention_mask.sum(dim=1).detach().cpu().tolist()}"
+                    "CausalTIGER _encode_tokens invalid sequence length: "
+                    f"batch_size={batch_size}, seq_len={seq_len}, "
+                    f"code_per_item={code_per_item}"
                 )
-            raise ValueError("token sequence length must be divisible by 4")
-        item_len = seq_len // code_per_item
-        token_embeds = self.shared(token_ids).view(
-            batch_size,
-            item_len,
-            code_per_item,
-            self.d_model,
-        )
-        hidden_states = self.dropout(token_embeds.mean(dim=2))
-        if attention_mask is not None:
-            attention_mask = attention_mask.view(batch_size, item_len, code_per_item)
-            item_attention_mask = attention_mask[:, :, 0]
-            if not torch.equal(
-                attention_mask,
-                item_attention_mask.unsqueeze(-1).expand_as(attention_mask),
-            ):
-                raise ValueError("attention_mask must be identical within each 4-token item")
-            attention_mask = item_attention_mask
+                if attention_mask is not None:
+                    print(
+                        "CausalTIGER _encode_tokens attention lengths: "
+                        f"{attention_mask.sum(dim=1).detach().cpu().tolist()}"
+                    )
+                raise ValueError("token sequence length must be divisible by 4")
+            item_len = seq_len // code_per_item
+            token_embeds = self.shared(token_ids).view(
+                batch_size,
+                item_len,
+                code_per_item,
+                self.d_model,
+            )
+            hidden_states = self.dropout(token_embeds.mean(dim=2))
+            if attention_mask is not None:
+                attention_mask = attention_mask.view(batch_size, item_len, code_per_item)
+                item_attention_mask = attention_mask[:, :, 0]
+                if not torch.equal(
+                    attention_mask,
+                    item_attention_mask.unsqueeze(-1).expand_as(attention_mask),
+                ):
+                    raise ValueError("attention_mask must be identical within each 4-token item")
+                attention_mask = item_attention_mask
+        else:
+            raise ValueError("token_ids must be a 2D or 3D tensor")
+        if attention_mask is not None and attention_mask.size(1) != item_len:
+            raise ValueError(
+                "attention_mask length must match encoded sequence length"
+            )
         shallow_states = None
         selected_hidden_states = None
         for layer_idx, block in enumerate(self.context_blocks, start=1):
@@ -493,81 +500,64 @@ class CausalTIGER(nn.Module):
         labels: Optional[torch.Tensor] = None,
         return_phase_hidden: bool = False,
     ) -> torch.Tensor:
-        batch_size, item_len, _ = hidden_states.shape
-        phase_hidden_states = None
         if self.lm_head is not None:
-            if labels is None:
-                phase_hidden = hidden_states
-                phase_logits = []
-                phase_hiddens = []
-                for phase_idx, head in enumerate(self.lm_head):
-                    phase_hiddens.append(phase_hidden)
-                    logits = head(phase_hidden)
-                    phase_logits.append(logits)
-                    if phase_idx + 1 < self.code_per_item:
-                        phase_hidden = phase_hidden + self.sid_token_proj(
-                            self.shared(logits.argmax(dim=-1))
-                        )
-                logits = torch.stack(phase_logits, dim=2)
-                phase_hidden_states = torch.stack(phase_hiddens, dim=2)
-            else:
-                if labels.size(1) != item_len * self.code_per_item:
-                    raise ValueError("labels length must match item_len * 4")
-                label_groups = labels.view(batch_size, item_len, self.code_per_item)
-                label_groups = label_groups.masked_fill(label_groups == -100, self.pad_token_id)
-
-                s1_logits = self.lm_head[0](hidden_states)
-                s1_phase_hidden = hidden_states
-                s1_hidden = hidden_states + self.sid_token_proj(
-                    self.shared(label_groups[:, :, 0])
-                )
-                s2_logits = self.lm_head[1](s1_hidden)
-                s2_phase_hidden = s1_hidden
-                s2_hidden = s1_hidden + self.sid_token_proj(
-                    self.shared(label_groups[:, :, 1])
-                )
-                s3_logits = self.lm_head[2](s2_hidden)
-                s3_phase_hidden = s2_hidden
-                s3_hidden = s2_hidden + self.sid_token_proj(
-                    self.shared(label_groups[:, :, 2])
-                )
-                s4_logits = self.lm_head[3](s3_hidden)
-                s4_phase_hidden = s3_hidden
-
-                logits = torch.stack(
-                    [s1_logits, s2_logits, s3_logits, s4_logits],
-                    dim=2,
-                )
-                phase_hidden_states = torch.stack(
-                    [
-                        s1_phase_hidden,
-                        s2_phase_hidden,
-                        s3_phase_hidden,
-                        s4_phase_hidden,
-                    ],
-                    dim=2,
-                )
-            logits = logits.view(
-                batch_size, item_len * self.code_per_item, self.vocab_size
-            )
-            if return_phase_hidden:
-                return logits, phase_hidden_states
-            return logits
-        hidden_states = hidden_states.unsqueeze(2).expand(
-            batch_size,
-            item_len,
-            self.code_per_item,
-            self.d_model,
-        )
-        hidden_states = self.item_output_mlp(
-            hidden_states.reshape(batch_size, item_len, self.code_per_item * self.d_model)
-        ).view(batch_size, item_len, self.code_per_item, self.d_model)
-        hidden_states = hidden_states * (self.d_model**-0.5)
-        logits = torch.matmul(hidden_states, self.shared.weight.transpose(0, 1))
-        logits = logits.view(batch_size, item_len * self.code_per_item, self.vocab_size)
+            logits = self.lm_head(hidden_states)
+        else:
+            hidden_states = hidden_states * (self.d_model**-0.5)
+            logits = torch.matmul(hidden_states, self.shared.weight.transpose(0, 1))
+        if labels is not None and labels.size(1) != logits.size(1):
+            raise ValueError("labels length must match decoder sequence length")
         if return_phase_hidden:
             return logits, hidden_states
         return logits
+
+    def _teacher_forced_item_inputs(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: Optional[torch.Tensor],
+        labels: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, int]:
+        batch_size, seq_len = input_ids.shape
+        if seq_len % self.code_per_item != 0:
+            raise ValueError("history length must be divisible by 4")
+        if labels.size(1) != self.code_per_item:
+            raise ValueError("item-level labels must contain 4 SID tokens")
+        item_len = seq_len // self.code_per_item
+        history_ids = input_ids.view(batch_size, item_len, self.code_per_item)
+        history_code_mask = torch.ones_like(history_ids)
+        if attention_mask is None:
+            history_attention = torch.ones(
+                (batch_size, item_len),
+                dtype=input_ids.dtype,
+                device=input_ids.device,
+            )
+        else:
+            history_attention = attention_mask.view(
+                batch_size, item_len, self.code_per_item
+            )[:, :, 0]
+
+        prefix_ids = input_ids.new_full(
+            (batch_size, self.code_per_item - 1, self.code_per_item),
+            self.pad_token_id,
+        )
+        prefix_ids[:, :, 0] = labels[:, :-1]
+        prefix_code_mask = input_ids.new_zeros(
+            (batch_size, self.code_per_item - 1, self.code_per_item)
+        )
+        prefix_code_mask[:, :, 0] = 1
+        prefix_attention = input_ids.new_ones(
+            (batch_size, self.code_per_item - 1)
+        )
+
+        mixed_ids = torch.cat([history_ids, prefix_ids], dim=1)
+        mixed_code_mask = torch.cat([history_code_mask, prefix_code_mask], dim=1)
+        mixed_attention = torch.cat([history_attention, prefix_attention], dim=1)
+        lm_labels = labels.new_full(
+            (batch_size, item_len + self.code_per_item - 1), -100
+        )
+        start = item_len - 1
+        lm_labels[:, start : start + self.code_per_item] = labels
+        return mixed_ids, mixed_code_mask, mixed_attention, lm_labels, start
 
     def _align_loss_from_hidden(
         self,
@@ -854,6 +844,73 @@ class CausalTIGER(nn.Module):
             return 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
         return F.mse_loss(pred_item_emb, target_emb, reduction="mean")
 
+    def _parallel_shallow_token_align_loss(
+        self,
+        hidden_states: torch.Tensor,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        input_code_mask: Optional[torch.Tensor],
+        item_group: Optional[torch.Tensor],
+        code_phase: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        if item_group is None or code_phase is None:
+            return hidden_states.new_zeros(())
+        _, shallow_states = self._encode_tokens(
+            input_ids,
+            attention_mask,
+            input_code_mask=input_code_mask,
+            return_shallow_layer=self.shallow_layer,
+        )
+        if hidden_states.size(1) <= 1:
+            return hidden_states.new_zeros(())
+        valid = (item_group[:, :-1] >= 0) & (code_phase[:, :-1] >= 1)
+        if self.mse_loss_mode == "pre-first":
+            valid = valid & (code_phase[:, :-1] == 1)
+        if not valid.any():
+            return hidden_states.new_zeros(())
+
+        student_hidden = hidden_states[:, :-1]
+        teacher_hidden = shallow_states[:, 1:].detach()
+        if self.mse_loss_mode in {"token", "pre-first"}:
+            pred_hidden = self.hidden_to_item_emb(student_hidden[valid])
+            target_hidden = teacher_hidden[valid].to(pred_hidden.dtype)
+            if self.align_loss_type == "cos":
+                return 1.0 - F.cosine_similarity(
+                    pred_hidden, target_hidden, dim=-1
+                ).mean()
+            return F.mse_loss(pred_hidden, target_hidden, reduction="mean")
+
+        batch_size, _, d_model = student_hidden.shape
+        max_items = int(item_group.clamp_min(0).max().item()) + 1
+        num_slots = batch_size * max_items
+        batch_idx = (
+            torch.arange(batch_size, device=hidden_states.device)
+            .unsqueeze(1)
+            .expand_as(item_group[:, :-1])
+        )
+        slot = batch_idx * max_items + item_group[:, :-1].clamp_min(0)
+        flat_slot = slot.reshape(-1)[valid.reshape(-1)]
+        flat_student = student_hidden.reshape(-1, d_model)[valid.reshape(-1)]
+        flat_teacher = teacher_hidden.reshape(-1, d_model)[valid.reshape(-1)]
+        sum_student = hidden_states.new_zeros((num_slots, d_model))
+        sum_teacher = hidden_states.new_zeros((num_slots, d_model))
+        counts = hidden_states.new_zeros((num_slots,))
+        sum_student.index_add_(0, flat_slot, flat_student)
+        sum_teacher.index_add_(0, flat_slot, flat_teacher)
+        counts.index_add_(0, flat_slot, torch.ones_like(flat_slot, dtype=counts.dtype))
+        active = counts > 0
+        pred_hidden = self.hidden_to_item_emb(
+            sum_student[active] / counts[active].unsqueeze(-1)
+        )
+        target_hidden = (
+            sum_teacher[active] / counts[active].unsqueeze(-1)
+        ).to(pred_hidden.dtype)
+        if self.align_loss_type == "cos":
+            return 1.0 - F.cosine_similarity(
+                pred_hidden, target_hidden, dim=-1
+            ).mean()
+        return F.mse_loss(pred_hidden, target_hidden, reduction="mean")
+
     def _owner_group_and_phase(
         self,
         attention_mask: torch.Tensor,
@@ -1020,6 +1077,7 @@ class CausalTIGER(nn.Module):
         target_item_emb: Optional[torch.Tensor] = None,
         item_group: Optional[torch.Tensor] = None,
         code_phase: Optional[torch.Tensor] = None,
+        input_code_mask: Optional[torch.Tensor] = None,
         parallel: bool = False,
     ):
         if labels is None:
@@ -1033,9 +1091,13 @@ class CausalTIGER(nn.Module):
             # supervised position at once.
             if attention_mask is None:
                 attention_mask = torch.ones_like(input_ids)
-            hidden_states = self._encode_tokens(input_ids, attention_mask)
+            hidden_states = self._encode_tokens(
+                input_ids,
+                attention_mask,
+                input_code_mask=input_code_mask,
+            )
             self.last_target_hidden_states = hidden_states.detach()
-            logits, phase_hidden_states = self._lm_logits(
+            logits, token_hidden_states = self._lm_logits(
                 hidden_states, labels, return_phase_hidden=True
             )
             ce_loss = F.cross_entropy(
@@ -1051,11 +1113,13 @@ class CausalTIGER(nn.Module):
                 and self.hidden_to_item_emb is not None
                 and self.mse_loss_weight > 0
             ):
-                shallow_targets = self._shallow_align_targets(input_ids, attention_mask)
-                align_loss = self._item_level_align_loss(
-                    phase_hidden_states,
-                    shallow_targets,
-                    item_group=None,
+                align_loss = self._parallel_shallow_token_align_loss(
+                    token_hidden_states,
+                    input_ids,
+                    attention_mask,
+                    input_code_mask,
+                    item_group,
+                    code_phase,
                 )
             elif (
                 target_item_emb is not None
@@ -1064,10 +1128,12 @@ class CausalTIGER(nn.Module):
                 and self.hidden_to_item_emb is not None
                 and self.mse_loss_weight > 0
             ):
-                align_loss = self._item_level_align_loss(
-                    phase_hidden_states,
+                align_loss = self._parallel_align_loss(
+                    token_hidden_states,
                     target_item_emb,
                     item_group,
+                    code_phase,
+                    labels,
                 )
             loss = ce_loss + self.mse_loss_weight * align_loss
             self.last_loss_dict = {
@@ -1081,15 +1147,28 @@ class CausalTIGER(nn.Module):
         if attention_mask is None:
             attention_mask = torch.ones_like(input_ids)
 
-        hidden_states = self._encode_tokens(input_ids, attention_mask)
-        target_hidden_states = hidden_states[:, -1:, :]
+        (
+            mixed_ids,
+            mixed_code_mask,
+            mixed_attention,
+            lm_labels,
+            target_start,
+        ) = self._teacher_forced_item_inputs(input_ids, attention_mask, labels)
+        hidden_states = self._encode_tokens(
+            mixed_ids,
+            mixed_attention,
+            input_code_mask=mixed_code_mask,
+        )
+        target_hidden_states = hidden_states[
+            :, target_start : target_start + self.code_per_item, :
+        ]
         self.last_target_hidden_states = target_hidden_states.detach()
-        logits, phase_hidden_states = self._lm_logits(
-            target_hidden_states, labels, return_phase_hidden=True
+        logits, token_hidden_states = self._lm_logits(
+            hidden_states, lm_labels, return_phase_hidden=True
         )
         ce_loss = F.cross_entropy(
             logits.reshape(-1, logits.size(-1)),
-            labels.reshape(-1),
+            lm_labels.reshape(-1),
             ignore_index=-100,
         )
         mse_loss = torch.zeros((), dtype=ce_loss.dtype, device=ce_loss.device)
@@ -1099,6 +1178,7 @@ class CausalTIGER(nn.Module):
             and self.mse_loss_weight > 0
         ):
             shallow_targets = self._shallow_align_targets(input_ids, attention_mask)[:, -1:]
+            phase_hidden_states = target_hidden_states.unsqueeze(1)
             align_loss = self._item_level_align_loss(
                 phase_hidden_states,
                 shallow_targets,
@@ -1110,6 +1190,7 @@ class CausalTIGER(nn.Module):
             and self.hidden_to_item_emb is not None
             and self.mse_loss_weight > 0
         ):
+            phase_hidden_states = target_hidden_states.unsqueeze(1)
             align_loss = self._item_level_align_loss(
                 phase_hidden_states,
                 target_item_emb,
@@ -1131,13 +1212,51 @@ class CausalTIGER(nn.Module):
         attention_mask: Optional[torch.Tensor],
         generated_ids: torch.Tensor,
     ) -> torch.Tensor:
-        model_input_ids = torch.cat([input_ids, generated_ids], dim=1)
+        batch_size, seq_len = input_ids.shape
+        if seq_len % self.code_per_item != 0:
+            raise ValueError("history length must be divisible by 4")
+        item_len = seq_len // self.code_per_item
+        history_ids = input_ids.view(batch_size, item_len, self.code_per_item)
         if attention_mask is None:
-            attention_mask = torch.ones_like(input_ids)
-        generated_mask = torch.ones_like(generated_ids)
-        model_attention_mask = torch.cat([attention_mask, generated_mask], dim=1)
-        hidden_states = self._encode_tokens(model_input_ids, model_attention_mask)
-        return self._lm_logits(hidden_states[:, -1, :])
+            history_attention = torch.ones(
+                (batch_size, item_len),
+                dtype=input_ids.dtype,
+                device=input_ids.device,
+            )
+        else:
+            history_attention = attention_mask.view(
+                batch_size, item_len, self.code_per_item
+            )[:, :, 0]
+        history_code_mask = torch.ones_like(history_ids)
+
+        if generated_ids.size(1) > 0:
+            generated_positions = input_ids.new_full(
+                (batch_size, generated_ids.size(1), self.code_per_item),
+                self.pad_token_id,
+            )
+            generated_positions[:, :, 0] = generated_ids
+            generated_code_mask = input_ids.new_zeros(
+                (batch_size, generated_ids.size(1), self.code_per_item)
+            )
+            generated_code_mask[:, :, 0] = 1
+            model_input_ids = torch.cat([history_ids, generated_positions], dim=1)
+            input_code_mask = torch.cat([history_code_mask, generated_code_mask], dim=1)
+            generated_attention = input_ids.new_ones(
+                (batch_size, generated_ids.size(1))
+            )
+            model_attention_mask = torch.cat(
+                [history_attention, generated_attention], dim=1
+            )
+        else:
+            model_input_ids = history_ids
+            input_code_mask = history_code_mask
+            model_attention_mask = history_attention
+        hidden_states = self._encode_tokens(
+            model_input_ids,
+            model_attention_mask,
+            input_code_mask=input_code_mask,
+        )
+        return self._lm_logits(hidden_states)[:, -1, :]
 
     def generate(
         self,
@@ -1149,8 +1268,6 @@ class CausalTIGER(nn.Module):
         prefix_allowed_tokens_fn: Optional[Callable[[int, torch.Tensor], Any]] = None,
         **kwargs,
     ) -> torch.Tensor:
-        if self.lm_head is None:
-            raise ValueError("autoregressive generate requires lm_head='mlp'")
         if max_length != self.code_per_item:
             raise ValueError("max_length must be 4 for item-level SID generation")
         if num_return_sequences is None:
@@ -1161,8 +1278,12 @@ class CausalTIGER(nn.Module):
         batch_size = input_ids.size(0)
         vocab_size = self.vocab_size
         device = input_ids.device
-        hidden_states = self._encode_tokens(input_ids, attention_mask)
-        beam_hidden = hidden_states[:, -1, :].repeat_interleave(num_beams, dim=0)
+        beam_input_ids = input_ids.repeat_interleave(num_beams, dim=0)
+        beam_attention_mask = (
+            attention_mask.repeat_interleave(num_beams, dim=0)
+            if attention_mask is not None
+            else None
+        )
         generated = torch.empty(
             (batch_size * num_beams, 0),
             dtype=input_ids.dtype,
@@ -1176,7 +1297,11 @@ class CausalTIGER(nn.Module):
         beam_scores[:, 0] = 0.0
 
         for phase_idx in range(max_length):
-            logits = self.lm_head[phase_idx](beam_hidden)
+            logits = self._next_token_logits(
+                beam_input_ids,
+                beam_attention_mask,
+                generated,
+            )
             log_probs = F.log_softmax(logits.float(), dim=-1)
 
             if prefix_allowed_tokens_fn is not None:
@@ -1209,11 +1334,9 @@ class CausalTIGER(nn.Module):
                 ],
                 dim=1,
             )
-            beam_hidden = beam_hidden[gather_indices]
-            if phase_idx + 1 < max_length:
-                beam_hidden = beam_hidden + self.sid_token_proj(
-                    self.shared(next_tokens.reshape(-1))
-                )
+            beam_input_ids = beam_input_ids[gather_indices]
+            if beam_attention_mask is not None:
+                beam_attention_mask = beam_attention_mask[gather_indices]
             beam_scores = top_scores
 
         generated = generated.view(batch_size, num_beams, max_length)

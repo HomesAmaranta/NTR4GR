@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3
+cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3-base
 
 block_items=80
 stride_items=60
 batch_sizes=(128)
-learning_rates=(1e-3)
+learning_rates=(1e-3 5e-4 2e-3)
 lm_head=mlp
 align_loss_type=cos
-log_dir=0908_v3_only-hidden
+log_dir=0911_v3_base
 
 seeds=(1 42 2025)
-align_targets=(item latent quantized)
-align_items=(next current)
-mse_loss_weights=(5)
-mse_loss_modes=(only-hidden)
+align_targets=(item)
+align_items=(next)
+mse_loss_weights=(0)
+mse_loss_modes=(mean)
 shallow_layers=(1)
-hidden_layers=(-1 -2 -3 -4)
+hidden_layers=(-1)
 
 for seed in "${seeds[@]}"; do
   for align_target in "${align_targets[@]}"; do
@@ -32,7 +32,10 @@ for seed in "${seeds[@]}"; do
             for hidden_layer in "${hidden_layers[@]}"; do
               for bs in "${batch_sizes[@]}"; do
                 for lr in "${learning_rates[@]}"; do
-                  hidden_desc="_hiddenL${hidden_layer}"
+                  hidden_desc=""
+                  if [ "$hidden_layer" != "-1" ]; then
+                    hidden_desc="_hiddenL${hidden_layer}"
+                  fi
                   target_desc="${align_target}"
                   if [ "$align_target" = "shallow" ]; then
                     target_desc="shallowL${shallow_layer}"
