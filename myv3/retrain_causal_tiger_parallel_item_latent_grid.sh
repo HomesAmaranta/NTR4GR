@@ -9,13 +9,14 @@ batch_sizes=(128)
 learning_rates=(1e-3)
 lm_head=mlp
 align_loss_type=cos
-log_dir=0914_v3_k
+log_dir=0915_lat-quan
 
 seeds=(1 42 2025)
-align_targets=(item latent quantized)
-align_items=(current)
+align_targets=(lat-quan)
+align_items=(current next)
+align_modes=(add per)
 align_current_ks=(1)
-align_current_k=(1 2 3)
+align_current_k=(1)
 mse_loss_weights=(5)
 mse_loss_modes=(only-hidden)
 shallow_layers=(1)
@@ -37,40 +38,51 @@ for seed in "${seeds[@]}"; do
         if [ "$align_item" = "near" ]; then
           current_modes=(token)
         fi
-        for current_k in "${current_align_current_ks[@]}"; do
-          for mse_loss_mode in "${current_modes[@]}"; do
-            for shallow_layer in "${shallow_layers[@]}"; do
-              for hidden_layer in "${hidden_layers[@]}"; do
-                for bs in "${batch_sizes[@]}"; do
-                  for lr in "${learning_rates[@]}"; do
-                    hidden_desc="_hiddenL${hidden_layer}"
-                    target_desc="${align_target}"
-                    current_k_desc=""
-                    if [ "$align_target" = "shallow" ]; then
-                      target_desc="shallowL${shallow_layer}"
-                    elif [ "$align_item" = "current" ] && [ "$current_k" != "1" ]; then
-                      current_k_desc="K${current_k}"
-                    fi
-                    desc="causal_tiger_Beauty_parallel_b${block_items}_s${stride_items}_bs${bs}_lr${lr}_head${lm_head}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${target_desc}_${align_item}${current_k_desc}${hidden_desc}_seed${seed}"
-                    mytask ./retrain_causal_tiger_parallel.sh \
-                      "$block_items" \
-                      "$stride_items" \
-                      "$bs" \
-                      "$lr" \
-                      "$lm_head" \
-                      "$mse_loss_weight" \
-                      "$align_target" \
-                      "$align_loss_type" \
-                      "$align_item" \
-                      "" \
-                      "$seed" \
-                      "$log_dir" \
-                      "$mse_loss_mode" \
-                      "$shallow_layer" \
-                      -1 \
-                      "$hidden_layer" \
-                      "$current_k" \
-                      -m "$desc"
+        current_align_modes=(add)
+        if [ "$align_target" = "lat-quan" ]; then
+          current_align_modes=("${align_modes[@]}")
+        fi
+        for align_mode in "${current_align_modes[@]}"; do
+          for current_k in "${current_align_current_ks[@]}"; do
+            for mse_loss_mode in "${current_modes[@]}"; do
+              for shallow_layer in "${shallow_layers[@]}"; do
+                for hidden_layer in "${hidden_layers[@]}"; do
+                  for bs in "${batch_sizes[@]}"; do
+                    for lr in "${learning_rates[@]}"; do
+                      hidden_desc="_hiddenL${hidden_layer}"
+                      target_desc="${align_target}"
+                      current_k_desc=""
+                      align_mode_desc=""
+                      if [ "$align_target" = "shallow" ]; then
+                        target_desc="shallowL${shallow_layer}"
+                      elif [ "$align_target" = "lat-quan" ]; then
+                        align_mode_desc="_${align_mode}"
+                      fi
+                      if [ "$align_item" = "current" ] && [ "$current_k" != "1" ]; then
+                        current_k_desc="K${current_k}"
+                      fi
+                      desc="causal_tiger_Beauty_parallel_b${block_items}_s${stride_items}_bs${bs}_lr${lr}_head${lm_head}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${target_desc}${align_mode_desc}_${align_item}${current_k_desc}${hidden_desc}_seed${seed}"
+                      mytask ./retrain_causal_tiger_parallel.sh \
+                        "$block_items" \
+                        "$stride_items" \
+                        "$bs" \
+                        "$lr" \
+                        "$lm_head" \
+                        "$mse_loss_weight" \
+                        "$align_target" \
+                        "$align_loss_type" \
+                        "$align_item" \
+                        "" \
+                        "$seed" \
+                        "$log_dir" \
+                        "$mse_loss_mode" \
+                        "$shallow_layer" \
+                        -1 \
+                        "$hidden_layer" \
+                        "$current_k" \
+                        "$align_mode" \
+                        -m "$desc"
+                    done
                   done
                 done
               done

@@ -27,6 +27,7 @@ shallow_layer=${14:-1}
 test_interval=${15:--1}
 hidden_layer=${16:--1}
 align_current_k=${17:-1}
+align_mode=${18:-add}
 early_stop_metric=ce
 
 dataset_path="../data/${dataset}"
@@ -51,6 +52,10 @@ case "$align_target" in
     item_emb_path="../data/${dataset}/item_emb_rqvae_quantized_latent.parquet"
     item_emb_dim=32
     ;;
+  lat-quan)
+    item_emb_path="../data/${dataset}/item_emb_rqvae_encoder_latent.parquet,../data/${dataset}/item_emb_rqvae_quantized_latent.parquet"
+    item_emb_dim=32
+    ;;
   codebook)
     item_emb_path="../data/${dataset}/item_emb_rqvae_codebook.parquet"
     item_emb_dim=32
@@ -64,7 +69,7 @@ case "$align_target" in
     item_emb_dim=128
     ;;
   *)
-    echo "Unknown align_target: ${align_target}. Use item, latent, quantized, codebook, vocab, or shallow." >&2
+    echo "Unknown align_target: ${align_target}. Use item, latent, quantized, lat-quan, codebook, vocab, or shallow." >&2
     exit 1
     ;;
 esac
@@ -98,6 +103,18 @@ if [ "$align_current_k" -lt 1 ]; then
   echo "align_current_k must be >= 1." >&2
   exit 1
 fi
+case "$align_mode" in
+  add|per)
+    ;;
+  *)
+    echo "Unknown align_mode: ${align_mode}. Use add or per." >&2
+    exit 1
+    ;;
+esac
+if [ "$align_mode" = "per" ] && [ "$align_target" != "lat-quan" ]; then
+  echo "align_mode=per is only supported when align_target=lat-quan." >&2
+  exit 1
+fi
 case "$mse_loss_mode" in
   mean|mean-bar|only-hidden|token|pre-first)
     ;;
@@ -117,6 +134,10 @@ align_suffix=""
 if [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ]; then
   if [ "$align_target" = "shallow" ]; then
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_shallowL${shallow_layer}_${align_item}"
+  elif [ "$align_target" = "lat-quan" ] && [ "$align_item" = "current" ] && [ "$align_current_k" != "1" ]; then
+    align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_mode}_${align_item}K${align_current_k}"
+  elif [ "$align_target" = "lat-quan" ]; then
+    align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_mode}_${align_item}"
   elif [ "$align_item" = "current" ] && [ "$align_current_k" != "1" ]; then
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}K${align_current_k}"
   else
@@ -154,6 +175,7 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3
   --mse_loss_mode $mse_loss_mode \
   --align_loss_type $align_loss_type \
   --align_target $align_target \
+  --align_mode $align_mode \
   --align_item $align_item \
   --align_current_k $align_current_k \
   --shallow_layer $shallow_layer \

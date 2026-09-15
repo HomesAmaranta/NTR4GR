@@ -86,6 +86,7 @@ def entry_sort_key(entry):
         hidden_layer_sort_key(entry["hidden_layer_raw"]),
         entry["lr_raw"],
         entry["target"],
+        entry["align_mode"],
         entry["item"],
         entry["k"],
         entry["loss_mode"],
@@ -99,6 +100,7 @@ def entry_to_row(entry):
         entry["align"],
         entry["loss_mode"],
         entry["target"],
+        entry["align_mode"],
         entry["shallow_layer"],
         entry["hidden_layer"],
         entry["lr"],
@@ -122,6 +124,7 @@ def aggregate_entries(entries):
             entry["align"],
             entry["loss_mode"],
             entry["target"],
+            entry["align_mode"],
             entry["shallow_layer"],
             entry["hidden_layer"],
             entry["lr"],
@@ -147,6 +150,7 @@ def build_table(rows):
         "align",
         "loss_mode",
         "target",
+        "align_mode",
         "shallow_layer",
         "hidden_layer",
         "lr",
@@ -210,6 +214,7 @@ def main():
                 "align": align,
                 "loss_mode": fmt(config.get("mse_loss_mode")),
                 "target": fmt(config.get("align_target")),
+                "align_mode": fmt(config.get("align_mode", "add")),
                 "shallow_layer": (
                     fmt(config.get("shallow_layer"))
                     if config.get("align_target") == "shallow"

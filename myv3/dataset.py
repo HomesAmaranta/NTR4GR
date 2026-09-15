@@ -125,6 +125,12 @@ def item2code(code_path, codebook_size=256):
     return item_to_code, code_to_item
 
 def load_item_embeddings(item_emb_path):
+    if isinstance(item_emb_path, str) and "," in item_emb_path:
+        return [
+            load_item_embeddings(path.strip())
+            for path in item_emb_path.split(",")
+            if path.strip()
+        ]
     data = pd.read_parquet(item_emb_path)
     def to_array(embedding):
         arr = np.asarray(embedding)
@@ -199,11 +205,21 @@ class GenRecDataset(Dataset):
                     for x in item_ids:
                         src = x
                         src = int(src)
-                        if src not in self.item_embeddings:
-                            raise KeyError(
-                                f"Missing item embedding for align item id: {src}"
-                            )
-                        block_item_emb.append(self.item_embeddings[src])
+                        if isinstance(self.item_embeddings, list):
+                            item_embs = []
+                            for item_embeddings in self.item_embeddings:
+                                if src not in item_embeddings:
+                                    raise KeyError(
+                                        f"Missing item embedding for align item id: {src}"
+                                    )
+                                item_embs.append(item_embeddings[src])
+                            block_item_emb.append(np.stack(item_embs))
+                        else:
+                            if src not in self.item_embeddings:
+                                raise KeyError(
+                                    f"Missing item embedding for align item id: {src}"
+                                )
+                            block_item_emb.append(self.item_embeddings[src])
                     item['block_item_emb'] = block_item_emb
             return processed_data
         # Convert items to codes
@@ -222,13 +238,31 @@ class GenRecDataset(Dataset):
             if self.item_embeddings is not None:
                 if align_item_valid:
                     align_item = int(align_item)
-                    if align_item not in self.item_embeddings:
-                        raise KeyError(f"Missing item embedding for align item id: {align_item}")
-                    item['target_item_emb'] = self.item_embeddings[align_item]
+                    if isinstance(self.item_embeddings, list):
+                        align_embs = []
+                        for item_embeddings in self.item_embeddings:
+                            if align_item not in item_embeddings:
+                                raise KeyError(
+                                    f"Missing item embedding for align item id: {align_item}"
+                                )
+                            align_embs.append(item_embeddings[align_item])
+                        item['target_item_emb'] = np.stack(align_embs)
+                    else:
+                        if align_item not in self.item_embeddings:
+                            raise KeyError(f"Missing item embedding for align item id: {align_item}")
+                        item['target_item_emb'] = self.item_embeddings[align_item]
                 else:
-                    item['target_item_emb'] = np.zeros_like(
-                        next(iter(self.item_embeddings.values()))
-                    )
+                    if isinstance(self.item_embeddings, list):
+                        item['target_item_emb'] = np.stack(
+                            [
+                                np.zeros_like(next(iter(item_embeddings.values())))
+                                for item_embeddings in self.item_embeddings
+                            ]
+                        )
+                    else:
+                        item['target_item_emb'] = np.zeros_like(
+                            next(iter(self.item_embeddings.values()))
+                        )
                 item['target_item_emb_valid'] = align_item_valid
         return processed_data
     

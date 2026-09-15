@@ -668,11 +668,19 @@ if __name__ == "__main__":
             "item",
             "latent",
             "quantized",
+            "lat-quan",
             "codebook",
             "shallow",
             "vocab",
         ],
         help="Auxiliary alignment target source",
+    )
+    parser.add_argument(
+        "--align_mode",
+        type=str,
+        default="add",
+        choices=["add", "per"],
+        help="For align_target=lat-quan: add sums both targets, per averages two separate losses",
     )
     parser.add_argument(
         "--align_item",
@@ -761,11 +769,13 @@ if __name__ == "__main__":
         raise ValueError("test_interval must be -1 or a positive integer")
     if config["align_current_k"] < 1:
         raise ValueError("align_current_k must be >= 1")
+    if config["align_mode"] == "per" and config["align_target"] != "lat-quan":
+        raise ValueError("align_mode='per' is only supported for align_target='lat-quan'")
     if config["hidden_layer"] != -1 and config["mse_loss_weight"] > 0:
         config["mse_loss_mode"] = "only-hidden"
     dataset_align_current_k = (
         config["align_current_k"]
-        if config["align_target"] in {"item", "latent", "quantized"}
+        if config["align_target"] in {"item", "latent", "quantized", "lat-quan"}
         else 1
     )
     # Sliding-window attention span (in tokens) for parallel training: keep the

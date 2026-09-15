@@ -291,6 +291,7 @@ class CausalTIGER(nn.Module):
         self.mse_loss_mode = config.get("mse_loss_mode", "token")
         self.align_loss_type = config.get("align_loss_type", "mse")
         self.align_target = config.get("align_target", "item")
+        self.align_mode = config.get("align_mode", "add")
         self.align_item = config.get("align_item", "next")
         self.align_current_k = config.get("align_current_k", 1)
         self.code_per_item = 4
@@ -323,6 +324,10 @@ class CausalTIGER(nn.Module):
             raise ValueError("mse_loss_mode='pre-first' requires align_item='pre'")
         if self.align_loss_type not in {"mse", "cos"}:
             raise ValueError("align_loss_type must be 'mse' or 'cos'")
+        if self.align_mode not in {"add", "per"}:
+            raise ValueError("align_mode must be 'add' or 'per'")
+        if self.align_target != "lat-quan" and self.align_mode != "add":
+            raise ValueError("align_mode='per' is only supported for align_target='lat-quan'")
         if self.lm_head_type not in {"emb", "mlp"}:
             raise ValueError("lm_head must be 'emb' or 'mlp'")
         if self.shallow_layer < 1 or self.shallow_layer > config["num_layers"]:
@@ -628,9 +633,9 @@ class CausalTIGER(nn.Module):
         item_group: Optional[torch.Tensor] = None,
         target_item_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        if self.align_target not in {"item", "latent", "quantized", "codebook", "shallow"}:
+        if self.align_target not in {"item", "latent", "quantized", "lat-quan", "codebook", "shallow"}:
             raise ValueError(
-                "item-level align only supports item/latent/quantized/codebook/shallow"
+                "item-level align only supports item/latent/quantized/lat-quan/codebook/shallow"
             )
         if self.mse_loss_mode not in {"token", "mean", "mean-bar", "only-hidden"}:
             raise ValueError(
@@ -642,6 +647,9 @@ class CausalTIGER(nn.Module):
         batch_size, item_len, _, _ = phase_hidden_states.shape
         if item_group is None:
             if self.align_target == "codebook":
+                if target_item_emb.dim() == 3:
+                    target_item_emb = target_item_emb.unsqueeze(1)
+            elif self.align_target == "lat-quan":
                 if target_item_emb.dim() == 3:
                     target_item_emb = target_item_emb.unsqueeze(1)
             else:
@@ -679,18 +687,57 @@ class CausalTIGER(nn.Module):
             item_hidden = phase_hidden_states
             item_target = target_item_emb[batch_idx, safe_group]
 
-        if self.align_target == "codebook":
-            phase_hidden = item_hidden[:, :, :3]
-            phase_target = item_target[:, :, :3]
-            valid_phase = valid_item.unsqueeze(-1) & phase_target.abs().sum(dim=-1).gt(0)
-        else:
+        def dense_align_loss(dense_target: torch.Tensor) -> torch.Tensor:
             phase_hidden = item_hidden
-            phase_target = item_target.unsqueeze(2).expand(
+            phase_target = dense_target.unsqueeze(2).expand(
                 -1, -1, self.code_per_item, -1
             )
             valid_phase = valid_item.unsqueeze(-1).expand(
                 -1, -1, self.code_per_item
             )
+
+            if self.mse_loss_mode == "token":
+                if not valid_phase.any():
+                    print(
+                        "CausalTIGER align warning: no valid token phases "
+                        f"target={self.align_target}, item={self.align_item}, "
+                        f"phase_hidden_shape={tuple(phase_hidden.shape)}, "
+                        f"phase_target_shape={tuple(phase_target.shape)}"
+                    )
+                    return phase_hidden_states.new_zeros(())
+                pred_emb = self.hidden_to_item_emb(phase_hidden[valid_phase])
+                return self._align_loss_from_hidden(
+                    pred_emb, phase_target[valid_phase]
+                )
+
+            if not valid_item.any():
+                return phase_hidden_states.new_zeros(())
+            if self.mse_loss_mode in {"mean-bar", "only-hidden"}:
+                pooled_hidden = phase_hidden[:, :, 0]
+            else:
+                pooled_hidden = phase_hidden.mean(dim=2)
+            pred_emb = self.hidden_to_item_emb(pooled_hidden[valid_item])
+            return self._align_loss_from_hidden(
+                pred_emb, dense_target[valid_item]
+            )
+
+        if self.align_target == "lat-quan":
+            if item_target.dim() != 4 or item_target.size(-2) != 2:
+                raise ValueError("lat-quan target embedding must have shape [B, item, 2, dim]")
+            if self.align_mode == "add":
+                return dense_align_loss(item_target.sum(dim=-2))
+            losses = [
+                dense_align_loss(item_target[:, :, target_idx, :])
+                for target_idx in range(item_target.size(-2))
+            ]
+            return torch.stack(losses).mean()
+
+        if self.align_target == "codebook":
+            phase_hidden = item_hidden[:, :, :3]
+            phase_target = item_target[:, :, :3]
+            valid_phase = valid_item.unsqueeze(-1) & phase_target.abs().sum(dim=-1).gt(0)
+        else:
+            return dense_align_loss(item_target)
 
         if self.mse_loss_mode == "token":
             if not valid_phase.any():
@@ -1075,7 +1122,7 @@ class CausalTIGER(nn.Module):
                 )
             elif (
                 target_item_emb is not None
-                and self.align_target in {"item", "latent", "quantized", "codebook"}
+                and self.align_target in {"item", "latent", "quantized", "lat-quan", "codebook"}
                 and item_group is not None
                 and self.hidden_to_item_emb is not None
                 and self.mse_loss_weight > 0
@@ -1122,7 +1169,7 @@ class CausalTIGER(nn.Module):
             )
         elif (
             target_item_emb is not None
-            and self.align_target in {"item", "latent", "quantized", "codebook"}
+            and self.align_target in {"item", "latent", "quantized", "lat-quan", "codebook"}
             and self.hidden_to_item_emb is not None
             and self.mse_loss_weight > 0
         ):
