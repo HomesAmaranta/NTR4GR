@@ -182,7 +182,7 @@ class GenRecDataset(Dataset):
         self.item_embeddings = load_item_embeddings(item_emb_path) if item_emb_path else None
         self.eval_target_items = (
             load_or_build_eval_target_items(dataset_path)
-            if self.mode == 'train_parallel'
+            if self.mode in {'train_parallel', 'evaluation'}
             else None
         )
         # Process the dataset
@@ -231,6 +231,11 @@ class GenRecDataset(Dataset):
         for item in processed_data:
             target_item = item['target']
             align_item = item['pre_item'] if self.align_item == 'current' else target_item
+            if self.mode == 'evaluation':
+                item['history_token_level'] = [
+                    int(x) in self.eval_target_items
+                    for x in item['history']
+                ]
             item['history'] = [self.item_to_code.get(x, np.array([self.PAD_TOKEN]*4)) for x in item['history']]
             item['target'] = self.item_to_code.get(item['target'], np.array([self.PAD_TOKEN]*4))
             if self.item_embeddings is not None:

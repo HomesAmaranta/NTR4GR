@@ -35,6 +35,9 @@ class GenRecDataLoader(DataLoader):
         histories = [item['history'] for item in batch]
         targets = [item['target'] for item in batch]
         target_item_embs = [item.get('target_item_emb') for item in batch]
+        target_item_emb_valid = [
+            item.get('target_item_emb_valid', True) for item in batch
+        ]
 
         # Flatten histories and targets
         flattened_histories = torch.stack(
@@ -68,6 +71,9 @@ class GenRecDataLoader(DataLoader):
                     1,
                 )
             output['target_item_emb'] = target_item_embs
+            output['target_item_emb_mask'] = torch.tensor(
+                target_item_emb_valid, dtype=torch.bool
+            )
 
         return output
 

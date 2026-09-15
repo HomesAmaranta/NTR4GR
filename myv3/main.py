@@ -347,6 +347,10 @@ def train(model, train_loader, optimizer, device):
         target_item_emb = (
             target_item_emb.to(device) if target_item_emb is not None else None
         )
+        target_item_mask = batch.get("target_item_emb_mask")
+        target_item_mask = (
+            target_item_mask.to(device) if target_item_mask is not None else None
+        )
 
         optimizer.zero_grad()
         if model.__class__.__name__ == "CausalTIGER":
@@ -355,6 +359,7 @@ def train(model, train_loader, optimizer, device):
                 attention_mask=attention_mask,
                 labels=labels,
                 target_item_emb=target_item_emb,
+                target_item_mask=target_item_mask,
             )
         else:
             loss, _ = model(
@@ -395,12 +400,17 @@ def validate(model, valid_loader, device):
             target_item_emb = (
                 target_item_emb.to(device) if target_item_emb is not None else None
             )
+            target_item_mask = batch.get("target_item_emb_mask")
+            target_item_mask = (
+                target_item_mask.to(device) if target_item_mask is not None else None
+            )
             if model.__class__.__name__ == "CausalTIGER":
                 loss, _ = model(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
                     labels=labels,
                     target_item_emb=target_item_emb,
+                    target_item_mask=target_item_mask,
                 )
             else:
                 loss, _ = model(
@@ -672,6 +682,12 @@ if __name__ == "__main__":
         help="Item embedding to align: current history item or next target item",
     )
     parser.add_argument(
+        "--align_current_k",
+        type=int,
+        default=1,
+        help="Use the kth current-side item/latent/quantized embedding for align_item=current",
+    )
+    parser.add_argument(
         "--shallow_layer",
         type=int,
         default=1,
@@ -743,8 +759,15 @@ if __name__ == "__main__":
         config["item_emb_path"] = None
     if config["test_interval"] == 0 or config["test_interval"] < -1:
         raise ValueError("test_interval must be -1 or a positive integer")
+    if config["align_current_k"] < 1:
+        raise ValueError("align_current_k must be >= 1")
     if config["hidden_layer"] != -1 and config["mse_loss_weight"] > 0:
         config["mse_loss_mode"] = "only-hidden"
+    dataset_align_current_k = (
+        config["align_current_k"]
+        if config["align_target"] in {"item", "latent", "quantized"}
+        else 1
+    )
     # Sliding-window attention span (in tokens) for parallel training: keep the
     # visible history equal to max_len items (max_len x 4 codes). Full causal
     # attention (None) otherwise.
@@ -793,6 +816,7 @@ if __name__ == "__main__":
             config["item_emb_path"] if config["mse_loss_weight"] > 0 else None
         ),
         align_item=config["align_item"],
+        align_current_k=dataset_align_current_k,
         block_items=config["block_items"],
         stride_items=config["stride_items"],
     )
@@ -805,6 +829,7 @@ if __name__ == "__main__":
             config["item_emb_path"] if config["mse_loss_weight"] > 0 else None
         ),
         align_item=config["align_item"],
+        align_current_k=dataset_align_current_k,
     )
     test_dataset = GenRecDataset(
         dataset_path=config["dataset_path"] + "/test.parquet",

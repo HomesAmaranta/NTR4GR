@@ -138,7 +138,7 @@ def load_item_embeddings(item_emb_path):
 
 class GenRecDataset(Dataset):
     def __init__(self, dataset_path, code_path, mode, max_len, PAD_TOKEN=0, item_emb_path=None, align_item='next',
-                 block_items=40, stride_items=20):
+                 align_current_k=1, block_items=40, stride_items=20):
         """
         Initialize the GenRecDataset.
         Args:
@@ -162,6 +162,9 @@ class GenRecDataset(Dataset):
         if align_item not in {'current', 'next', 'near'}:
             raise ValueError(f"Unsupported align_item: {align_item}")
         self.align_item = align_item
+        if align_current_k < 1:
+            raise ValueError(f"align_current_k must be >= 1, got {align_current_k}")
+        self.align_current_k = align_current_k
         # Load item-to-code mapping
         self.item_to_code, self.code_to_item = item2code(code_path)
         self.item_embeddings = load_item_embeddings(item_emb_path) if item_emb_path else None
@@ -206,14 +209,27 @@ class GenRecDataset(Dataset):
         # Convert items to codes
         for item in processed_data:
             target_item = item['target']
-            align_item = item['pre_item'] if self.align_item == 'current' else target_item
+            align_item = target_item
+            align_item_valid = True
+            if self.align_item == 'current':
+                history_items = [x for x in item['history'] if x != self.PAD_TOKEN]
+                align_index = len(history_items) - self.align_current_k
+                align_item_valid = align_index >= 0
+                if align_item_valid:
+                    align_item = history_items[align_index]
             item['history'] = [self.item_to_code.get(x, np.array([self.PAD_TOKEN]*4)) for x in item['history']]
             item['target'] = self.item_to_code.get(item['target'], np.array([self.PAD_TOKEN]*4))
             if self.item_embeddings is not None:
-                align_item = int(align_item)
-                if align_item not in self.item_embeddings:
-                    raise KeyError(f"Missing item embedding for align item id: {align_item}")
-                item['target_item_emb'] = self.item_embeddings[align_item]
+                if align_item_valid:
+                    align_item = int(align_item)
+                    if align_item not in self.item_embeddings:
+                        raise KeyError(f"Missing item embedding for align item id: {align_item}")
+                    item['target_item_emb'] = self.item_embeddings[align_item]
+                else:
+                    item['target_item_emb'] = np.zeros_like(
+                        next(iter(self.item_embeddings.values()))
+                    )
+                item['target_item_emb_valid'] = align_item_valid
         return processed_data
     
     def __getitem__(self, index):

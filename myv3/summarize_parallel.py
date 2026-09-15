@@ -84,8 +84,10 @@ def mean(values):
 def entry_sort_key(entry):
     return (
         hidden_layer_sort_key(entry["hidden_layer_raw"]),
+        entry["lr_raw"],
         entry["target"],
         entry["item"],
+        entry["k"],
         entry["loss_mode"],
         entry["seed"],
         entry["log_name"],
@@ -94,18 +96,14 @@ def entry_sort_key(entry):
 
 def entry_to_row(entry):
     return [
-        entry["mode"],
-        entry["block"],
-        entry["stride"],
-        entry["bs"],
-        entry["lr"],
-        entry["head"],
         entry["align"],
         entry["loss_mode"],
         entry["target"],
         entry["shallow_layer"],
         entry["hidden_layer"],
+        entry["lr"],
         entry["item"],
+        entry["k"],
         entry["seed"],
         f"{entry['Recall@5']:.6f}",
         f"{entry['Recall@10']:.6f}",
@@ -121,18 +119,14 @@ def aggregate_entries(entries):
     groups = {}
     for entry in entries:
         group_key = (
-            entry["mode"],
-            entry["block"],
-            entry["stride"],
-            entry["bs"],
-            entry["lr"],
-            entry["head"],
             entry["align"],
             entry["loss_mode"],
             entry["target"],
             entry["shallow_layer"],
             entry["hidden_layer"],
+            entry["lr"],
             entry["item"],
+            entry["k"],
         )
         groups.setdefault(group_key, []).append(entry)
 
@@ -150,18 +144,14 @@ def aggregate_entries(entries):
 
 def build_table(rows):
     headers = [
-        "mode",
-        "block",
-        "stride",
-        "bs",
-        "lr",
-        "head",
         "align",
         "loss_mode",
         "target",
         "shallow_layer",
         "hidden_layer",
+        "lr",
         "item",
+        "k",
         "seed",
         "Recall@5",
         "Recall@10",
@@ -214,14 +204,9 @@ def main():
         converged_epoch = parse_converged_epoch(log_path)
         align = f"{config.get('align_loss_type')}{fmt_float(config.get('mse_loss_weight'))}"
         hidden_layer = config.get("hidden_layer", -1)
+        lr = config.get("lr")
         entries.append(
             {
-                "mode": fmt(config.get("train_mode")),
-                "block": fmt(config.get("block_items")),
-                "stride": fmt(config.get("stride_items")),
-                "bs": fmt(config.get("batch_size")),
-                "lr": fmt_float(config.get("lr")),
-                "head": fmt(config.get("lm_head")),
                 "align": align,
                 "loss_mode": fmt(config.get("mse_loss_mode")),
                 "target": fmt(config.get("align_target")),
@@ -232,7 +217,10 @@ def main():
                 ),
                 "hidden_layer": fmt(config.get("hidden_layer", -1)),
                 "hidden_layer_raw": hidden_layer,
+                "lr": fmt_float(lr),
+                "lr_raw": float(lr) if lr is not None else float("inf"),
                 "item": fmt(config.get("align_item")),
+                "k": fmt(config.get("align_current_k")),
                 "seed": fmt(config.get("seed")),
                 "Recall@5": recalls.get("Recall@5", float("nan")),
                 "Recall@10": recalls.get("Recall@10", float("nan")),

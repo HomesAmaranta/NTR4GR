@@ -6,15 +6,15 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3-base
 block_items=80
 stride_items=60
 batch_sizes=(128)
-learning_rates=(1e-3 5e-4 2e-3)
+learning_rates=(1e-3)
 lm_head=mlp
 align_loss_type=cos
-log_dir=0911_v3_base
+log_dir=0914_v3_align
 
 seeds=(1 42 2025)
-align_targets=(item)
+align_targets=(quantized item latent)
 align_items=(next)
-mse_loss_weights=(0)
+mse_loss_weights=(5)
 mse_loss_modes=(mean)
 shallow_layers=(1)
 hidden_layers=(-1)

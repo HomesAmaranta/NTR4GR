@@ -26,6 +26,7 @@ mse_loss_mode=${13:-mean}
 shallow_layer=${14:-1}
 test_interval=${15:--1}
 hidden_layer=${16:--1}
+align_current_k=${17:-1}
 early_stop_metric=ce
 
 dataset_path="../data/${dataset}"
@@ -93,6 +94,10 @@ if [ "$align_target" = "vocab" ] && [ "$align_item" != "next" ]; then
   echo "align_target=vocab only supports align_item=next." >&2
   exit 1
 fi
+if [ "$align_current_k" -lt 1 ]; then
+  echo "align_current_k must be >= 1." >&2
+  exit 1
+fi
 case "$mse_loss_mode" in
   mean|mean-bar|only-hidden|token|pre-first)
     ;;
@@ -112,6 +117,8 @@ align_suffix=""
 if [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ]; then
   if [ "$align_target" = "shallow" ]; then
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_shallowL${shallow_layer}_${align_item}"
+  elif [ "$align_item" = "current" ] && [ "$align_current_k" != "1" ]; then
+    align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}K${align_current_k}"
   else
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}"
   fi
@@ -148,6 +155,7 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3
   --align_loss_type $align_loss_type \
   --align_target $align_target \
   --align_item $align_item \
+  --align_current_k $align_current_k \
   --shallow_layer $shallow_layer \
   --hidden_layer $hidden_layer \
   --early_stop_metric $early_stop_metric \

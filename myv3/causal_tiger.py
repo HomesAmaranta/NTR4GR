@@ -292,6 +292,7 @@ class CausalTIGER(nn.Module):
         self.align_loss_type = config.get("align_loss_type", "mse")
         self.align_target = config.get("align_target", "item")
         self.align_item = config.get("align_item", "next")
+        self.align_current_k = config.get("align_current_k", 1)
         self.code_per_item = 4
         self.hidden_layer = config.get("hidden_layer", -1)
         if self.hidden_layer != -1 and self.mse_loss_weight > 0:
@@ -312,6 +313,8 @@ class CausalTIGER(nn.Module):
             self.align_item = "current"
         if self.align_item not in {"current", "next", "near"}:
             raise ValueError("align_item must be 'current', 'next' or 'near'")
+        if self.align_current_k < 1:
+            raise ValueError("align_current_k must be >= 1")
         if self.align_item == "near" and self.align_target != "shallow":
             raise ValueError("align_item='near' is only supported for shallow align")
         if self.align_target == "vocab" and self.align_item != "next":
@@ -623,6 +626,7 @@ class CausalTIGER(nn.Module):
         phase_hidden_states: torch.Tensor,
         target_item_emb: torch.Tensor,
         item_group: Optional[torch.Tensor] = None,
+        target_item_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         if self.align_target not in {"item", "latent", "quantized", "codebook", "shallow"}:
             raise ValueError(
@@ -648,13 +652,24 @@ class CausalTIGER(nn.Module):
             valid_item = phase_hidden_states.new_ones(
                 (batch_size, target_item_emb.size(1)), dtype=torch.bool
             )
+            if target_item_mask is not None:
+                target_item_mask = target_item_mask.bool()
+                if target_item_mask.dim() == 1:
+                    target_item_mask = target_item_mask.unsqueeze(1)
+                elif target_item_mask.size(1) != target_item_emb.size(1):
+                    target_item_mask = target_item_mask.any(dim=1, keepdim=True)
+                valid_item = valid_item & target_item_mask.to(valid_item.device)
             item_hidden = phase_hidden_states[:, : target_item_emb.size(1)]
             item_target = target_item_emb
         else:
             group_by_item = item_group.view(batch_size, item_len, self.code_per_item)[
                 :, :, 0
             ]
-            target_group = group_by_item if self.align_item == "next" else group_by_item - 1
+            target_group = (
+                group_by_item
+                if self.align_item == "next"
+                else group_by_item - self.align_current_k
+            )
             max_items = target_item_emb.size(1)
             valid_item = (target_group >= 0) & (target_group < max_items)
             safe_group = target_group.clamp(0, max_items - 1)
@@ -1018,6 +1033,7 @@ class CausalTIGER(nn.Module):
         attention_mask: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         target_item_emb: Optional[torch.Tensor] = None,
+        target_item_mask: Optional[torch.Tensor] = None,
         item_group: Optional[torch.Tensor] = None,
         code_phase: Optional[torch.Tensor] = None,
         parallel: bool = False,
@@ -1114,6 +1130,7 @@ class CausalTIGER(nn.Module):
                 phase_hidden_states,
                 target_item_emb,
                 item_group=None,
+                target_item_mask=target_item_mask,
             )
         else:
             align_loss = mse_loss

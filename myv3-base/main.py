@@ -395,6 +395,10 @@ def validate(model, valid_loader, device):
         for batch in valid_loader:
             input_ids = batch["history"].to(device)
             attention_mask = batch["attention_mask"].to(device)
+            input_code_mask = batch.get("input_code_mask")
+            input_code_mask = (
+                input_code_mask.to(device) if input_code_mask is not None else None
+            )
             labels = batch["target"].to(device)
             target_item_emb = batch.get("target_item_emb")
             target_item_emb = (
@@ -406,6 +410,7 @@ def validate(model, valid_loader, device):
                     attention_mask=attention_mask,
                     labels=labels,
                     target_item_emb=target_item_emb,
+                    input_code_mask=input_code_mask,
                 )
             else:
                 loss, _ = model(
@@ -441,6 +446,10 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
         for batch in eval_loader:
             input_ids = batch["history"].to(device)
             attention_mask = batch["attention_mask"].to(device)
+            input_code_mask = batch.get("input_code_mask")
+            input_code_mask = (
+                input_code_mask.to(device) if input_code_mask is not None else None
+            )
             labels = batch["target"].to(device)
 
             is_causal = model.__class__.__name__ == "CausalTIGER"
@@ -448,6 +457,7 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 labels=labels,
+                input_code_mask=input_code_mask,
             )
             loss_dict = getattr(model, "last_loss_dict", None)
             ce_losses.append(
@@ -458,6 +468,7 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
             generate_kwargs = {
                 "input_ids": input_ids,
                 "attention_mask": attention_mask,
+                "input_code_mask": input_code_mask,
                 "num_beams": beam_size,
                 "prefix_allowed_tokens_fn": constraint_fn,
             }

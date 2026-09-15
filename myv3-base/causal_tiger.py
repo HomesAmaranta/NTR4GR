@@ -516,25 +516,41 @@ class CausalTIGER(nn.Module):
         input_ids: torch.Tensor,
         attention_mask: Optional[torch.Tensor],
         labels: torch.Tensor,
+        input_code_mask: Optional[torch.Tensor] = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, int]:
-        batch_size, seq_len = input_ids.shape
-        if seq_len % self.code_per_item != 0:
-            raise ValueError("history length must be divisible by 4")
+        batch_size = input_ids.size(0)
         if labels.size(1) != self.code_per_item:
             raise ValueError("item-level labels must contain 4 SID tokens")
-        item_len = seq_len // self.code_per_item
-        history_ids = input_ids.view(batch_size, item_len, self.code_per_item)
-        history_code_mask = torch.ones_like(history_ids)
-        if attention_mask is None:
-            history_attention = torch.ones(
-                (batch_size, item_len),
-                dtype=input_ids.dtype,
-                device=input_ids.device,
+        if input_ids.dim() == 3:
+            history_ids = input_ids
+            item_len = input_ids.size(1)
+            if input_ids.size(2) != self.code_per_item:
+                raise ValueError("mixed history input must have width 4")
+            history_code_mask = (
+                input_code_mask if input_code_mask is not None else torch.ones_like(input_ids)
+            )
+            history_attention = (
+                attention_mask
+                if attention_mask is not None
+                else (history_code_mask.sum(dim=2) > 0).to(input_ids.dtype)
             )
         else:
-            history_attention = attention_mask.view(
-                batch_size, item_len, self.code_per_item
-            )[:, :, 0]
+            seq_len = input_ids.size(1)
+            if seq_len % self.code_per_item != 0:
+                raise ValueError("history length must be divisible by 4")
+            item_len = seq_len // self.code_per_item
+            history_ids = input_ids.view(batch_size, item_len, self.code_per_item)
+            history_code_mask = torch.ones_like(history_ids)
+            if attention_mask is None:
+                history_attention = torch.ones(
+                    (batch_size, item_len),
+                    dtype=input_ids.dtype,
+                    device=input_ids.device,
+                )
+            else:
+                history_attention = attention_mask.view(
+                    batch_size, item_len, self.code_per_item
+                )[:, :, 0]
 
         prefix_ids = input_ids.new_full(
             (batch_size, self.code_per_item - 1, self.code_per_item),
@@ -754,7 +770,8 @@ class CausalTIGER(nn.Module):
             max_items = target_item_emb.size(1)
         device = hidden_states.device
 
-        valid = item_group >= 0  # [B, seq]
+        target_group = item_group if self.align_item == "next" else item_group - 1
+        valid = (item_group >= 0) & (target_group >= 0) & (target_group < max_items)
         if self.align_target == "codebook":
             if code_phase is None:
                 raise ValueError("code_phase is required for parallel codebook align")
@@ -772,7 +789,9 @@ class CausalTIGER(nn.Module):
             .expand_as(item_group)
         )
         slot = batch_idx * max_items + item_group.clamp_min(0)  # [B, seq]
+        target_slot = batch_idx * max_items + target_group.clamp(0, max_items - 1)
         flat_slot = slot.reshape(-1)[valid.reshape(-1)]
+        flat_target_slot = target_slot.reshape(-1)[valid.reshape(-1)]
         flat_hidden = hidden_states.reshape(-1, d_model)[valid.reshape(-1)]
         if self.align_target == "vocab":
             flat_labels = labels.reshape(-1)[valid.reshape(-1)].clamp_min(0)
@@ -781,11 +800,11 @@ class CausalTIGER(nn.Module):
             flat_phase = code_phase.reshape(-1)[valid.reshape(-1)] - 1
             flat_target_emb = target_item_emb.reshape(
                 num_slots, target_item_emb.size(-2), target_item_emb.size(-1)
-            )[flat_slot, flat_phase].to(flat_hidden.dtype)
+            )[flat_target_slot, flat_phase].to(flat_hidden.dtype)
         else:
-            flat_target_emb = target_item_emb.reshape(num_slots, -1)[flat_slot].to(
-                flat_hidden.dtype
-            )
+            flat_target_emb = target_item_emb.reshape(num_slots, -1)[
+                flat_target_slot
+            ].to(flat_hidden.dtype)
 
         if self.mse_loss_mode == "token":
             pred_item_emb = self.hidden_to_item_emb(flat_hidden)
@@ -826,6 +845,13 @@ class CausalTIGER(nn.Module):
         active = counts > 0
         pooled_hidden = sum_hidden[active] / counts[active].unsqueeze(-1)
         pred_item_emb = self.hidden_to_item_emb(pooled_hidden)
+        active_slot = torch.arange(num_slots, device=device)[active]
+        active_batch = active_slot // max_items
+        active_group = active_slot % max_items
+        active_target_group = (
+            active_group if self.align_item == "next" else active_group - 1
+        )
+        active_target_slot = active_batch * max_items + active_target_group
         if self.align_target == "vocab":
             sum_target = hidden_states.new_zeros((num_slots, self.d_model))
             sum_target.index_add_(0, flat_slot, flat_target_emb)
@@ -834,11 +860,11 @@ class CausalTIGER(nn.Module):
         elif self.align_target == "codebook":
             target_emb = target_item_emb.reshape(
                 num_slots, target_item_emb.size(-2), target_item_emb.size(-1)
-            )[active, :3].mean(dim=1).to(pred_item_emb.dtype)
+            )[active_target_slot, :3].mean(dim=1).to(pred_item_emb.dtype)
         else:
-            target_emb = target_item_emb.reshape(num_slots, -1)[active].to(
-                pred_item_emb.dtype
-            )
+            target_emb = target_item_emb.reshape(num_slots, -1)[
+                active_target_slot
+            ].to(pred_item_emb.dtype)
 
         if self.align_loss_type == "cos":
             return 1.0 - F.cosine_similarity(pred_item_emb, target_emb, dim=-1).mean()
@@ -1153,7 +1179,12 @@ class CausalTIGER(nn.Module):
             mixed_attention,
             lm_labels,
             target_start,
-        ) = self._teacher_forced_item_inputs(input_ids, attention_mask, labels)
+        ) = self._teacher_forced_item_inputs(
+            input_ids,
+            attention_mask,
+            labels,
+            input_code_mask=input_code_mask,
+        )
         hidden_states = self._encode_tokens(
             mixed_ids,
             mixed_attention,
@@ -1211,23 +1242,39 @@ class CausalTIGER(nn.Module):
         input_ids: torch.Tensor,
         attention_mask: Optional[torch.Tensor],
         generated_ids: torch.Tensor,
+        input_code_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        batch_size, seq_len = input_ids.shape
-        if seq_len % self.code_per_item != 0:
-            raise ValueError("history length must be divisible by 4")
-        item_len = seq_len // self.code_per_item
-        history_ids = input_ids.view(batch_size, item_len, self.code_per_item)
-        if attention_mask is None:
-            history_attention = torch.ones(
-                (batch_size, item_len),
-                dtype=input_ids.dtype,
-                device=input_ids.device,
+        batch_size = input_ids.size(0)
+        if input_ids.dim() == 3:
+            history_ids = input_ids
+            item_len = input_ids.size(1)
+            if input_ids.size(2) != self.code_per_item:
+                raise ValueError("mixed history input must have width 4")
+            history_code_mask = (
+                input_code_mask if input_code_mask is not None else torch.ones_like(input_ids)
+            )
+            history_attention = (
+                attention_mask
+                if attention_mask is not None
+                else (history_code_mask.sum(dim=2) > 0).to(input_ids.dtype)
             )
         else:
-            history_attention = attention_mask.view(
-                batch_size, item_len, self.code_per_item
-            )[:, :, 0]
-        history_code_mask = torch.ones_like(history_ids)
+            _, seq_len = input_ids.shape
+            if seq_len % self.code_per_item != 0:
+                raise ValueError("history length must be divisible by 4")
+            item_len = seq_len // self.code_per_item
+            history_ids = input_ids.view(batch_size, item_len, self.code_per_item)
+            history_code_mask = torch.ones_like(history_ids)
+            if attention_mask is None:
+                history_attention = torch.ones(
+                    (batch_size, item_len),
+                    dtype=input_ids.dtype,
+                    device=input_ids.device,
+                )
+            else:
+                history_attention = attention_mask.view(
+                    batch_size, item_len, self.code_per_item
+                )[:, :, 0]
 
         if generated_ids.size(1) > 0:
             generated_positions = input_ids.new_full(
@@ -1262,6 +1309,7 @@ class CausalTIGER(nn.Module):
         self,
         input_ids: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
+        input_code_mask: Optional[torch.Tensor] = None,
         max_length: int = 4,
         num_beams: int = 20,
         num_return_sequences: Optional[int] = None,
@@ -1284,6 +1332,11 @@ class CausalTIGER(nn.Module):
             if attention_mask is not None
             else None
         )
+        beam_input_code_mask = (
+            input_code_mask.repeat_interleave(num_beams, dim=0)
+            if input_code_mask is not None
+            else None
+        )
         generated = torch.empty(
             (batch_size * num_beams, 0),
             dtype=input_ids.dtype,
@@ -1301,6 +1354,7 @@ class CausalTIGER(nn.Module):
                 beam_input_ids,
                 beam_attention_mask,
                 generated,
+                input_code_mask=beam_input_code_mask,
             )
             log_probs = F.log_softmax(logits.float(), dim=-1)
 
@@ -1337,6 +1391,8 @@ class CausalTIGER(nn.Module):
             beam_input_ids = beam_input_ids[gather_indices]
             if beam_attention_mask is not None:
                 beam_attention_mask = beam_attention_mask[gather_indices]
+            if beam_input_code_mask is not None:
+                beam_input_code_mask = beam_input_code_mask[gather_indices]
             beam_scores = top_scores
 
         generated = generated.view(batch_size, num_beams, max_length)

@@ -36,17 +36,59 @@ class GenRecDataLoader(DataLoader):
         targets = [item['target'] for item in batch]
         target_item_embs = [item.get('target_item_emb') for item in batch]
 
-        # Flatten histories and targets
-        flattened_histories = torch.stack(
-            [torch.tensor([elem for sublist in history for elem in sublist], dtype=torch.int64) for history in histories]
-        )
+        history_token_levels = [item.get('history_token_level') for item in batch]
+        use_mixed_history = history_token_levels[0] is not None
+        if use_mixed_history:
+            mixed_histories = []
+            mixed_code_masks = []
+            for history, token_levels in zip(histories, history_token_levels):
+                positions = []
+                code_masks = []
+                for item_code, is_token_level in zip(history, token_levels):
+                    item_code = [int(t) for t in item_code]
+                    if all(t == pad_token for t in item_code):
+                        positions.append([pad_token] * len(item_code))
+                        code_masks.append([0] * len(item_code))
+                    elif is_token_level:
+                        for token in item_code:
+                            positions.append([token] + [pad_token] * (len(item_code) - 1))
+                            code_masks.append([1] + [0] * (len(item_code) - 1))
+                    else:
+                        positions.append(item_code)
+                        code_masks.append([1] * len(item_code))
+                mixed_histories.append(positions)
+                mixed_code_masks.append(code_masks)
+            max_positions = max(len(history) for history in mixed_histories)
+            code_width = len(mixed_histories[0][0])
+            flattened_histories = torch.tensor(
+                [
+                    [[pad_token] * code_width for _ in range(max_positions - len(history))]
+                    + history
+                    for history in mixed_histories
+                ],
+                dtype=torch.int64,
+            )
+            input_code_masks = torch.tensor(
+                [
+                    [[0] * code_width for _ in range(max_positions - len(mask))]
+                    + mask
+                    for mask in mixed_code_masks
+                ],
+                dtype=torch.int64,
+            )
+            attention_masks = (input_code_masks.sum(dim=2) > 0).to(torch.int64)
+        else:
+            # Flatten histories and targets
+            flattened_histories = torch.stack(
+                [torch.tensor([elem for sublist in history for elem in sublist], dtype=torch.int64) for history in histories]
+            )
+            input_code_masks = None
+            # Create attention masks for flattened histories
+            attention_masks = torch.stack(
+                [torch.tensor([1 if elem != pad_token else 0 for elem in h], dtype=torch.int64) for h in flattened_histories]
+            )
         flattened_targets = torch.stack(
             [torch.tensor(target, dtype=torch.int64) for target in targets]
-        )
-
-        # Create attention masks for flattened histories
-        attention_masks = torch.stack(
-            [torch.tensor([1 if elem != pad_token else 0 for elem in h], dtype=torch.int64) for h in flattened_histories]
         )
 
         output = {
@@ -54,6 +96,8 @@ class GenRecDataLoader(DataLoader):
             'target': flattened_targets,
             'attention_mask': attention_masks,
         }
+        if input_code_masks is not None:
+            output['input_code_mask'] = input_code_masks
         if target_item_embs[0] is not None:
             target_item_embs = torch.stack(
                 [
