@@ -85,6 +85,8 @@ def entry_sort_key(entry):
     return (
         hidden_layer_sort_key(entry["hidden_layer_raw"]),
         entry["lr_raw"],
+        entry["noise_std_raw"],
+        entry["noise_prob_raw"],
         entry["target"],
         entry["item"],
         entry["k"],
@@ -102,6 +104,8 @@ def entry_to_row(entry):
         entry["shallow_layer"],
         entry["hidden_layer"],
         entry["lr"],
+        entry["noise_std"],
+        entry["noise_prob"],
         entry["item"],
         entry["k"],
         entry["seed"],
@@ -125,6 +129,8 @@ def aggregate_entries(entries):
             entry["shallow_layer"],
             entry["hidden_layer"],
             entry["lr"],
+            entry["noise_std"],
+            entry["noise_prob"],
             entry["item"],
             entry["k"],
         )
@@ -150,6 +156,8 @@ def build_table(rows):
         "shallow_layer",
         "hidden_layer",
         "lr",
+        "noise_std",
+        "noise_prob",
         "item",
         "k",
         "seed",
@@ -205,6 +213,8 @@ def main():
         align = f"{config.get('align_loss_type')}{fmt_float(config.get('mse_loss_weight'))}"
         hidden_layer = config.get("hidden_layer", -1)
         lr = config.get("lr")
+        noise_std = config.get("embedding_noise_std", 0.0)
+        noise_prob = config.get("embedding_noise_prob", 1.0)
         entries.append(
             {
                 "align": align,
@@ -219,6 +229,14 @@ def main():
                 "hidden_layer_raw": hidden_layer,
                 "lr": fmt_float(lr),
                 "lr_raw": float(lr) if lr is not None else float("inf"),
+                "noise_std": fmt_float(noise_std),
+                "noise_std_raw": (
+                    float(noise_std) if noise_std is not None else float("inf")
+                ),
+                "noise_prob": fmt_float(noise_prob),
+                "noise_prob_raw": (
+                    float(noise_prob) if noise_prob is not None else float("inf")
+                ),
                 "item": fmt(config.get("align_item")),
                 "k": fmt(config.get("align_current_k")),
                 "seed": fmt(config.get("seed")),

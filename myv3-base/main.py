@@ -41,6 +41,12 @@ class TIGER(nn.Module):
         )
         # Initialize T5 model with the specified configuration
         self.model = T5ForConditionalGeneration(t5config)
+        self.embedding_noise_std = config.get("embedding_noise_std", 0.0)
+        self.embedding_noise_prob = config.get("embedding_noise_prob", 1.0)
+        if self.embedding_noise_std < 0.0:
+            raise ValueError("embedding_noise_std must be non-negative")
+        if self.embedding_noise_prob < 0.0 or self.embedding_noise_prob > 1.0:
+            raise ValueError("embedding_noise_prob must be in [0, 1]")
 
     @property
     def n_parameters(self):
@@ -59,6 +65,36 @@ class TIGER(nn.Module):
             f"#Total trainable parameters: {total_params}\n"
         )
 
+    def _add_embedding_noise(
+        self,
+        embeddings: torch.Tensor,
+        valid_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        if (
+            not self.training
+            or self.embedding_noise_std <= 0.0
+            or self.embedding_noise_prob <= 0.0
+        ):
+            return embeddings
+        position_shape = embeddings.shape[:-1]
+        if self.embedding_noise_prob >= 1.0:
+            noise_mask = torch.ones(
+                position_shape,
+                device=embeddings.device,
+                dtype=torch.bool,
+            )
+        else:
+            noise_mask = (
+                torch.rand(position_shape, device=embeddings.device)
+                < self.embedding_noise_prob
+            )
+        if valid_mask is not None:
+            noise_mask = noise_mask & valid_mask.to(device=embeddings.device, dtype=torch.bool)
+        if not noise_mask.any():
+            return embeddings
+        noise = torch.randn_like(embeddings) * self.embedding_noise_std
+        return embeddings + noise * noise_mask.unsqueeze(-1).to(embeddings.dtype)
+
     def forward(
         self,
         input_ids: torch.Tensor,
@@ -76,13 +112,38 @@ class TIGER(nn.Module):
                 - loss (torch.Tensor)
                 - logits (torch.Tensor)
         """
-        outputs = self.model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels,
-            output_hidden_states=True,
-            return_dict=True,
+        use_embedding_noise = (
+            self.training
+            and self.embedding_noise_std > 0.0
+            and self.embedding_noise_prob > 0.0
         )
+        if use_embedding_noise:
+            inputs_embeds = self.model.get_input_embeddings()(input_ids)
+            inputs_embeds = self._add_embedding_noise(inputs_embeds, attention_mask)
+            model_kwargs = {
+                "inputs_embeds": inputs_embeds,
+                "attention_mask": attention_mask,
+                "labels": labels,
+                "output_hidden_states": True,
+                "return_dict": True,
+            }
+            if labels is not None:
+                decoder_input_ids = self.model._shift_right(labels)
+                decoder_inputs_embeds = self.model.get_input_embeddings()(decoder_input_ids)
+                decoder_valid_mask = decoder_input_ids.ne(self.model.config.pad_token_id)
+                model_kwargs["decoder_inputs_embeds"] = self._add_embedding_noise(
+                    decoder_inputs_embeds,
+                    decoder_valid_mask,
+                )
+            outputs = self.model(**model_kwargs)
+        else:
+            outputs = self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                output_hidden_states=True,
+                return_dict=True,
+            )
         self.last_target_hidden_states = outputs.decoder_hidden_states[-1].detach()
         return outputs.loss, outputs.logits
 
@@ -599,6 +660,18 @@ if __name__ == "__main__":
         help="Feed forward projection type",
     )
     parser.add_argument(
+        "--embedding_noise_std",
+        type=float,
+        default=0.0,
+        help="Gaussian noise std added to embeddings before backbone; 0 disables",
+    )
+    parser.add_argument(
+        "--embedding_noise_prob",
+        type=float,
+        default=1.0,
+        help="Probability of adding embedding noise per item/token position, valid range [0, 1]",
+    )
+    parser.add_argument(
         "--max_len",
         type=int,
         default=20,
@@ -757,6 +830,10 @@ if __name__ == "__main__":
     config = vars(parser.parse_args())
     if config["item_emb_path"] in {"", "None"}:
         config["item_emb_path"] = None
+    if config["embedding_noise_std"] < 0.0:
+        raise ValueError("embedding_noise_std must be non-negative")
+    if config["embedding_noise_prob"] < 0.0 or config["embedding_noise_prob"] > 1.0:
+        raise ValueError("embedding_noise_prob must be in [0, 1]")
     if config["test_interval"] == 0 or config["test_interval"] < -1:
         raise ValueError("test_interval must be -1 or a positive integer")
     if config["hidden_layer"] != -1 and config["mse_loss_weight"] > 0:

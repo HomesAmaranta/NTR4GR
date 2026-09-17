@@ -26,6 +26,12 @@ mse_loss_mode=${13:-mean}
 shallow_layer=${14:-1}
 test_interval=${15:--1}
 hidden_layer=${16:--1}
+has_embedding_noise_args=0
+if [ "$#" -ge 17 ]; then
+  has_embedding_noise_args=1
+fi
+embedding_noise_std=${17:-0.0}
+embedding_noise_prob=${18:-1.0}
 early_stop_metric=ce
 
 dataset_path="../data/${dataset}"
@@ -126,7 +132,12 @@ if [ "$hidden_layer" != "-1" ]; then
   hidden_suffix="_hiddenL${hidden_layer}"
 fi
 
-file_stem="causal_tiger_${dataset}_parallel_b${block_items}_s${stride_items}_bs${batch_size}_lr${lr}_head${lm_head}${align_suffix}${hidden_suffix}_seed${seed}${name_suffix}"
+noise_suffix=""
+if [ "$has_embedding_noise_args" -eq 1 ]; then
+  noise_suffix="_noise${embedding_noise_std}_p${embedding_noise_prob}"
+fi
+
+file_stem="causal_tiger_${dataset}_parallel_b${block_items}_s${stride_items}_bs${batch_size}_lr${lr}_head${lm_head}${align_suffix}${hidden_suffix}${noise_suffix}_seed${seed}${name_suffix}"
 log_dir_path="./logs"
 if [ -n "$log_dir" ]; then
   log_dir_path="${log_dir_path}/${log_dir}"
@@ -171,6 +182,8 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3-base
   --pad_token_id 0 \
   --eos_token_id 0 \
   --feed_forward_proj relu \
+  --embedding_noise_std $embedding_noise_std \
+  --embedding_noise_prob $embedding_noise_prob \
   --lm_head $lm_head \
   --lr $lr \
   --early_stop 10 \

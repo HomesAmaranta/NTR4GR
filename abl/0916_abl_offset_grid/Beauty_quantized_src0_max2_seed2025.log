@@ -1,0 +1,240 @@
+2026-09-16 06:31:06,496 - INFO - Configuration: {'dataset_path': '../data/Beauty', 'code_path': '../data/Beauty/Beauty_t5_rqvae.npy', 'item_emb_path': '../data/Beauty/item_emb_rqvae_quantized_latent.parquet', 'source_offset': 0, 'max_source_offset': 2, 'codebook_size': 256, 'vocab_size': 1025, 'hidden_dim': 128, 'mlp_dim': 512, 'dropout': 0.1, 'batch_size': 256, 'infer_size': 256, 'num_epochs': 120, 'lr': 0.0001, 'early_stop': 10, 'beam_size': 30, 'topk_list': [5, 10, 20], 'seed': 2025, 'device': 'cuda', 'mode': 'train', 'save_path': './ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth', 'log_path': './0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.log'}
+2026-09-16 06:31:07,038 - INFO - Dataset sizes: train=86684, valid=22363, test=22363
+2026-09-16 06:31:07,376 - INFO - #Total trainable parameters: 2581252
+2026-09-16 06:31:16,839 - INFO - Epoch 1/120, Train Loss: 3.8511, Valid Loss: 3.4968
+2026-09-16 06:31:16,883 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:20,282 - INFO - Epoch 2/120, Train Loss: 3.2193, Valid Loss: 3.3193
+2026-09-16 06:31:20,324 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:23,778 - INFO - Epoch 3/120, Train Loss: 3.0223, Valid Loss: 3.1978
+2026-09-16 06:31:23,822 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:27,276 - INFO - Epoch 4/120, Train Loss: 2.9081, Valid Loss: 3.1293
+2026-09-16 06:31:27,317 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:30,712 - INFO - Epoch 5/120, Train Loss: 2.8382, Valid Loss: 3.0784
+2026-09-16 06:31:30,751 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:34,245 - INFO - Epoch 6/120, Train Loss: 2.7847, Valid Loss: 3.0357
+2026-09-16 06:31:34,284 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:37,685 - INFO - Epoch 7/120, Train Loss: 2.7418, Valid Loss: 2.9977
+2026-09-16 06:31:37,725 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:41,093 - INFO - Epoch 8/120, Train Loss: 2.7039, Valid Loss: 2.9664
+2026-09-16 06:31:41,130 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:44,548 - INFO - Epoch 9/120, Train Loss: 2.6712, Valid Loss: 2.9380
+2026-09-16 06:31:44,588 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:48,090 - INFO - Epoch 10/120, Train Loss: 2.6422, Valid Loss: 2.9122
+2026-09-16 06:31:48,129 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:51,567 - INFO - Epoch 11/120, Train Loss: 2.6161, Valid Loss: 2.8857
+2026-09-16 06:31:51,603 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:55,022 - INFO - Epoch 12/120, Train Loss: 2.5910, Valid Loss: 2.8645
+2026-09-16 06:31:55,060 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:31:58,454 - INFO - Epoch 13/120, Train Loss: 2.5701, Valid Loss: 2.8451
+2026-09-16 06:31:58,492 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:01,981 - INFO - Epoch 14/120, Train Loss: 2.5500, Valid Loss: 2.8265
+2026-09-16 06:32:02,020 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:05,404 - INFO - Epoch 15/120, Train Loss: 2.5322, Valid Loss: 2.8072
+2026-09-16 06:32:05,440 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:08,829 - INFO - Epoch 16/120, Train Loss: 2.5148, Valid Loss: 2.7915
+2026-09-16 06:32:08,865 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:12,256 - INFO - Epoch 17/120, Train Loss: 2.4990, Valid Loss: 2.7775
+2026-09-16 06:32:12,294 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:15,819 - INFO - Epoch 18/120, Train Loss: 2.4844, Valid Loss: 2.7622
+2026-09-16 06:32:15,856 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:19,257 - INFO - Epoch 19/120, Train Loss: 2.4705, Valid Loss: 2.7486
+2026-09-16 06:32:19,293 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:22,684 - INFO - Epoch 20/120, Train Loss: 2.4575, Valid Loss: 2.7344
+2026-09-16 06:32:22,719 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:26,099 - INFO - Epoch 21/120, Train Loss: 2.4443, Valid Loss: 2.7207
+2026-09-16 06:32:26,134 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:29,646 - INFO - Epoch 22/120, Train Loss: 2.4321, Valid Loss: 2.7075
+2026-09-16 06:32:29,681 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:33,084 - INFO - Epoch 23/120, Train Loss: 2.4213, Valid Loss: 2.6988
+2026-09-16 06:32:33,119 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:36,499 - INFO - Epoch 24/120, Train Loss: 2.4107, Valid Loss: 2.6854
+2026-09-16 06:32:36,536 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:39,931 - INFO - Epoch 25/120, Train Loss: 2.3995, Valid Loss: 2.6756
+2026-09-16 06:32:39,972 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:43,508 - INFO - Epoch 26/120, Train Loss: 2.3896, Valid Loss: 2.6647
+2026-09-16 06:32:43,548 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:46,953 - INFO - Epoch 27/120, Train Loss: 2.3808, Valid Loss: 2.6565
+2026-09-16 06:32:46,992 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:50,480 - INFO - Epoch 28/120, Train Loss: 2.3703, Valid Loss: 2.6481
+2026-09-16 06:32:50,524 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:53,940 - INFO - Epoch 29/120, Train Loss: 2.3627, Valid Loss: 2.6373
+2026-09-16 06:32:53,985 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:32:57,469 - INFO - Epoch 30/120, Train Loss: 2.3540, Valid Loss: 2.6287
+2026-09-16 06:32:57,515 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:00,900 - INFO - Epoch 31/120, Train Loss: 2.3457, Valid Loss: 2.6207
+2026-09-16 06:33:00,944 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:04,360 - INFO - Epoch 32/120, Train Loss: 2.3370, Valid Loss: 2.6116
+2026-09-16 06:33:04,404 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:07,794 - INFO - Epoch 33/120, Train Loss: 2.3298, Valid Loss: 2.6040
+2026-09-16 06:33:07,837 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:11,304 - INFO - Epoch 34/120, Train Loss: 2.3228, Valid Loss: 2.5976
+2026-09-16 06:33:11,345 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:14,713 - INFO - Epoch 35/120, Train Loss: 2.3146, Valid Loss: 2.5899
+2026-09-16 06:33:14,756 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:18,089 - INFO - Epoch 36/120, Train Loss: 2.3087, Valid Loss: 2.5826
+2026-09-16 06:33:18,132 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:21,475 - INFO - Epoch 37/120, Train Loss: 2.3023, Valid Loss: 2.5741
+2026-09-16 06:33:21,515 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:25,122 - INFO - Epoch 38/120, Train Loss: 2.2961, Valid Loss: 2.5698
+2026-09-16 06:33:25,163 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:29,100 - INFO - Epoch 39/120, Train Loss: 2.2895, Valid Loss: 2.5607
+2026-09-16 06:33:29,142 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:33,073 - INFO - Epoch 40/120, Train Loss: 2.2838, Valid Loss: 2.5557
+2026-09-16 06:33:33,115 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:36,629 - INFO - Epoch 41/120, Train Loss: 2.2776, Valid Loss: 2.5508
+2026-09-16 06:33:36,669 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:40,134 - INFO - Epoch 42/120, Train Loss: 2.2732, Valid Loss: 2.5438
+2026-09-16 06:33:40,174 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:43,532 - INFO - Epoch 43/120, Train Loss: 2.2674, Valid Loss: 2.5382
+2026-09-16 06:33:43,572 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:47,019 - INFO - Epoch 44/120, Train Loss: 2.2622, Valid Loss: 2.5326
+2026-09-16 06:33:47,059 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:50,460 - INFO - Epoch 45/120, Train Loss: 2.2567, Valid Loss: 2.5278
+2026-09-16 06:33:50,502 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:53,954 - INFO - Epoch 46/120, Train Loss: 2.2519, Valid Loss: 2.5219
+2026-09-16 06:33:53,996 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:33:57,358 - INFO - Epoch 47/120, Train Loss: 2.2469, Valid Loss: 2.5179
+2026-09-16 06:33:57,396 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:00,757 - INFO - Epoch 48/120, Train Loss: 2.2422, Valid Loss: 2.5134
+2026-09-16 06:34:00,794 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:04,137 - INFO - Epoch 49/120, Train Loss: 2.2376, Valid Loss: 2.5076
+2026-09-16 06:34:04,175 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:07,621 - INFO - Epoch 50/120, Train Loss: 2.2336, Valid Loss: 2.5022
+2026-09-16 06:34:07,658 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:11,006 - INFO - Epoch 51/120, Train Loss: 2.2294, Valid Loss: 2.4984
+2026-09-16 06:34:11,042 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:14,373 - INFO - Epoch 52/120, Train Loss: 2.2251, Valid Loss: 2.4954
+2026-09-16 06:34:14,410 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:17,761 - INFO - Epoch 53/120, Train Loss: 2.2203, Valid Loss: 2.4895
+2026-09-16 06:34:17,799 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:21,261 - INFO - Epoch 54/120, Train Loss: 2.2168, Valid Loss: 2.4863
+2026-09-16 06:34:21,297 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:24,645 - INFO - Epoch 55/120, Train Loss: 2.2129, Valid Loss: 2.4814
+2026-09-16 06:34:24,680 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:28,019 - INFO - Epoch 56/120, Train Loss: 2.2110, Valid Loss: 2.4780
+2026-09-16 06:34:28,057 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:31,436 - INFO - Epoch 57/120, Train Loss: 2.2055, Valid Loss: 2.4730
+2026-09-16 06:34:31,473 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:34,910 - INFO - Epoch 58/120, Train Loss: 2.2022, Valid Loss: 2.4690
+2026-09-16 06:34:34,946 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:38,254 - INFO - Epoch 59/120, Train Loss: 2.1993, Valid Loss: 2.4643
+2026-09-16 06:34:38,296 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:41,678 - INFO - Epoch 60/120, Train Loss: 2.1956, Valid Loss: 2.4627
+2026-09-16 06:34:41,722 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:45,402 - INFO - Epoch 61/120, Train Loss: 2.1916, Valid Loss: 2.4600
+2026-09-16 06:34:45,445 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:49,388 - INFO - Epoch 62/120, Train Loss: 2.1896, Valid Loss: 2.4557
+2026-09-16 06:34:49,430 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:53,278 - INFO - Epoch 63/120, Train Loss: 2.1861, Valid Loss: 2.4514
+2026-09-16 06:34:53,321 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:34:57,203 - INFO - Epoch 64/120, Train Loss: 2.1828, Valid Loss: 2.4481
+2026-09-16 06:34:57,244 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:01,137 - INFO - Epoch 65/120, Train Loss: 2.1802, Valid Loss: 2.4447
+2026-09-16 06:35:01,177 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:05,190 - INFO - Epoch 66/120, Train Loss: 2.1768, Valid Loss: 2.4422
+2026-09-16 06:35:05,231 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:09,057 - INFO - Epoch 67/120, Train Loss: 2.1731, Valid Loss: 2.4396
+2026-09-16 06:35:09,098 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:12,957 - INFO - Epoch 68/120, Train Loss: 2.1716, Valid Loss: 2.4375
+2026-09-16 06:35:12,999 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:16,864 - INFO - Epoch 69/120, Train Loss: 2.1679, Valid Loss: 2.4335
+2026-09-16 06:35:16,902 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:20,460 - INFO - Epoch 70/120, Train Loss: 2.1663, Valid Loss: 2.4297
+2026-09-16 06:35:20,499 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:23,857 - INFO - Epoch 71/120, Train Loss: 2.1623, Valid Loss: 2.4297
+2026-09-16 06:35:23,896 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:27,250 - INFO - Epoch 72/120, Train Loss: 2.1603, Valid Loss: 2.4251
+2026-09-16 06:35:27,288 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:30,907 - INFO - Epoch 73/120, Train Loss: 2.1575, Valid Loss: 2.4235
+2026-09-16 06:35:30,950 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:34,862 - INFO - Epoch 74/120, Train Loss: 2.1547, Valid Loss: 2.4192
+2026-09-16 06:35:34,898 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:38,358 - INFO - Epoch 75/120, Train Loss: 2.1522, Valid Loss: 2.4179
+2026-09-16 06:35:38,405 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:41,766 - INFO - Epoch 76/120, Train Loss: 2.1502, Valid Loss: 2.4153
+2026-09-16 06:35:41,803 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:45,167 - INFO - Epoch 77/120, Train Loss: 2.1481, Valid Loss: 2.4123
+2026-09-16 06:35:45,202 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:48,565 - INFO - Epoch 78/120, Train Loss: 2.1446, Valid Loss: 2.4115
+2026-09-16 06:35:48,602 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:52,061 - INFO - Epoch 79/120, Train Loss: 2.1430, Valid Loss: 2.4087
+2026-09-16 06:35:52,098 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:55,435 - INFO - Epoch 80/120, Train Loss: 2.1411, Valid Loss: 2.4061
+2026-09-16 06:35:55,473 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:35:58,819 - INFO - Epoch 81/120, Train Loss: 2.1390, Valid Loss: 2.4013
+2026-09-16 06:35:58,857 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:02,242 - INFO - Epoch 82/120, Train Loss: 2.1363, Valid Loss: 2.4016
+2026-09-16 06:36:05,776 - INFO - Epoch 83/120, Train Loss: 2.1344, Valid Loss: 2.3988
+2026-09-16 06:36:05,811 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:09,172 - INFO - Epoch 84/120, Train Loss: 2.1318, Valid Loss: 2.3971
+2026-09-16 06:36:09,209 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:12,578 - INFO - Epoch 85/120, Train Loss: 2.1301, Valid Loss: 2.3957
+2026-09-16 06:36:12,613 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:16,009 - INFO - Epoch 86/120, Train Loss: 2.1270, Valid Loss: 2.3935
+2026-09-16 06:36:16,043 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:19,540 - INFO - Epoch 87/120, Train Loss: 2.1258, Valid Loss: 2.3909
+2026-09-16 06:36:19,575 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:22,951 - INFO - Epoch 88/120, Train Loss: 2.1253, Valid Loss: 2.3887
+2026-09-16 06:36:22,986 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:26,351 - INFO - Epoch 89/120, Train Loss: 2.1217, Valid Loss: 2.3884
+2026-09-16 06:36:26,388 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:30,097 - INFO - Epoch 90/120, Train Loss: 2.1199, Valid Loss: 2.3845
+2026-09-16 06:36:30,135 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:34,018 - INFO - Epoch 91/120, Train Loss: 2.1172, Valid Loss: 2.3850
+2026-09-16 06:36:37,888 - INFO - Epoch 92/120, Train Loss: 2.1165, Valid Loss: 2.3824
+2026-09-16 06:36:37,929 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:41,804 - INFO - Epoch 93/120, Train Loss: 2.1134, Valid Loss: 2.3799
+2026-09-16 06:36:41,848 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:45,484 - INFO - Epoch 94/120, Train Loss: 2.1118, Valid Loss: 2.3782
+2026-09-16 06:36:45,525 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:48,991 - INFO - Epoch 95/120, Train Loss: 2.1101, Valid Loss: 2.3782
+2026-09-16 06:36:49,029 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:52,415 - INFO - Epoch 96/120, Train Loss: 2.1089, Valid Loss: 2.3755
+2026-09-16 06:36:52,454 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:55,825 - INFO - Epoch 97/120, Train Loss: 2.1064, Valid Loss: 2.3736
+2026-09-16 06:36:55,862 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:36:59,258 - INFO - Epoch 98/120, Train Loss: 2.1043, Valid Loss: 2.3721
+2026-09-16 06:36:59,297 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:02,814 - INFO - Epoch 99/120, Train Loss: 2.1038, Valid Loss: 2.3709
+2026-09-16 06:37:02,854 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:06,261 - INFO - Epoch 100/120, Train Loss: 2.1016, Valid Loss: 2.3710
+2026-09-16 06:37:09,694 - INFO - Epoch 101/120, Train Loss: 2.0998, Valid Loss: 2.3682
+2026-09-16 06:37:09,733 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:13,150 - INFO - Epoch 102/120, Train Loss: 2.0988, Valid Loss: 2.3673
+2026-09-16 06:37:13,187 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:16,699 - INFO - Epoch 103/120, Train Loss: 2.0970, Valid Loss: 2.3650
+2026-09-16 06:37:16,735 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:20,141 - INFO - Epoch 104/120, Train Loss: 2.0944, Valid Loss: 2.3640
+2026-09-16 06:37:20,177 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:23,565 - INFO - Epoch 105/120, Train Loss: 2.0934, Valid Loss: 2.3618
+2026-09-16 06:37:23,601 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:27,003 - INFO - Epoch 106/120, Train Loss: 2.0920, Valid Loss: 2.3621
+2026-09-16 06:37:30,494 - INFO - Epoch 107/120, Train Loss: 2.0905, Valid Loss: 2.3613
+2026-09-16 06:37:30,530 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:33,899 - INFO - Epoch 108/120, Train Loss: 2.0888, Valid Loss: 2.3588
+2026-09-16 06:37:33,942 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:37,335 - INFO - Epoch 109/120, Train Loss: 2.0879, Valid Loss: 2.3584
+2026-09-16 06:37:37,375 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:40,761 - INFO - Epoch 110/120, Train Loss: 2.0858, Valid Loss: 2.3566
+2026-09-16 06:37:40,800 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:44,301 - INFO - Epoch 111/120, Train Loss: 2.0854, Valid Loss: 2.3563
+2026-09-16 06:37:44,343 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:47,740 - INFO - Epoch 112/120, Train Loss: 2.0822, Valid Loss: 2.3546
+2026-09-16 06:37:47,780 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:51,152 - INFO - Epoch 113/120, Train Loss: 2.0812, Valid Loss: 2.3537
+2026-09-16 06:37:51,193 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:54,594 - INFO - Epoch 114/120, Train Loss: 2.0808, Valid Loss: 2.3524
+2026-09-16 06:37:54,635 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:37:58,130 - INFO - Epoch 115/120, Train Loss: 2.0787, Valid Loss: 2.3505
+2026-09-16 06:37:58,171 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:38:01,546 - INFO - Epoch 116/120, Train Loss: 2.0775, Valid Loss: 2.3501
+2026-09-16 06:38:01,585 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:38:04,969 - INFO - Epoch 117/120, Train Loss: 2.0759, Valid Loss: 2.3495
+2026-09-16 06:38:05,009 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:38:08,384 - INFO - Epoch 118/120, Train Loss: 2.0760, Valid Loss: 2.3486
+2026-09-16 06:38:08,425 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:38:11,923 - INFO - Epoch 119/120, Train Loss: 2.0723, Valid Loss: 2.3461
+2026-09-16 06:38:11,963 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 06:38:15,343 - INFO - Epoch 120/120, Train Loss: 2.0717, Valid Loss: 2.3460
+2026-09-16 06:38:15,390 - INFO - Saved best model to ./ckpt_0916_abl_offset_grid/Beauty_quantized_src0_max2_seed2025.pth
+2026-09-16 07:21:57,062 - INFO - Final Test CE Loss: 2.4286, Recalls: {'Recall@5': 0.022092165679416874, 'Recall@10': 0.036718652498993004, 'Recall@20': 0.05440799451687119}, NDCGs: {'NDCG@5': 0.014388508499409496, 'NDCG@10': 0.019136133635501294, 'NDCG@20': 0.023600377975857224}, SID_HR: {'SID1_HR@5': 0.23722219737960024, 'SID2_HR@5': 0.06287170773152082, 'SID3_HR@5': 0.0505298931270402, 'SID4_HR@5': 0.9944998434914815, 'SID1_CondHR@5': 0.23722219737960024, 'SID2_CondHR@5': 0.16870876531573986, 'SID3_CondHR@5': 0.5418994413407822, 'SID4_CondHR@5': 1.0, 'SID1_HR@10': 0.3035370925188928, 'SID2_HR@10': 0.1010597862540804, 'SID3_HR@10': 0.09140097482448688, 'SID4_HR@10': 0.9946339936502259, 'SID1_CondHR@10': 0.3035370925188928, 'SID2_CondHR@10': 0.21140247495580436, 'SID3_CondHR@10': 0.5574912891986062, 'SID4_CondHR@10': 1.0}

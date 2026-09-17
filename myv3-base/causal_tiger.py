@@ -294,6 +294,8 @@ class CausalTIGER(nn.Module):
         self.align_item = config.get("align_item", "next")
         self.code_per_item = 4
         self.hidden_layer = config.get("hidden_layer", -1)
+        self.embedding_noise_std = config.get("embedding_noise_std", 0.0)
+        self.embedding_noise_prob = config.get("embedding_noise_prob", 1.0)
         if self.hidden_layer != -1 and self.mse_loss_weight > 0:
             self.mse_loss_mode = "only-hidden"
         if self.align_target in {"shallow", "vocab"} and self.item_emb_dim <= 0:
@@ -322,6 +324,10 @@ class CausalTIGER(nn.Module):
             raise ValueError("align_loss_type must be 'mse' or 'cos'")
         if self.lm_head_type not in {"emb", "mlp"}:
             raise ValueError("lm_head must be 'emb' or 'mlp'")
+        if self.embedding_noise_std < 0.0:
+            raise ValueError("embedding_noise_std must be non-negative")
+        if self.embedding_noise_prob < 0.0 or self.embedding_noise_prob > 1.0:
+            raise ValueError("embedding_noise_prob must be in [0, 1]")
         if self.shallow_layer < 1 or self.shallow_layer > config["num_layers"]:
             raise ValueError(f"shallow_layer must be in [1, {config['num_layers']}]")
         self.selected_hidden_layer = self._resolve_hidden_layer(
@@ -417,6 +423,39 @@ class CausalTIGER(nn.Module):
             )
         return resolved
 
+    def _add_embedding_noise(
+        self,
+        embeddings: torch.Tensor,
+        valid_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        if (
+            not self.training
+            or self.embedding_noise_std <= 0.0
+            or self.embedding_noise_prob <= 0.0
+        ):
+            return embeddings
+        position_shape = embeddings.shape[:-1]
+        if self.embedding_noise_prob >= 1.0:
+            noise_mask = torch.ones(
+                position_shape,
+                device=embeddings.device,
+                dtype=torch.bool,
+            )
+        else:
+            noise_mask = (
+                torch.rand(position_shape, device=embeddings.device)
+                < self.embedding_noise_prob
+            )
+        if valid_mask is not None:
+            noise_mask = noise_mask & valid_mask.to(
+                device=embeddings.device,
+                dtype=torch.bool,
+            )
+        if not noise_mask.any():
+            return embeddings
+        noise = torch.randn_like(embeddings) * self.embedding_noise_std
+        return embeddings + noise * noise_mask.unsqueeze(-1).to(embeddings.dtype)
+
     def _encode_tokens(
         self,
         token_ids: torch.Tensor,
@@ -435,6 +474,8 @@ class CausalTIGER(nn.Module):
             input_code_mask = input_code_mask.to(token_embeds.dtype).unsqueeze(-1)
             denom = input_code_mask.sum(dim=2).clamp_min(1.0)
             hidden_states = (token_embeds * input_code_mask).sum(dim=2) / denom
+            valid_mask = attention_mask if attention_mask is not None else denom.squeeze(-1) > 0
+            hidden_states = self._add_embedding_noise(hidden_states, valid_mask)
             hidden_states = self.dropout(hidden_states)
         elif token_ids.dim() == 2:
             batch_size, seq_len = token_ids.shape
@@ -457,7 +498,7 @@ class CausalTIGER(nn.Module):
                 code_per_item,
                 self.d_model,
             )
-            hidden_states = self.dropout(token_embeds.mean(dim=2))
+            hidden_states = token_embeds.mean(dim=2)
             if attention_mask is not None:
                 attention_mask = attention_mask.view(batch_size, item_len, code_per_item)
                 item_attention_mask = attention_mask[:, :, 0]
@@ -467,6 +508,8 @@ class CausalTIGER(nn.Module):
                 ):
                     raise ValueError("attention_mask must be identical within each 4-token item")
                 attention_mask = item_attention_mask
+            hidden_states = self._add_embedding_noise(hidden_states, attention_mask)
+            hidden_states = self.dropout(hidden_states)
         else:
             raise ValueError("token_ids must be a 2D or 3D tensor")
         if attention_mask is not None and attention_mask.size(1) != item_len:
