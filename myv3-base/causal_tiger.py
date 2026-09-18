@@ -296,6 +296,11 @@ class CausalTIGER(nn.Module):
         self.hidden_layer = config.get("hidden_layer", -1)
         self.embedding_noise_std = config.get("embedding_noise_std", 0.0)
         self.embedding_noise_prob = config.get("embedding_noise_prob", 1.0)
+        self.eval_embedding_noise = config.get("eval_embedding_noise", False)
+        self.add_align_item_emb_to_hidden = config.get(
+            "add_align_item_emb_to_hidden",
+            False,
+        )
         if self.hidden_layer != -1 and self.mse_loss_weight > 0:
             self.mse_loss_mode = "only-hidden"
         if self.align_target in {"shallow", "vocab"} and self.item_emb_dim <= 0:
@@ -355,6 +360,11 @@ class CausalTIGER(nn.Module):
                 nn.Linear(config["d_model"], self.item_emb_dim, bias=False),
             )
             if self.item_emb_dim > 0
+            else None
+        )
+        self.align_item_emb_to_hidden = (
+            nn.Linear(self.item_emb_dim, config["d_model"], bias=False)
+            if self.add_align_item_emb_to_hidden and self.item_emb_dim > 0
             else None
         )
 
@@ -429,7 +439,7 @@ class CausalTIGER(nn.Module):
         valid_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         if (
-            not self.training
+            not (self.training or self.eval_embedding_noise)
             or self.embedding_noise_std <= 0.0
             or self.embedding_noise_prob <= 0.0
         ):
@@ -455,6 +465,124 @@ class CausalTIGER(nn.Module):
             return embeddings
         noise = torch.randn_like(embeddings) * self.embedding_noise_std
         return embeddings + noise * noise_mask.unsqueeze(-1).to(embeddings.dtype)
+
+    def _add_parallel_align_item_emb_to_hidden(
+        self,
+        hidden_states: torch.Tensor,
+        target_item_emb: Optional[torch.Tensor],
+        item_group: Optional[torch.Tensor],
+        code_phase: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        if not self.add_align_item_emb_to_hidden:
+            return hidden_states
+        if self.align_item_emb_to_hidden is None:
+            raise ValueError("add_align_item_emb_to_hidden requires item_emb_dim > 0")
+        if item_group is None:
+            raise ValueError(
+                "add_align_item_emb_to_hidden requires item_group"
+            )
+
+        batch_size, _, _ = hidden_states.shape
+        if self.align_target == "vocab":
+            if labels is None:
+                raise ValueError(
+                    "add_align_item_emb_to_hidden requires labels for vocab target"
+                )
+            max_items = int(item_group.clamp_min(0).max().item()) + 1
+        else:
+            if target_item_emb is None:
+                raise ValueError(
+                    "add_align_item_emb_to_hidden requires target_item_emb"
+                )
+            max_items = target_item_emb.size(1)
+
+        target_group = item_group if self.align_item == "next" else item_group - 1
+        valid = (item_group >= 0) & (target_group >= 0) & (target_group < max_items)
+        if self.align_target == "codebook":
+            if code_phase is None:
+                raise ValueError(
+                    "add_align_item_emb_to_hidden requires code_phase for codebook target"
+                )
+            valid = valid & (code_phase >= 1) & (code_phase <= 3)
+        if self.align_target == "vocab":
+            valid = valid & labels.ge(0)
+        if not valid.any():
+            return hidden_states
+
+        batch_idx = (
+            torch.arange(batch_size, device=hidden_states.device)
+            .unsqueeze(1)
+            .expand_as(item_group)
+        )
+        safe_group = target_group.clamp(0, max_items - 1)
+        if self.align_target == "vocab":
+            item_emb = self.shared(labels.clamp_min(0)).detach().to(hidden_states.dtype)
+        elif self.align_target == "codebook":
+            if target_item_emb.dim() != 4:
+                raise ValueError(
+                    "codebook target_item_emb must have shape "
+                    "[batch, max_items, code_per_item, item_emb_dim]"
+                )
+            safe_phase = (code_phase - 1).clamp(0, target_item_emb.size(-2) - 1)
+            item_emb = target_item_emb[batch_idx, safe_group, safe_phase].to(
+                hidden_states.dtype
+            )
+        else:
+            if target_item_emb.dim() != 3:
+                raise ValueError(
+                    "target_item_emb must have shape [batch, max_items, item_emb_dim]"
+                )
+            item_emb = target_item_emb[batch_idx, safe_group].to(hidden_states.dtype)
+        item_hidden = self.align_item_emb_to_hidden(item_emb)
+        return hidden_states + item_hidden * valid.unsqueeze(-1).to(hidden_states.dtype)
+
+    def _select_eval_align_item_emb(
+        self,
+        target_item_emb: Optional[torch.Tensor],
+        phase_idx: Optional[int] = None,
+    ) -> Optional[torch.Tensor]:
+        if target_item_emb is None:
+            return None
+        if target_item_emb.dim() == 2:
+            return target_item_emb
+        if target_item_emb.dim() == 3:
+            if phase_idx is None:
+                return target_item_emb
+            safe_phase = min(max(int(phase_idx), 0), target_item_emb.size(1) - 1)
+            return target_item_emb[:, safe_phase, :]
+        raise ValueError("target_item_emb must have shape [batch, dim] or [batch, 4, dim]")
+
+    def _add_eval_align_item_emb_to_hidden(
+        self,
+        hidden_states: torch.Tensor,
+        target_item_emb: Optional[torch.Tensor],
+        target_start: Optional[int] = None,
+        phase_idx: Optional[int] = None,
+    ) -> torch.Tensor:
+        if not self.add_align_item_emb_to_hidden:
+            return hidden_states
+        if self.align_item_emb_to_hidden is None:
+            raise ValueError("add_align_item_emb_to_hidden requires item_emb_dim > 0")
+        item_emb = self._select_eval_align_item_emb(target_item_emb, phase_idx)
+        if item_emb is None:
+            raise ValueError("add_align_item_emb_to_hidden requires target_item_emb")
+        item_hidden = self.align_item_emb_to_hidden(item_emb.to(hidden_states.dtype))
+        if target_start is None:
+            hidden_states = hidden_states.clone()
+            hidden_states[:, -1, :] = hidden_states[:, -1, :] + item_hidden
+            return hidden_states
+        hidden_states = hidden_states.clone()
+        hidden_states[
+            :, target_start : target_start + self.code_per_item, :
+        ] = hidden_states[
+            :, target_start : target_start + self.code_per_item, :
+        ] + (
+            item_hidden
+            if item_hidden.dim() == 3
+            else item_hidden.unsqueeze(1)
+        )
+        return hidden_states
 
     def _encode_tokens(
         self,
@@ -1165,6 +1293,13 @@ class CausalTIGER(nn.Module):
                 attention_mask,
                 input_code_mask=input_code_mask,
             )
+            hidden_states = self._add_parallel_align_item_emb_to_hidden(
+                hidden_states,
+                target_item_emb,
+                item_group,
+                code_phase=code_phase,
+                labels=labels,
+            )
             self.last_target_hidden_states = hidden_states.detach()
             logits, token_hidden_states = self._lm_logits(
                 hidden_states, labels, return_phase_hidden=True
@@ -1233,6 +1368,11 @@ class CausalTIGER(nn.Module):
             mixed_attention,
             input_code_mask=mixed_code_mask,
         )
+        hidden_states = self._add_eval_align_item_emb_to_hidden(
+            hidden_states,
+            target_item_emb,
+            target_start=target_start,
+        )
         target_hidden_states = hidden_states[
             :, target_start : target_start + self.code_per_item, :
         ]
@@ -1286,6 +1426,7 @@ class CausalTIGER(nn.Module):
         attention_mask: Optional[torch.Tensor],
         generated_ids: torch.Tensor,
         input_code_mask: Optional[torch.Tensor] = None,
+        target_item_emb: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         batch_size = input_ids.size(0)
         if input_ids.dim() == 3:
@@ -1346,6 +1487,11 @@ class CausalTIGER(nn.Module):
             model_attention_mask,
             input_code_mask=input_code_mask,
         )
+        hidden_states = self._add_eval_align_item_emb_to_hidden(
+            hidden_states,
+            target_item_emb,
+            phase_idx=generated_ids.size(1),
+        )
         return self._lm_logits(hidden_states)[:, -1, :]
 
     def generate(
@@ -1353,6 +1499,7 @@ class CausalTIGER(nn.Module):
         input_ids: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
         input_code_mask: Optional[torch.Tensor] = None,
+        target_item_emb: Optional[torch.Tensor] = None,
         max_length: int = 4,
         num_beams: int = 20,
         num_return_sequences: Optional[int] = None,
@@ -1380,6 +1527,11 @@ class CausalTIGER(nn.Module):
             if input_code_mask is not None
             else None
         )
+        beam_target_item_emb = (
+            target_item_emb.repeat_interleave(num_beams, dim=0)
+            if target_item_emb is not None
+            else None
+        )
         generated = torch.empty(
             (batch_size * num_beams, 0),
             dtype=input_ids.dtype,
@@ -1398,6 +1550,7 @@ class CausalTIGER(nn.Module):
                 beam_attention_mask,
                 generated,
                 input_code_mask=beam_input_code_mask,
+                target_item_emb=beam_target_item_emb,
             )
             log_probs = F.log_softmax(logits.float(), dim=-1)
 
@@ -1436,6 +1589,8 @@ class CausalTIGER(nn.Module):
                 beam_attention_mask = beam_attention_mask[gather_indices]
             if beam_input_code_mask is not None:
                 beam_input_code_mask = beam_input_code_mask[gather_indices]
+            if beam_target_item_emb is not None:
+                beam_target_item_emb = beam_target_item_emb[gather_indices]
             beam_scores = top_scores
 
         generated = generated.view(batch_size, num_beams, max_length)

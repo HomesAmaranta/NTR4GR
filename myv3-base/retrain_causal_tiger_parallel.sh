@@ -32,6 +32,8 @@ if [ "$#" -ge 17 ]; then
 fi
 embedding_noise_std=${17:-0.0}
 embedding_noise_prob=${18:-1.0}
+add_align_item_emb_to_hidden=${19:-0}
+eval_embedding_noise=${20:-0}
 early_stop_metric=ce
 
 dataset_path="../data/${dataset}"
@@ -112,10 +114,11 @@ if [ "$mse_loss_mode" = "only-hidden" ] && [ "$align_target" = "codebook" ]; the
   exit 1
 fi
 
-# Only encode the alignment hyper-parameters into the file name when the
-# auxiliary loss is actually enabled, so plain-CE runs keep their old names.
+# Encode alignment hyper-parameters when either the auxiliary loss is enabled
+# or align embeddings are injected into hidden states, avoiding name collisions
+# between different align targets/items.
 align_suffix=""
-if [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ]; then
+if [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ] || [ "$add_align_item_emb_to_hidden" = "1" ] || [ "$add_align_item_emb_to_hidden" = "true" ]; then
   if [ "$align_target" = "shallow" ]; then
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_shallowL${shallow_layer}_${align_item}"
   else
@@ -137,7 +140,37 @@ if [ "$has_embedding_noise_args" -eq 1 ]; then
   noise_suffix="_noise${embedding_noise_std}_p${embedding_noise_prob}"
 fi
 
-file_stem="causal_tiger_${dataset}_parallel_b${block_items}_s${stride_items}_bs${batch_size}_lr${lr}_head${lm_head}${align_suffix}${hidden_suffix}${noise_suffix}_seed${seed}${name_suffix}"
+align_hidden_suffix=""
+align_hidden_args=()
+case "$add_align_item_emb_to_hidden" in
+  1|true|True|TRUE|yes|Yes|YES)
+    align_hidden_suffix="_addalignhidden"
+    align_hidden_args=(--add_align_item_emb_to_hidden)
+    ;;
+  0|false|False|FALSE|no|No|NO)
+    ;;
+  *)
+    echo "Unknown add_align_item_emb_to_hidden: ${add_align_item_emb_to_hidden}. Use 0/1 or true/false." >&2
+    exit 1
+    ;;
+esac
+
+eval_noise_suffix=""
+eval_noise_args=()
+case "$eval_embedding_noise" in
+  1|true|True|TRUE|yes|Yes|YES)
+    eval_noise_suffix="_evalnoise"
+    eval_noise_args=(--eval_embedding_noise)
+    ;;
+  0|false|False|FALSE|no|No|NO)
+    ;;
+  *)
+    echo "Unknown eval_embedding_noise: ${eval_embedding_noise}. Use 0/1 or true/false." >&2
+    exit 1
+    ;;
+esac
+
+file_stem="causal_tiger_${dataset}_parallel_b${block_items}_s${stride_items}_bs${batch_size}_lr${lr}_head${lm_head}${align_suffix}${hidden_suffix}${noise_suffix}${eval_noise_suffix}${align_hidden_suffix}_seed${seed}${name_suffix}"
 log_dir_path="./logs"
 if [ -n "$log_dir" ]; then
   log_dir_path="${log_dir_path}/${log_dir}"
@@ -189,4 +222,6 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3-base
   --early_stop 10 \
   --test_interval $test_interval \
   --beam_size 20 \
-  --seed $seed
+  --seed $seed \
+  "${eval_noise_args[@]}" \
+  "${align_hidden_args[@]}"

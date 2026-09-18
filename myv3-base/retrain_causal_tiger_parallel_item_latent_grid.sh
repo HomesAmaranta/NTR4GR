@@ -9,17 +9,19 @@ batch_sizes=(128)
 learning_rates=(1e-3)
 lm_head=mlp
 align_loss_type=cos
-log_dir=0917_noise_align_light
+log_dir=0918_add_hidden
 
 seeds=(1 42 2025)
-align_targets=(quantized)
+align_targets=(quantized latent)
 align_items=(current)
-mse_loss_weights=(5)
+mse_loss_weights=(0)
 mse_loss_modes=(mean)
 shallow_layers=(1)
 hidden_layers=(-1)
-embedding_noise_stds=(0.05 0.1 0.15)
-embedding_noise_probs=(1.0 0.5)
+embedding_noise_stds=(0.0)
+embedding_noise_probs=(1.0)
+add_align_item_emb_to_hidden_values=(1)
+eval_embedding_noise_values=(0)
 
 for seed in "${seeds[@]}"; do
   for align_target in "${align_targets[@]}"; do
@@ -44,28 +46,42 @@ for seed in "${seeds[@]}"; do
                   fi
                   for embedding_noise_std in "${embedding_noise_stds[@]}"; do
                     for embedding_noise_prob in "${embedding_noise_probs[@]}"; do
-                      noise_desc="_noise${embedding_noise_std}_p${embedding_noise_prob}"
-                      desc="causal_tiger_Beauty_parallel_b${block_items}_s${stride_items}_bs${bs}_lr${lr}_head${lm_head}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${target_desc}_${align_item}${hidden_desc}${noise_desc}_seed${seed}"
-                      mytask ./retrain_causal_tiger_parallel.sh \
-                        "$block_items" \
-                        "$stride_items" \
-                        "$bs" \
-                        "$lr" \
-                        "$lm_head" \
-                        "$mse_loss_weight" \
-                        "$align_target" \
-                        "$align_loss_type" \
-                        "$align_item" \
-                        "" \
-                        "$seed" \
-                        "$log_dir" \
-                        "$mse_loss_mode" \
-                        "$shallow_layer" \
-                        -1 \
-                        "$hidden_layer" \
-                        "$embedding_noise_std" \
-                        "$embedding_noise_prob" \
-                        -m "$desc"
+                      for add_align_item_emb_to_hidden in "${add_align_item_emb_to_hidden_values[@]}"; do
+                        for eval_embedding_noise in "${eval_embedding_noise_values[@]}"; do
+                          noise_desc="_noise${embedding_noise_std}_p${embedding_noise_prob}"
+                          eval_noise_desc=""
+                          if [ "$eval_embedding_noise" = "1" ] || [ "$eval_embedding_noise" = "true" ]; then
+                            eval_noise_desc="_evalnoise"
+                          fi
+                          align_hidden_desc=""
+                          if [ "$add_align_item_emb_to_hidden" = "1" ] || [ "$add_align_item_emb_to_hidden" = "true" ]; then
+                            align_hidden_desc="_addalignhidden"
+                          fi
+                          desc="causal_tiger_Beauty_parallel_b${block_items}_s${stride_items}_bs${bs}_lr${lr}_head${lm_head}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${target_desc}_${align_item}${hidden_desc}${noise_desc}${eval_noise_desc}${align_hidden_desc}_seed${seed}"
+                          mytask ./retrain_causal_tiger_parallel.sh \
+                            "$block_items" \
+                            "$stride_items" \
+                            "$bs" \
+                            "$lr" \
+                            "$lm_head" \
+                            "$mse_loss_weight" \
+                            "$align_target" \
+                            "$align_loss_type" \
+                            "$align_item" \
+                            "" \
+                            "$seed" \
+                            "$log_dir" \
+                            "$mse_loss_mode" \
+                            "$shallow_layer" \
+                            -1 \
+                            "$hidden_layer" \
+                            "$embedding_noise_std" \
+                            "$embedding_noise_prob" \
+                            "$add_align_item_emb_to_hidden" \
+                            "$eval_embedding_noise" \
+                            -m "$desc"
+                        done
+                      done
                     done
                   done
                 done

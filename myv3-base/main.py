@@ -512,14 +512,26 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
                 input_code_mask.to(device) if input_code_mask is not None else None
             )
             labels = batch["target"].to(device)
+            target_item_emb = batch.get("target_item_emb")
+            target_item_emb = (
+                target_item_emb.to(device) if target_item_emb is not None else None
+            )
 
             is_causal = model.__class__.__name__ == "CausalTIGER"
-            loss, _ = model(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                labels=labels,
-                input_code_mask=input_code_mask,
-            )
+            if is_causal:
+                loss, _ = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    labels=labels,
+                    target_item_emb=target_item_emb,
+                    input_code_mask=input_code_mask,
+                )
+            else:
+                loss, _ = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    labels=labels,
+                )
             loss_dict = getattr(model, "last_loss_dict", None)
             ce_losses.append(
                 loss_dict["ce"].item()
@@ -535,6 +547,7 @@ def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
             }
             if is_causal:
                 generate_kwargs["max_length"] = labels.size(1)
+                generate_kwargs["target_item_emb"] = target_item_emb
 
             preds = model.generate(**generate_kwargs)
             if not is_causal:
@@ -672,6 +685,11 @@ if __name__ == "__main__":
         help="Probability of adding embedding noise per item/token position, valid range [0, 1]",
     )
     parser.add_argument(
+        "--eval_embedding_noise",
+        action="store_true",
+        help="Also add the configured embedding noise during validation/test/generation",
+    )
+    parser.add_argument(
         "--max_len",
         type=int,
         default=20,
@@ -759,6 +777,11 @@ if __name__ == "__main__":
         default="next",
         choices=["current", "pre", "next", "near"],
         help="Item embedding to align: current history item or next target item",
+    )
+    parser.add_argument(
+        "--add_align_item_emb_to_hidden",
+        action="store_true",
+        help="Project the configured parallel align target embedding and add it to last hidden states before logits",
     )
     parser.add_argument(
         "--shallow_layer",
@@ -877,14 +900,16 @@ if __name__ == "__main__":
     # Check if the device is available
     device = torch.device(config["device"] if torch.cuda.is_available() else "cpu")
     print("device: ", device)
+    needs_item_emb = (
+        config["mse_loss_weight"] > 0
+        or config.get("add_align_item_emb_to_hidden", False)
+    )
     train_dataset = GenRecDataset(
         dataset_path=config["dataset_path"] + "/train.parquet",
         code_path=config["code_path"],
         mode="train_parallel" if config["train_mode"] == "parallel" else "train",
         max_len=config["max_len"],
-        item_emb_path=(
-            config["item_emb_path"] if config["mse_loss_weight"] > 0 else None
-        ),
+        item_emb_path=(config["item_emb_path"] if needs_item_emb else None),
         align_item=config["align_item"],
         block_items=config["block_items"],
         stride_items=config["stride_items"],
@@ -894,9 +919,7 @@ if __name__ == "__main__":
         code_path=config["code_path"],
         mode="evaluation",
         max_len=config["max_len"],
-        item_emb_path=(
-            config["item_emb_path"] if config["mse_loss_weight"] > 0 else None
-        ),
+        item_emb_path=(config["item_emb_path"] if needs_item_emb else None),
         align_item=config["align_item"],
     )
     test_dataset = GenRecDataset(
@@ -904,6 +927,8 @@ if __name__ == "__main__":
         code_path=config["code_path"],
         mode="evaluation",
         max_len=config["max_len"],
+        item_emb_path=(config["item_emb_path"] if needs_item_emb else None),
+        align_item=config["align_item"],
     )
 
     dataloader_generator = torch.Generator()

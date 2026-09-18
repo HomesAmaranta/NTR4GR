@@ -87,6 +87,8 @@ def entry_sort_key(entry):
         entry["lr_raw"],
         entry["noise_std_raw"],
         entry["noise_prob_raw"],
+        entry["eval_noise"],
+        entry["add_align_hidden"],
         entry["target"],
         entry["item"],
         entry["k"],
@@ -106,6 +108,8 @@ def entry_to_row(entry):
         entry["lr"],
         entry["noise_std"],
         entry["noise_prob"],
+        entry["eval_noise"],
+        entry["add_align_hidden"],
         entry["item"],
         entry["k"],
         entry["seed"],
@@ -131,6 +135,8 @@ def aggregate_entries(entries):
             entry["lr"],
             entry["noise_std"],
             entry["noise_prob"],
+            entry["eval_noise"],
+            entry["add_align_hidden"],
             entry["item"],
             entry["k"],
         )
@@ -158,6 +164,8 @@ def build_table(rows):
         "lr",
         "noise_std",
         "noise_prob",
+        "eval_noise",
+        "add_align_hidden",
         "item",
         "k",
         "seed",
@@ -215,6 +223,8 @@ def main():
         lr = config.get("lr")
         noise_std = config.get("embedding_noise_std", 0.0)
         noise_prob = config.get("embedding_noise_prob", 1.0)
+        eval_noise = bool(config.get("eval_embedding_noise", False))
+        add_align_hidden = bool(config.get("add_align_item_emb_to_hidden", False))
         entries.append(
             {
                 "align": align,
@@ -237,6 +247,8 @@ def main():
                 "noise_prob_raw": (
                     float(noise_prob) if noise_prob is not None else float("inf")
                 ),
+                "eval_noise": str(eval_noise),
+                "add_align_hidden": str(add_align_hidden),
                 "item": fmt(config.get("align_item")),
                 "k": fmt(config.get("align_current_k")),
                 "seed": fmt(config.get("seed")),
