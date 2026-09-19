@@ -297,9 +297,19 @@ class CausalTIGER(nn.Module):
         self.embedding_noise_std = config.get("embedding_noise_std", 0.0)
         self.embedding_noise_prob = config.get("embedding_noise_prob", 1.0)
         self.eval_embedding_noise = config.get("eval_embedding_noise", False)
-        self.add_align_item_emb_to_hidden = config.get(
-            "add_align_item_emb_to_hidden",
-            False,
+        self.align_item_emb_to_hidden_mode = config.get(
+            "align_item_emb_to_hidden_mode",
+            "add" if config.get("add_align_item_emb_to_hidden", False) else "none",
+        )
+        if isinstance(self.align_item_emb_to_hidden_mode, bool):
+            self.align_item_emb_to_hidden_mode = (
+                "add" if self.align_item_emb_to_hidden_mode else "none"
+            )
+        self.align_item_emb_to_hidden_mode = str(
+            self.align_item_emb_to_hidden_mode
+        ).lower()
+        self.add_align_item_emb_to_hidden = (
+            self.align_item_emb_to_hidden_mode != "none"
         )
         if self.hidden_layer != -1 and self.mse_loss_weight > 0:
             self.mse_loss_mode = "only-hidden"
@@ -333,6 +343,10 @@ class CausalTIGER(nn.Module):
             raise ValueError("embedding_noise_std must be non-negative")
         if self.embedding_noise_prob < 0.0 or self.embedding_noise_prob > 1.0:
             raise ValueError("embedding_noise_prob must be in [0, 1]")
+        if self.align_item_emb_to_hidden_mode not in {"none", "add", "concat"}:
+            raise ValueError(
+                "align_item_emb_to_hidden_mode must be 'none', 'add' or 'concat'"
+            )
         if self.shallow_layer < 1 or self.shallow_layer > config["num_layers"]:
             raise ValueError(f"shallow_layer must be in [1, {config['num_layers']}]")
         self.selected_hidden_layer = self._resolve_hidden_layer(
@@ -365,6 +379,11 @@ class CausalTIGER(nn.Module):
         self.align_item_emb_to_hidden = (
             nn.Linear(self.item_emb_dim, config["d_model"], bias=False)
             if self.add_align_item_emb_to_hidden and self.item_emb_dim > 0
+            else None
+        )
+        self.align_hidden_concat_proj = (
+            nn.Linear(config["d_model"] * 2, config["d_model"], bias=False)
+            if self.align_item_emb_to_hidden_mode == "concat"
             else None
         )
 
@@ -461,6 +480,23 @@ class CausalTIGER(nn.Module):
                 device=embeddings.device,
                 dtype=torch.bool,
             )
+        if not self.training and self.eval_embedding_noise and noise_mask.dim() >= 2:
+            if valid_mask is not None:
+                valid_bool = valid_mask.to(device=embeddings.device, dtype=torch.bool)
+                valid_counts = valid_bool.long().sum(dim=-1)
+                has_valid = valid_counts > 0
+                last_valid_idx = (valid_counts - 1).clamp_min(0)
+            else:
+                batch_size = noise_mask.size(0)
+                has_valid = torch.ones(batch_size, device=embeddings.device, dtype=torch.bool)
+                last_valid_idx = torch.full(
+                    (batch_size,),
+                    noise_mask.size(-1) - 1,
+                    device=embeddings.device,
+                    dtype=torch.long,
+                )
+            batch_idx = torch.arange(noise_mask.size(0), device=embeddings.device)
+            noise_mask[batch_idx[has_valid], last_valid_idx[has_valid]] = False
         if not noise_mask.any():
             return embeddings
         noise = torch.randn_like(embeddings) * self.embedding_noise_std
@@ -535,7 +571,30 @@ class CausalTIGER(nn.Module):
                 )
             item_emb = target_item_emb[batch_idx, safe_group].to(hidden_states.dtype)
         item_hidden = self.align_item_emb_to_hidden(item_emb)
-        return hidden_states + item_hidden * valid.unsqueeze(-1).to(hidden_states.dtype)
+        return self._fuse_align_item_hidden(hidden_states, item_hidden, valid)
+
+    def _fuse_align_item_hidden(
+        self,
+        hidden_states: torch.Tensor,
+        item_hidden: torch.Tensor,
+        valid_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        if self.align_item_emb_to_hidden_mode == "add":
+            fused = hidden_states + item_hidden
+        elif self.align_item_emb_to_hidden_mode == "concat":
+            if self.align_hidden_concat_proj is None:
+                raise ValueError(
+                    "align_item_emb_to_hidden_mode='concat' requires concat projection"
+                )
+            fused = self.align_hidden_concat_proj(
+                torch.cat([hidden_states, item_hidden], dim=-1)
+            )
+        else:
+            return hidden_states
+        if valid_mask is None:
+            return fused
+        valid_mask = valid_mask.unsqueeze(-1).to(hidden_states.dtype)
+        return hidden_states * (1.0 - valid_mask) + fused * valid_mask
 
     def _select_eval_align_item_emb(
         self,
@@ -570,17 +629,22 @@ class CausalTIGER(nn.Module):
         item_hidden = self.align_item_emb_to_hidden(item_emb.to(hidden_states.dtype))
         if target_start is None:
             hidden_states = hidden_states.clone()
-            hidden_states[:, -1, :] = hidden_states[:, -1, :] + item_hidden
+            hidden_states[:, -1:, :] = self._fuse_align_item_hidden(
+                hidden_states[:, -1:, :],
+                item_hidden.unsqueeze(1),
+            )
             return hidden_states
         hidden_states = hidden_states.clone()
-        hidden_states[
-            :, target_start : target_start + self.code_per_item, :
-        ] = hidden_states[
-            :, target_start : target_start + self.code_per_item, :
-        ] + (
+        item_hidden = (
             item_hidden
             if item_hidden.dim() == 3
             else item_hidden.unsqueeze(1)
+        )
+        hidden_states[
+            :, target_start : target_start + self.code_per_item, :
+        ] = self._fuse_align_item_hidden(
+            hidden_states[:, target_start : target_start + self.code_per_item, :],
+            item_hidden,
         )
         return hidden_states
 

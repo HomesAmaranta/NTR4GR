@@ -781,7 +781,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--add_align_item_emb_to_hidden",
         action="store_true",
-        help="Project the configured parallel align target embedding and add it to last hidden states before logits",
+        help="Backward-compatible alias for --align_item_emb_to_hidden_mode add",
+    )
+    parser.add_argument(
+        "--align_item_emb_to_hidden_mode",
+        type=str,
+        default=None,
+        choices=["none", "add", "concat"],
+        help="Fuse configured align target embedding into last hidden states before logits",
     )
     parser.add_argument(
         "--shallow_layer",
@@ -851,6 +858,13 @@ if __name__ == "__main__":
         "--beam_size", type=int, default=30, help="Beam size for generation"
     )
     config = vars(parser.parse_args())
+    if config["align_item_emb_to_hidden_mode"] is None:
+        config["align_item_emb_to_hidden_mode"] = (
+            "add" if config["add_align_item_emb_to_hidden"] else "none"
+        )
+    config["add_align_item_emb_to_hidden"] = (
+        config["align_item_emb_to_hidden_mode"] != "none"
+    )
     if config["item_emb_path"] in {"", "None"}:
         config["item_emb_path"] = None
     if config["embedding_noise_std"] < 0.0:

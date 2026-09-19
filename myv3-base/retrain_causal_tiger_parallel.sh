@@ -32,7 +32,7 @@ if [ "$#" -ge 17 ]; then
 fi
 embedding_noise_std=${17:-0.0}
 embedding_noise_prob=${18:-1.0}
-add_align_item_emb_to_hidden=${19:-0}
+align_item_emb_to_hidden_mode=${19:-none}
 eval_embedding_noise=${20:-0}
 early_stop_metric=ce
 
@@ -118,7 +118,21 @@ fi
 # or align embeddings are injected into hidden states, avoiding name collisions
 # between different align targets/items.
 align_suffix=""
-if [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ] || [ "$add_align_item_emb_to_hidden" = "1" ] || [ "$add_align_item_emb_to_hidden" = "true" ]; then
+case "$align_item_emb_to_hidden_mode" in
+  1|true|True|TRUE|yes|Yes|YES|add)
+    align_item_emb_to_hidden_mode=add
+    ;;
+  concat)
+    ;;
+  0|false|False|FALSE|no|No|NO|none)
+    align_item_emb_to_hidden_mode=none
+    ;;
+  *)
+    echo "Unknown align_item_emb_to_hidden_mode: ${align_item_emb_to_hidden_mode}. Use none/add/concat or 0/1." >&2
+    exit 1
+    ;;
+esac
+if [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ] || [ "$align_item_emb_to_hidden_mode" != "none" ]; then
   if [ "$align_target" = "shallow" ]; then
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_shallowL${shallow_layer}_${align_item}"
   else
@@ -142,16 +156,16 @@ fi
 
 align_hidden_suffix=""
 align_hidden_args=()
-case "$add_align_item_emb_to_hidden" in
-  1|true|True|TRUE|yes|Yes|YES)
+case "$align_item_emb_to_hidden_mode" in
+  add)
     align_hidden_suffix="_addalignhidden"
-    align_hidden_args=(--add_align_item_emb_to_hidden)
+    align_hidden_args=(--align_item_emb_to_hidden_mode add)
     ;;
-  0|false|False|FALSE|no|No|NO)
+  concat)
+    align_hidden_suffix="_concatalignhidden"
+    align_hidden_args=(--align_item_emb_to_hidden_mode concat)
     ;;
-  *)
-    echo "Unknown add_align_item_emb_to_hidden: ${add_align_item_emb_to_hidden}. Use 0/1 or true/false." >&2
-    exit 1
+  none)
     ;;
 esac
 
@@ -172,14 +186,16 @@ esac
 
 file_stem="causal_tiger_${dataset}_parallel_b${block_items}_s${stride_items}_bs${batch_size}_lr${lr}_head${lm_head}${align_suffix}${hidden_suffix}${noise_suffix}${eval_noise_suffix}${align_hidden_suffix}_seed${seed}${name_suffix}"
 log_dir_path="./logs"
+ckpt_dir_path="./ckpt"
 if [ -n "$log_dir" ]; then
   log_dir_path="${log_dir_path}/${log_dir}"
+  ckpt_dir_path="${ckpt_dir_path}/${log_dir}"
 fi
 
-save_path="./ckpt/${file_stem}.pth"
+save_path="${ckpt_dir_path}/${file_stem}.pth"
 log_path="${log_dir_path}/${file_stem}.log"
 
-mkdir -p ./ckpt "$log_dir_path"
+mkdir -p "$ckpt_dir_path" "$log_dir_path"
 cd /mlx_devbox/users/fengyuebo/playground/TIGER/myv3-base
 /usr/bin/python main.py \
   --model_type causal \

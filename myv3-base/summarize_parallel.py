@@ -88,7 +88,7 @@ def entry_sort_key(entry):
         entry["noise_std_raw"],
         entry["noise_prob_raw"],
         entry["eval_noise"],
-        entry["add_align_hidden"],
+        entry["align_hidden_mode"],
         entry["target"],
         entry["item"],
         entry["k"],
@@ -109,7 +109,7 @@ def entry_to_row(entry):
         entry["noise_std"],
         entry["noise_prob"],
         entry["eval_noise"],
-        entry["add_align_hidden"],
+        entry["align_hidden_mode"],
         entry["item"],
         entry["k"],
         entry["seed"],
@@ -136,7 +136,7 @@ def aggregate_entries(entries):
             entry["noise_std"],
             entry["noise_prob"],
             entry["eval_noise"],
-            entry["add_align_hidden"],
+            entry["align_hidden_mode"],
             entry["item"],
             entry["k"],
         )
@@ -165,7 +165,7 @@ def build_table(rows):
         "noise_std",
         "noise_prob",
         "eval_noise",
-        "add_align_hidden",
+        "align_hidden_mode",
         "item",
         "k",
         "seed",
@@ -224,7 +224,13 @@ def main():
         noise_std = config.get("embedding_noise_std", 0.0)
         noise_prob = config.get("embedding_noise_prob", 1.0)
         eval_noise = bool(config.get("eval_embedding_noise", False))
-        add_align_hidden = bool(config.get("add_align_item_emb_to_hidden", False))
+        align_hidden_mode = config.get("align_item_emb_to_hidden_mode")
+        if align_hidden_mode is None:
+            align_hidden_mode = (
+                "add"
+                if bool(config.get("add_align_item_emb_to_hidden", False))
+                else "none"
+            )
         entries.append(
             {
                 "align": align,
@@ -248,7 +254,7 @@ def main():
                     float(noise_prob) if noise_prob is not None else float("inf")
                 ),
                 "eval_noise": str(eval_noise),
-                "add_align_hidden": str(add_align_hidden),
+                "align_hidden_mode": str(align_hidden_mode),
                 "item": fmt(config.get("align_item")),
                 "k": fmt(config.get("align_current_k")),
                 "seed": fmt(config.get("seed")),
