@@ -1,0 +1,253 @@
+#!/usr/bin/env bash
+# Parallel next-token training for CausalTIGER.
+# Each user sequence is cut into overlapping blocks of `block_items` items with
+# stride `stride_items` (overlap = block_items - stride_items):
+#   - length <= block_items : one block, every position supervised.
+#   - length >  block_items : multiple sliding blocks; in each non-first block
+#     the first `block_items - stride_items` items serve as history only
+#     (masked out of the loss).
+# `attention_window` is derived automatically as max_len x 4 tokens (parallel
+# mode only), keeping the visible history equal to max_len items.
+
+dataset=Beauty
+block_items=${1:-80}
+stride_items=${2:-60}
+batch_size=${3:-128}
+lr=${4:-2e-3}
+lm_head=${5:-mlp}
+mse_loss_weight=${6:-0}
+align_target=${7:-quantized}
+align_loss_type=${8:-cos}
+align_item=${9:-}
+name_suffix=${10:-}
+seed=${11:-1}
+log_dir=${12:-}
+mse_loss_mode=${13:-mean}
+shallow_layer=${14:-1}
+test_interval=${15:--1}
+hidden_layer=${16:--1}
+has_embedding_noise_args=0
+if [ "$#" -ge 17 ]; then
+  has_embedding_noise_args=1
+fi
+embedding_noise_std=${17:-0.0}
+embedding_noise_prob=${18:-1.0}
+align_item_emb_to_hidden_mode=${19:-none}
+eval_embedding_noise=${20:-0}
+embedding_noise_mode=${21:-add}
+early_stop_metric=ce
+
+dataset_path="../data/${dataset}"
+code_path="../data/${dataset}/${dataset}_t5_rqvae.npy"
+
+if [ "$hidden_layer" != "-1" ] && [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ]; then
+  mse_loss_mode=only-hidden
+fi
+
+# Auxiliary alignment loss supports token-level or mean-pooled per-item hidden
+# states. Shallow uses the next item's shallow hidden states as targets.
+case "$align_target" in
+  item)
+    item_emb_path="../data/${dataset}/item_emb.parquet"
+    item_emb_dim=768
+    ;;
+  latent)
+    item_emb_path="../data/${dataset}/item_emb_rqvae_encoder_latent.parquet"
+    item_emb_dim=32
+    ;;
+  quantized)
+    item_emb_path="../data/${dataset}/item_emb_rqvae_quantized_latent.parquet"
+    item_emb_dim=32
+    ;;
+  codebook)
+    item_emb_path="../data/${dataset}/item_emb_rqvae_codebook.parquet"
+    item_emb_dim=32
+    ;;
+  vocab)
+    item_emb_path=None
+    item_emb_dim=128
+    ;;
+  shallow)
+    item_emb_path=None
+    item_emb_dim=128
+    ;;
+  *)
+    echo "Unknown align_target: ${align_target}. Use item, latent, quantized, codebook, vocab, or shallow." >&2
+    exit 1
+    ;;
+esac
+if [ -z "$align_item" ]; then
+  if [ "$align_target" = "shallow" ] || [ "$align_target" = "vocab" ]; then
+    align_item=next
+  else
+    align_item=current
+  fi
+fi
+if [ "$align_item" = "pre" ]; then
+  align_item=current
+fi
+case "$align_item" in
+  current|next|near)
+    ;;
+  *)
+    echo "Unknown align_item: ${align_item}. Use current, next, or near." >&2
+    exit 1
+    ;;
+esac
+if [ "$align_item" = "near" ] && [ "$align_target" != "shallow" ]; then
+  echo "align_item=near is only supported when align_target=shallow." >&2
+  exit 1
+fi
+if [ "$align_target" = "vocab" ] && [ "$align_item" != "next" ]; then
+  echo "align_target=vocab only supports align_item=next." >&2
+  exit 1
+fi
+case "$mse_loss_mode" in
+  mean|mean-bar|only-hidden|token|pre-first)
+    ;;
+  *)
+    echo "Unknown mse_loss_mode: ${mse_loss_mode}. Use mean, mean-bar, only-hidden, token, or pre-first." >&2
+    exit 1
+    ;;
+esac
+if [ "$mse_loss_mode" = "only-hidden" ] && [ "$align_target" = "codebook" ]; then
+  echo "mse_loss_mode=only-hidden does not support align_target=codebook." >&2
+  exit 1
+fi
+
+# Encode alignment hyper-parameters when either the auxiliary loss is enabled
+# or align embeddings are injected into hidden states, avoiding name collisions
+# between different align targets/items.
+align_suffix=""
+case "$align_item_emb_to_hidden_mode" in
+  1|true|True|TRUE|yes|Yes|YES|add)
+    align_item_emb_to_hidden_mode=add
+    ;;
+  concat)
+    ;;
+  0|false|False|FALSE|no|No|NO|none)
+    align_item_emb_to_hidden_mode=none
+    ;;
+  *)
+    echo "Unknown align_item_emb_to_hidden_mode: ${align_item_emb_to_hidden_mode}. Use none/add/concat or 0/1." >&2
+    exit 1
+    ;;
+esac
+if [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ] || [ "$align_item_emb_to_hidden_mode" != "none" ]; then
+  if [ "$align_target" = "shallow" ]; then
+    align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_shallowL${shallow_layer}_${align_item}"
+  else
+    align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}"
+  fi
+fi
+
+if [ -n "$name_suffix" ]; then
+  name_suffix="_${name_suffix}"
+fi
+
+hidden_suffix=""
+if [ "$hidden_layer" != "-1" ]; then
+  hidden_suffix="_hiddenL${hidden_layer}"
+fi
+
+noise_suffix=""
+if [ "$has_embedding_noise_args" -eq 1 ]; then
+  case "$embedding_noise_mode" in
+    add|fusion|replace|gaussian_replace)
+      ;;
+    *)
+      echo "Unknown embedding_noise_mode: ${embedding_noise_mode}. Use add/fusion/replace/gaussian_replace." >&2
+      exit 1
+      ;;
+  esac
+  noise_suffix="_${embedding_noise_mode}noise${embedding_noise_std}_p${embedding_noise_prob}"
+fi
+
+align_hidden_suffix=""
+align_hidden_args=()
+case "$align_item_emb_to_hidden_mode" in
+  add)
+    align_hidden_suffix="_addalignhidden"
+    align_hidden_args=(--align_item_emb_to_hidden_mode add)
+    ;;
+  concat)
+    align_hidden_suffix="_concatalignhidden"
+    align_hidden_args=(--align_item_emb_to_hidden_mode concat)
+    ;;
+  none)
+    ;;
+esac
+
+eval_noise_suffix=""
+eval_noise_args=()
+case "$eval_embedding_noise" in
+  1|true|True|TRUE|yes|Yes|YES)
+    eval_noise_suffix="_evalnoise"
+    eval_noise_args=(--eval_embedding_noise)
+    ;;
+  0|false|False|FALSE|no|No|NO)
+    ;;
+  *)
+    echo "Unknown eval_embedding_noise: ${eval_embedding_noise}. Use 0/1 or true/false." >&2
+    exit 1
+    ;;
+esac
+
+file_stem="causal_tiger_${dataset}_parallel_b${block_items}_s${stride_items}_bs${batch_size}_lr${lr}_head${lm_head}${align_suffix}${hidden_suffix}${noise_suffix}${eval_noise_suffix}${align_hidden_suffix}_seed${seed}${name_suffix}"
+log_dir_path="./logs"
+ckpt_dir_path="./ckpt"
+if [ -n "$log_dir" ]; then
+  log_dir_path="${log_dir_path}/${log_dir}"
+  ckpt_dir_path="${ckpt_dir_path}/${log_dir}"
+fi
+
+save_path="${ckpt_dir_path}/${file_stem}.pth"
+log_path="${log_dir_path}/${file_stem}.log"
+
+mkdir -p "$ckpt_dir_path" "$log_dir_path"
+cd /mlx_devbox/users/fengyuebo/playground/TIGER/noise
+/usr/bin/python main.py \
+  --model_type causal \
+  --train_mode parallel \
+  --block_items $block_items \
+  --stride_items $stride_items \
+  --dataset_path $dataset_path \
+  --code_path $code_path \
+  --item_emb_path $item_emb_path \
+  --item_emb_dim $item_emb_dim \
+  --mse_loss_weight $mse_loss_weight \
+  --mse_loss_mode $mse_loss_mode \
+  --align_loss_type $align_loss_type \
+  --align_target $align_target \
+  --align_item $align_item \
+  --shallow_layer $shallow_layer \
+  --hidden_layer $hidden_layer \
+  --early_stop_metric $early_stop_metric \
+  --save_path $save_path \
+  --log_path $log_path \
+  --batch_size $batch_size \
+  --infer_size 96 \
+  --num_epochs 120 \
+  --max_len 20 \
+  --num_layers 4 \
+  --num_decoder_layers 0 \
+  --d_model 128 \
+  --d_ff 1024 \
+  --num_heads 6 \
+  --d_kv 64 \
+  --dropout_rate 0.1 \
+  --vocab_size 1025 \
+  --pad_token_id 0 \
+  --eos_token_id 0 \
+  --feed_forward_proj relu \
+  --embedding_noise_mode $embedding_noise_mode \
+  --embedding_noise_std $embedding_noise_std \
+  --embedding_noise_prob $embedding_noise_prob \
+  --lm_head $lm_head \
+  --lr $lr \
+  --early_stop 10 \
+  --test_interval $test_interval \
+  --beam_size 20 \
+  --seed $seed \
+  "${eval_noise_args[@]}" \
+  "${align_hidden_args[@]}"

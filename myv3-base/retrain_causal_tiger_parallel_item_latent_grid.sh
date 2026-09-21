@@ -12,8 +12,8 @@ align_loss_type=cos
 log_dir=align
 
 seeds=(42)
-align_targets=(quantized latent)
-align_items=(current)
+align_targets=(quantized current)
+align_items=(next)
 mse_loss_weights=(5)
 mse_loss_modes=(mean)
 shallow_layers=(1)

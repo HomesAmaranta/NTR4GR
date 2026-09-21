@@ -294,6 +294,8 @@ class CausalTIGER(nn.Module):
         self.align_item = config.get("align_item", "next")
         self.code_per_item = 4
         self.hidden_layer = config.get("hidden_layer", -1)
+        self.embedding_noise_mode = config.get("embedding_noise_mode", "add")
+        self.embedding_noise_mode = str(self.embedding_noise_mode).lower()
         self.embedding_noise_std = config.get("embedding_noise_std", 0.0)
         self.embedding_noise_prob = config.get("embedding_noise_prob", 1.0)
         self.eval_embedding_noise = config.get("eval_embedding_noise", False)
@@ -339,8 +341,22 @@ class CausalTIGER(nn.Module):
             raise ValueError("align_loss_type must be 'mse' or 'cos'")
         if self.lm_head_type not in {"emb", "mlp"}:
             raise ValueError("lm_head must be 'emb' or 'mlp'")
+        if self.embedding_noise_mode not in {
+            "add",
+            "fusion",
+            "replace",
+            "gaussian_replace",
+        }:
+            raise ValueError(
+                "embedding_noise_mode must be 'add', 'fusion', 'replace', "
+                "or 'gaussian_replace'"
+            )
         if self.embedding_noise_std < 0.0:
             raise ValueError("embedding_noise_std must be non-negative")
+        if self.embedding_noise_mode in {"fusion", "replace", "gaussian_replace"} and self.embedding_noise_std > 1.0:
+            raise ValueError(
+                "embedding_noise_std must be in [0, 1] for fusion/replace/gaussian_replace"
+            )
         if self.embedding_noise_prob < 0.0 or self.embedding_noise_prob > 1.0:
             raise ValueError("embedding_noise_prob must be in [0, 1]")
         if self.align_item_emb_to_hidden_mode not in {"none", "add", "concat"}:
@@ -460,30 +476,99 @@ class CausalTIGER(nn.Module):
         if (
             not (self.training or self.eval_embedding_noise)
             or self.embedding_noise_std <= 0.0
-            or self.embedding_noise_prob <= 0.0
         ):
             return embeddings
+
         position_shape = embeddings.shape[:-1]
-        if self.embedding_noise_prob >= 1.0:
+        if self.embedding_noise_mode == "add":
+            mask_prob = self.embedding_noise_prob
+        elif self.embedding_noise_mode == "fusion":
+            mask_prob = 1.0
+        else:
+            mask_prob = self.embedding_noise_std
+        if mask_prob <= 0.0:
+            return embeddings
+
+        valid_position_mask = torch.ones(
+            position_shape,
+            device=embeddings.device,
+            dtype=torch.bool,
+        )
+        if mask_prob >= 1.0:
             noise_mask = torch.ones(
                 position_shape,
                 device=embeddings.device,
                 dtype=torch.bool,
             )
         else:
-            noise_mask = (
-                torch.rand(position_shape, device=embeddings.device)
-                < self.embedding_noise_prob
-            )
+            noise_mask = torch.rand(position_shape, device=embeddings.device) < mask_prob
         if valid_mask is not None:
-            noise_mask = noise_mask & valid_mask.to(
+            valid_position_mask = valid_mask.to(
                 device=embeddings.device,
                 dtype=torch.bool,
             )
+            noise_mask = noise_mask & valid_position_mask
         if not noise_mask.any():
             return embeddings
-        noise = torch.randn_like(embeddings) * self.embedding_noise_std
-        return embeddings + noise * noise_mask.unsqueeze(-1).to(embeddings.dtype)
+
+        if self.embedding_noise_mode == "add":
+            noise = torch.randn_like(embeddings) * self.embedding_noise_std
+            return embeddings + noise * noise_mask.unsqueeze(-1).to(embeddings.dtype)
+
+        if self.embedding_noise_mode == "fusion":
+            alpha = self.embedding_noise_std
+            noise = torch.randn_like(embeddings)
+            fused = (1.0 - alpha) * embeddings + alpha * noise
+            return torch.where(noise_mask.unsqueeze(-1), fused, embeddings)
+
+        if self.embedding_noise_mode == "gaussian_replace":
+            noise = torch.randn_like(embeddings)
+            return torch.where(noise_mask.unsqueeze(-1), noise, embeddings)
+
+        return self._replace_embedding_positions(
+            embeddings,
+            noise_mask,
+            valid_position_mask,
+        )
+
+    def _replace_embedding_positions(
+        self,
+        embeddings: torch.Tensor,
+        noise_mask: torch.Tensor,
+        valid_position_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        hidden_dim = embeddings.size(-1)
+        flat_embeddings = embeddings.reshape(-1, hidden_dim)
+        flat_noise_mask = noise_mask.reshape(-1)
+        valid_indices = valid_position_mask.reshape(-1).nonzero(
+            as_tuple=False
+        ).squeeze(-1)
+        selected_indices = flat_noise_mask.nonzero(as_tuple=False).squeeze(-1)
+        if selected_indices.numel() == 0 or valid_indices.numel() <= 1:
+            return embeddings
+
+        rank = torch.empty(
+            flat_noise_mask.numel(),
+            device=embeddings.device,
+            dtype=torch.long,
+        )
+        rank[valid_indices] = torch.arange(
+            valid_indices.numel(),
+            device=embeddings.device,
+        )
+        selected_rank = rank[selected_indices]
+        replacement_rank = torch.randint(
+            0,
+            valid_indices.numel() - 1,
+            (selected_indices.numel(),),
+            device=embeddings.device,
+        )
+        replacement_rank = replacement_rank + (replacement_rank >= selected_rank).long()
+        replacement_indices = valid_indices[replacement_rank]
+
+        output = flat_embeddings.clone()
+        output[selected_indices] = flat_embeddings[replacement_indices]
+        return output.view_as(embeddings)
 
     def _add_parallel_align_item_emb_to_hidden(
         self,

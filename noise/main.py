@@ -1,0 +1,1218 @@
+import torch
+from transformers import T5ForConditionalGeneration, T5Config
+from typing import Optional, Dict, Any, List, Tuple
+import hashlib
+import numpy as np
+from torch.utils.data import DataLoader, Dataset
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.optim.lr_scheduler import LambdaLR
+import math
+import argparse
+import os
+import random
+import pandas as pd
+from tqdm import tqdm
+import logging
+from torch.utils.tensorboard import SummaryWriter
+from dataset import GenRecDataset
+from dataloader import GenRecDataLoader
+from generation_trie import Trie, prefix_allowed_tokens_fn
+from causal_tiger import CausalTIGER
+
+
+class TIGER(nn.Module):
+    def __init__(self, config: Dict[str, Any]):
+        super(TIGER, self).__init__()
+        t5config = T5Config(
+            num_layers=config["num_layers"],
+            num_decoder_layers=config["num_decoder_layers"],
+            d_model=config["d_model"],
+            d_ff=config["d_ff"],
+            num_heads=config["num_heads"],
+            d_kv=config["d_kv"],
+            dropout_rate=config["dropout_rate"],
+            vocab_size=config["vocab_size"],
+            pad_token_id=config["pad_token_id"],
+            eos_token_id=config["eos_token_id"],
+            decoder_start_token_id=config["pad_token_id"],
+            feed_forward_proj=config["feed_forward_proj"],
+        )
+        # Initialize T5 model with the specified configuration
+        self.model = T5ForConditionalGeneration(t5config)
+        self.embedding_noise_mode = str(config.get("embedding_noise_mode", "add")).lower()
+        self.embedding_noise_std = config.get("embedding_noise_std", 0.0)
+        self.embedding_noise_prob = config.get("embedding_noise_prob", 1.0)
+        if self.embedding_noise_mode not in {
+            "add",
+            "fusion",
+            "replace",
+            "gaussian_replace",
+        }:
+            raise ValueError(
+                "embedding_noise_mode must be 'add', 'fusion', 'replace', "
+                "or 'gaussian_replace'"
+            )
+        if self.embedding_noise_std < 0.0:
+            raise ValueError("embedding_noise_std must be non-negative")
+        if self.embedding_noise_mode in {"fusion", "replace", "gaussian_replace"} and self.embedding_noise_std > 1.0:
+            raise ValueError(
+                "embedding_noise_std must be in [0, 1] for fusion/replace/gaussian_replace"
+            )
+        if self.embedding_noise_prob < 0.0 or self.embedding_noise_prob > 1.0:
+            raise ValueError("embedding_noise_prob must be in [0, 1]")
+
+    @property
+    def n_parameters(self):
+        """Calculates the number of trainable parameters in the model.
+
+        Returns:
+            str: A string containing the number of embedding parameters,
+            non-embedding parameters, and total trainable parameters.
+        """
+        num_params = lambda ps: sum(p.numel() for p in ps if p.requires_grad)
+        total_params = num_params(self.parameters())
+        emb_params = num_params(self.model.get_input_embeddings().parameters())
+        return (
+            f"#Embedding parameters: {emb_params}\n"
+            f"#Non-embedding parameters: {total_params - emb_params}\n"
+            f"#Total trainable parameters: {total_params}\n"
+        )
+
+    def _add_embedding_noise(
+        self,
+        embeddings: torch.Tensor,
+        valid_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        if (
+            not self.training
+            or self.embedding_noise_std <= 0.0
+        ):
+            return embeddings
+        position_shape = embeddings.shape[:-1]
+        if self.embedding_noise_mode == "add":
+            mask_prob = self.embedding_noise_prob
+        elif self.embedding_noise_mode == "fusion":
+            mask_prob = 1.0
+        else:
+            mask_prob = self.embedding_noise_std
+        if mask_prob <= 0.0:
+            return embeddings
+        if mask_prob >= 1.0:
+            noise_mask = torch.ones(
+                position_shape,
+                device=embeddings.device,
+                dtype=torch.bool,
+            )
+        else:
+            noise_mask = torch.rand(position_shape, device=embeddings.device) < mask_prob
+        valid_position_mask = torch.ones(
+            position_shape,
+            device=embeddings.device,
+            dtype=torch.bool,
+        )
+        if valid_mask is not None:
+            valid_position_mask = valid_mask.to(device=embeddings.device, dtype=torch.bool)
+            noise_mask = noise_mask & valid_position_mask
+        if not noise_mask.any():
+            return embeddings
+        if self.embedding_noise_mode == "add":
+            noise = torch.randn_like(embeddings) * self.embedding_noise_std
+            return embeddings + noise * noise_mask.unsqueeze(-1).to(embeddings.dtype)
+        if self.embedding_noise_mode == "fusion":
+            alpha = self.embedding_noise_std
+            noise = torch.randn_like(embeddings)
+            fused = (1.0 - alpha) * embeddings + alpha * noise
+            return torch.where(noise_mask.unsqueeze(-1), fused, embeddings)
+        if self.embedding_noise_mode == "gaussian_replace":
+            noise = torch.randn_like(embeddings)
+            return torch.where(noise_mask.unsqueeze(-1), noise, embeddings)
+        hidden_dim = embeddings.size(-1)
+        flat_embeddings = embeddings.reshape(-1, hidden_dim)
+        flat_noise_mask = noise_mask.reshape(-1)
+        valid_indices = valid_position_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
+        selected_indices = flat_noise_mask.nonzero(as_tuple=False).squeeze(-1)
+        if selected_indices.numel() == 0 or valid_indices.numel() <= 1:
+            return embeddings
+        rank = torch.empty(flat_noise_mask.numel(), device=embeddings.device, dtype=torch.long)
+        rank[valid_indices] = torch.arange(valid_indices.numel(), device=embeddings.device)
+        selected_rank = rank[selected_indices]
+        replacement_rank = torch.randint(
+            0,
+            valid_indices.numel() - 1,
+            (selected_indices.numel(),),
+            device=embeddings.device,
+        )
+        replacement_rank = replacement_rank + (replacement_rank >= selected_rank).long()
+        output = flat_embeddings.clone()
+        output[selected_indices] = flat_embeddings[valid_indices[replacement_rank]]
+        return output.view_as(embeddings)
+
+    def forward(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
+    ):
+        """Forward pass of the model. Returns the output logits and the loss value.
+
+        Args:
+            batch (dict): A dictionary containing the input data for the model.
+
+        Returns:
+            outputs (ModelOutput):
+                The output of the model, which includes:
+                - loss (torch.Tensor)
+                - logits (torch.Tensor)
+        """
+        use_embedding_noise = (
+            self.training
+            and self.embedding_noise_std > 0.0
+            and self.embedding_noise_prob > 0.0
+        )
+        if use_embedding_noise:
+            inputs_embeds = self.model.get_input_embeddings()(input_ids)
+            inputs_embeds = self._add_embedding_noise(inputs_embeds, attention_mask)
+            model_kwargs = {
+                "inputs_embeds": inputs_embeds,
+                "attention_mask": attention_mask,
+                "labels": labels,
+                "output_hidden_states": True,
+                "return_dict": True,
+            }
+            if labels is not None:
+                decoder_input_ids = self.model._shift_right(labels)
+                decoder_inputs_embeds = self.model.get_input_embeddings()(decoder_input_ids)
+                decoder_valid_mask = decoder_input_ids.ne(self.model.config.pad_token_id)
+                model_kwargs["decoder_inputs_embeds"] = self._add_embedding_noise(
+                    decoder_inputs_embeds,
+                    decoder_valid_mask,
+                )
+            outputs = self.model(**model_kwargs)
+        else:
+            outputs = self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                output_hidden_states=True,
+                return_dict=True,
+            )
+        self.last_target_hidden_states = outputs.decoder_hidden_states[-1].detach()
+        return outputs.loss, outputs.logits
+
+    def generate(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        num_beams: int = 20,
+        **kwargs,
+    ):
+        """Generate recommendations using the model.
+
+        Args:
+            input_ids (torch.Tensor): Input tensor for the model.
+            attention_mask (Optional[torch.Tensor]): Attention mask for the input.
+            max_length (int): Maximum length of the generated sequence.
+            num_beams (int): Number of beams for beam search.
+
+        Returns:
+            torch.Tensor: Generated output tensor.
+        """
+        return self.model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            max_length=5,
+            num_beams=num_beams,
+            num_return_sequences=num_beams,
+            **kwargs,
+        )
+
+
+def calculate_pos_index(preds, labels, maxk=20):
+    """Calculate the position index of the ground truth items.
+
+    Args:
+        preds: The predicted token sequences, of shape
+        (batch_size, maxk, seq_len).
+        labels: The ground truth token sequences, of shape (batch_size, seq_len).
+
+    Returns:
+        A boolean tensor of shape (batch_size, maxk) indicating whether the
+        prediction at each position is correct.
+    """
+    preds = preds.detach().cpu()
+    labels = labels.detach().cpu()
+    assert preds.shape[1] == maxk, f"preds.shape[1] = {preds.shape[1]} != {maxk}"
+
+    pos_index = torch.zeros((preds.shape[0], maxk), dtype=torch.bool)
+    for i in range(preds.shape[0]):
+        cur_label = labels[i].tolist()
+        for j in range(maxk):
+            cur_pred = preds[i, j].tolist()
+            if cur_pred == cur_label:
+                pos_index[i, j] = True
+                break
+    return pos_index
+
+
+def recall_at_k(pos_index, k):
+    return pos_index[:, :k].sum(dim=1).cpu().float()
+
+
+def ndcg_at_k(pos_index, k):
+    # Assume only one ground truth item per example
+    ranks = torch.arange(1, pos_index.shape[-1] + 1).to(pos_index.device)
+    dcg = 1.0 / torch.log2(ranks + 1)
+    dcg = torch.where(
+        pos_index, dcg, torch.tensor(0.0, dtype=torch.float, device=dcg.device)
+    )
+    return dcg[:, :k].sum(dim=1).cpu().float()
+
+
+def update_sid_hr_stats(
+    stats: Dict[str, Dict[int, List[float]]],
+    preds: torch.Tensor,
+    labels: torch.Tensor,
+    ks: List[int],
+) -> None:
+    preds = preds.detach().cpu()
+    labels = labels.detach().cpu()
+    sid_len = min(4, preds.size(2), labels.size(1))
+    for k in ks:
+        cur_k = min(k, preds.size(1))
+        top_preds = preds[:, :cur_k, :sid_len]
+        label_sid = labels[:, :sid_len]
+        batch_size = label_sid.size(0)
+        for layer_idx in range(sid_len):
+            layer_hit = (
+                top_preds[:, :, layer_idx] == label_sid[:, None, layer_idx]
+            ).any(dim=1)
+            stats["layer_num"][k][layer_idx] += layer_hit.sum().item()
+            stats["layer_den"][k][layer_idx] += batch_size
+
+            prefix_hit = (
+                top_preds[:, :, : layer_idx + 1]
+                == label_sid[:, None, : layer_idx + 1]
+            ).all(dim=2).any(dim=1)
+            if layer_idx == 0:
+                cond_den = torch.ones(batch_size, dtype=torch.bool)
+            else:
+                cond_den = (
+                    top_preds[:, :, :layer_idx] == label_sid[:, None, :layer_idx]
+                ).all(dim=2).any(dim=1)
+            stats["cond_num"][k][layer_idx] += prefix_hit[cond_den].sum().item()
+            stats["cond_den"][k][layer_idx] += cond_den.sum().item()
+
+
+def finalize_sid_hr_stats(stats: Dict[str, Dict[int, List[float]]]) -> Dict[str, float]:
+    metrics = {}
+    for k in sorted(stats["layer_num"]):
+        for layer_idx, (num, den) in enumerate(
+            zip(stats["layer_num"][k], stats["layer_den"][k]), start=1
+        ):
+            metrics[f"SID{layer_idx}_HR@{k}"] = num / den if den > 0 else float("nan")
+        for layer_idx, (num, den) in enumerate(
+            zip(stats["cond_num"][k], stats["cond_den"][k]), start=1
+        ):
+            metrics[f"SID{layer_idx}_CondHR@{k}"] = (
+                num / den if den > 0 else float("nan")
+            )
+    return metrics
+
+
+def compute_single_geometry(reps: torch.Tensor) -> Dict[str, float]:
+    reps = reps.detach().float()
+    if reps.size(0) < 2:
+        return {"effective_rank": 0.0, "avg_cosine": 0.0}
+
+    centered = reps - reps.mean(dim=0, keepdim=True)
+    cov = centered.T @ centered / max(centered.size(0) - 1, 1)
+    eigvals = torch.linalg.eigvalsh(cov).clamp_min(1e-12)
+    probs = eigvals / eigvals.sum()
+    effective_rank = torch.exp(-(probs * probs.log()).sum()).item()
+
+    normed = F.normalize(reps, dim=-1)
+    sim = normed @ normed.T
+    mask = ~torch.eye(sim.size(0), dtype=torch.bool, device=sim.device)
+    avg_cosine = sim[mask].mean().item()
+    return {"effective_rank": effective_rank, "avg_cosine": avg_cosine}
+
+
+def compute_geometry_metrics(hidden_states: torch.Tensor) -> Dict[str, float]:
+    # Track the supervised positions, including h_PAD for the first code token.
+    token_count = min(4, hidden_states.size(1))
+    metrics = {}
+    ranks = []
+    cosines = []
+    for token_idx in range(token_count):
+        cur = compute_single_geometry(hidden_states[:, token_idx, :])
+        metrics[f"effective_rank_token{token_idx + 1}"] = cur["effective_rank"]
+        metrics[f"avg_cosine_token{token_idx + 1}"] = cur["avg_cosine"]
+        ranks.append(cur["effective_rank"])
+        cosines.append(cur["avg_cosine"])
+    metrics["effective_rank"] = sum(ranks) / len(ranks) if ranks else 0.0
+    metrics["avg_cosine"] = sum(cosines) / len(cosines) if cosines else 0.0
+    return metrics
+
+
+def compute_geometry_metrics_by_phase(
+    hidden_states: torch.Tensor, code_phase: torch.Tensor, code_per_item: int = 4
+) -> Dict[str, float]:
+    # Parallel mode: hidden_states is [batch, seq, d] over a whole block. Group
+    # every supervised position by its code phase (1..code_per_item) so token1..4
+    # match the sliding-window definition (predicting code1..code4). Positions
+    # with phase 0 (padding / context / ignored) are skipped.
+    flat_hidden = hidden_states.reshape(-1, hidden_states.size(-1))
+    flat_phase = code_phase.reshape(-1)
+    metrics = {}
+    if flat_hidden.size(0) != flat_phase.size(0):
+        cur = compute_single_geometry(flat_hidden)
+        for phase in range(1, code_per_item + 1):
+            metrics[f"effective_rank_token{phase}"] = cur["effective_rank"]
+            metrics[f"avg_cosine_token{phase}"] = cur["avg_cosine"]
+        metrics["effective_rank"] = cur["effective_rank"]
+        metrics["avg_cosine"] = cur["avg_cosine"]
+        return metrics
+
+    ranks = []
+    cosines = []
+    for phase in range(1, code_per_item + 1):
+        sel = flat_hidden[flat_phase == phase]
+        cur = compute_single_geometry(sel)
+        metrics[f"effective_rank_token{phase}"] = cur["effective_rank"]
+        metrics[f"avg_cosine_token{phase}"] = cur["avg_cosine"]
+        ranks.append(cur["effective_rank"])
+        cosines.append(cur["avg_cosine"])
+    metrics["effective_rank"] = sum(ranks) / len(ranks) if ranks else 0.0
+    metrics["avg_cosine"] = sum(cosines) / len(cosines) if cosines else 0.0
+    return metrics
+
+
+def train(model, train_loader, optimizer, device):
+    model.train()
+    totals = {
+        "total": 0.0,
+        "ce": 0.0,
+        "align": 0.0,
+        "effective_rank": 0.0,
+        "avg_cosine": 0.0,
+        "effective_rank_token1": 0.0,
+        "effective_rank_token2": 0.0,
+        "effective_rank_token3": 0.0,
+        "effective_rank_token4": 0.0,
+        "avg_cosine_token1": 0.0,
+        "avg_cosine_token2": 0.0,
+        "avg_cosine_token3": 0.0,
+        "avg_cosine_token4": 0.0,
+    }
+    for batch in train_loader:
+        parallel = "labels" in batch
+        if parallel:
+            input_ids = batch["input_ids"].to(device)
+            input_code_mask = batch.get("input_code_mask")
+            input_code_mask = (
+                input_code_mask.to(device) if input_code_mask is not None else None
+            )
+            attention_mask = batch["attention_mask"].to(device)
+            labels = batch["labels"].to(device)
+            target_item_emb = batch.get("block_item_emb")
+            target_item_emb = (
+                target_item_emb.to(device) if target_item_emb is not None else None
+            )
+            item_group = batch.get("item_group")
+            item_group = item_group.to(device) if item_group is not None else None
+            code_phase = batch.get("code_phase")
+            code_phase = code_phase.to(device) if code_phase is not None else None
+            optimizer.zero_grad()
+            loss, _ = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                target_item_emb=target_item_emb,
+                item_group=item_group,
+                code_phase=code_phase,
+                input_code_mask=input_code_mask,
+                parallel=True,
+            )
+            loss.backward()
+            optimizer.step()
+
+            loss_dict = getattr(model, "last_loss_dict", None)
+            totals["total"] += loss.item()
+            totals["ce"] += (
+                loss_dict["ce"].item()
+                if loss_dict is not None and "ce" in loss_dict
+                else loss.item()
+            )
+            totals["align"] += (
+                loss_dict["align"].item()
+                if loss_dict is not None and "align" in loss_dict
+                else 0.0
+            )
+            hidden_states = getattr(model, "last_target_hidden_states", None)
+            if hidden_states is not None:
+                code_phase = batch["code_phase"].to(hidden_states.device)
+                geometry = compute_geometry_metrics_by_phase(
+                    hidden_states, code_phase
+                )
+                for key, value in geometry.items():
+                    totals[key] += value
+            continue
+
+        input_ids = batch["history"].to(device)
+        attention_mask = batch["attention_mask"].to(device)
+        labels = batch["target"].to(device)
+        target_item_emb = batch.get("target_item_emb")
+        target_item_emb = (
+            target_item_emb.to(device) if target_item_emb is not None else None
+        )
+
+        optimizer.zero_grad()
+        if model.__class__.__name__ == "CausalTIGER":
+            loss, _ = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                target_item_emb=target_item_emb,
+            )
+        else:
+            loss, _ = model(
+                input_ids=input_ids, attention_mask=attention_mask, labels=labels
+            )
+        loss.backward()
+        optimizer.step()
+
+        loss_dict = getattr(model, "last_loss_dict", None)
+        totals["total"] += loss.item()
+        totals["ce"] += (
+            loss_dict["ce"].item()
+            if loss_dict is not None and "ce" in loss_dict
+            else loss.item()
+        )
+        totals["align"] += (
+            loss_dict["align"].item()
+            if loss_dict is not None and "align" in loss_dict
+            else 0.0
+        )
+        hidden_states = getattr(model, "last_target_hidden_states", None)
+        if hidden_states is not None:
+            geometry = compute_geometry_metrics(hidden_states)
+            for key, value in geometry.items():
+                totals[key] += value
+    return {k: v / len(train_loader) for k, v in totals.items()}
+
+
+def validate(model, valid_loader, device):
+    model.eval()
+    losses = {"total": 0.0, "ce": 0.0, "align": 0.0}
+    with torch.no_grad():
+        for batch in valid_loader:
+            input_ids = batch["history"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            input_code_mask = batch.get("input_code_mask")
+            input_code_mask = (
+                input_code_mask.to(device) if input_code_mask is not None else None
+            )
+            labels = batch["target"].to(device)
+            target_item_emb = batch.get("target_item_emb")
+            target_item_emb = (
+                target_item_emb.to(device) if target_item_emb is not None else None
+            )
+            if model.__class__.__name__ == "CausalTIGER":
+                loss, _ = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    labels=labels,
+                    target_item_emb=target_item_emb,
+                    input_code_mask=input_code_mask,
+                )
+            else:
+                loss, _ = model(
+                    input_ids=input_ids, attention_mask=attention_mask, labels=labels
+                )
+            loss_dict = getattr(model, "last_loss_dict", None)
+            losses["total"] += loss.item()
+            losses["ce"] += (
+                loss_dict["ce"].item()
+                if loss_dict is not None and "ce" in loss_dict
+                else loss.item()
+            )
+            losses["align"] += (
+                loss_dict["align"].item()
+                if loss_dict is not None and "align" in loss_dict
+                else 0.0
+            )
+    return {k: v / len(valid_loader) for k, v in losses.items()}
+
+
+def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
+    model.eval()
+    recalls = {"Recall@" + str(k): [] for k in topk_list}
+    ndcgs = {"NDCG@" + str(k): [] for k in topk_list}
+    ce_losses = []
+    sid_topks = [k for k in (5, 10) if k <= beam_size]
+    sid_stats = {
+        name: {k: [0.0, 0.0, 0.0, 0.0] for k in sid_topks}
+        for name in ("layer_num", "layer_den", "cond_num", "cond_den")
+    }
+    constraint_fn = prefix_allowed_tokens_fn(trie) if trie is not None else None
+    with torch.no_grad():
+        for batch in eval_loader:
+            input_ids = batch["history"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            input_code_mask = batch.get("input_code_mask")
+            input_code_mask = (
+                input_code_mask.to(device) if input_code_mask is not None else None
+            )
+            labels = batch["target"].to(device)
+            target_item_emb = batch.get("target_item_emb")
+            target_item_emb = (
+                target_item_emb.to(device) if target_item_emb is not None else None
+            )
+
+            is_causal = model.__class__.__name__ == "CausalTIGER"
+            if is_causal:
+                loss, _ = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    labels=labels,
+                    target_item_emb=target_item_emb,
+                    input_code_mask=input_code_mask,
+                )
+            else:
+                loss, _ = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    labels=labels,
+                )
+            loss_dict = getattr(model, "last_loss_dict", None)
+            ce_losses.append(
+                loss_dict["ce"].item()
+                if loss_dict is not None and "ce" in loss_dict
+                else loss.item()
+            )
+            generate_kwargs = {
+                "input_ids": input_ids,
+                "attention_mask": attention_mask,
+                "input_code_mask": input_code_mask,
+                "num_beams": beam_size,
+                "prefix_allowed_tokens_fn": constraint_fn,
+            }
+            if is_causal:
+                generate_kwargs["max_length"] = labels.size(1)
+                generate_kwargs["target_item_emb"] = target_item_emb
+
+            preds = model.generate(**generate_kwargs)
+            if not is_causal:
+                preds = preds[:, 1:]  # Exclude T5 decoder start token.
+            preds = preds.reshape(input_ids.shape[0], beam_size, -1)
+            assert preds.size(2) == labels.size(1), (
+                f"Generated sequence length {preds.size(2)} does not match "
+                f"label length {labels.size(1)} for "
+                f'{"CausalTIGER" if is_causal else "T5"} decoding.'
+            )
+            pos_index = calculate_pos_index(preds, labels, maxk=beam_size)
+            update_sid_hr_stats(sid_stats, preds, labels, sid_topks)
+            # print(f"pos_index shape: {pos_index.shape}, pos_index: {pos_index}")
+            for k in topk_list:
+                recall = recall_at_k(pos_index, k).mean().item()
+                ndcg = ndcg_at_k(pos_index, k).mean().item()
+                recalls["Recall@" + str(k)].append(recall)
+                ndcgs["NDCG@" + str(k)].append(ndcg)
+                # Calculate average recalls and ndcgs
+    avg_recalls = {k: sum(v) / len(v) for k, v in recalls.items()}
+    avg_ndcgs = {k: sum(v) / len(v) for k, v in ndcgs.items()}
+    avg_ce_loss = sum(ce_losses) / len(ce_losses)
+    sid_hr = finalize_sid_hr_stats(sid_stats)
+    return avg_recalls, avg_ndcgs, sid_hr, avg_ce_loss
+
+
+def set_seed(seed):
+    """Set random seed for reproducibility."""
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
+
+def average_train_sequence_length(train_dataset):
+    if len(train_dataset) == 0:
+        return 0.0
+    total_len = 0
+    for item in train_dataset.data:
+        if "block" in item:
+            total_len += len(item["block"])
+        else:
+            history_len = sum(
+                1
+                for code in item["history"]
+                if not np.all(np.asarray(code) == train_dataset.PAD_TOKEN)
+            )
+            total_len += history_len + 1
+    return total_len / len(train_dataset)
+
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    random.seed(worker_seed)
+    np.random.seed(worker_seed)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="TIGER configuration")
+    parser.add_argument(
+        "--batch_size", type=int, default=256, help="Batch size for training"
+    )
+    parser.add_argument(
+        "--infer_size",
+        type=int,
+        default=96,
+        help="Inference size for generating recommendations",
+    )
+    parser.add_argument(
+        "--num_epochs", type=int, default=200, help="Number of epochs for training"
+    )
+    parser.add_argument(
+        "--lr", type=float, default=1e-4, help="Learning rate for the optimizer"
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help='Device to run the model on (e.g., "cuda" or "cpu")',
+    )
+    parser.add_argument(
+        "--num_layers", type=int, default=4, help="Number of layers in the model"
+    )
+    parser.add_argument(
+        "--hidden_layer",
+        type=int,
+        default=-1,
+        help="Layer hidden state used as model output; -1 keeps final output, positive is 1-based, negative counts from the end",
+    )
+    parser.add_argument(
+        "--num_decoder_layers",
+        type=int,
+        default=4,
+        help="Number of decoder layers in the model",
+    )
+    parser.add_argument(
+        "--d_model", type=int, default=128, help="Dimension of the model"
+    )
+    parser.add_argument(
+        "--d_ff", type=int, default=1024, help="Dimension of the feed-forward layer"
+    )
+    parser.add_argument(
+        "--num_heads", type=int, default=6, help="Number of attention heads"
+    )
+    parser.add_argument(
+        "--d_kv", type=int, default=64, help="Dimension of key and value vectors"
+    )
+    parser.add_argument("--dropout_rate", type=float, default=0.1, help="Dropout rate")
+    parser.add_argument("--vocab_size", type=int, default=1025, help="Vocabulary size")
+    parser.add_argument("--pad_token_id", type=int, default=0, help="Padding token ID")
+    parser.add_argument(
+        "--eos_token_id", type=int, default=0, help="End of sequence token ID"
+    )
+    parser.add_argument(
+        "--feed_forward_proj",
+        type=str,
+        default="relu",
+        help="Feed forward projection type",
+    )
+    parser.add_argument(
+        "--embedding_noise_mode",
+        type=str,
+        default="add",
+        choices=["add", "fusion", "replace", "gaussian_replace"],
+        help=(
+            "Embedding noise mode: add=emb+Gaussian std, "
+            "fusion=(1-a)*emb+a*noise, "
+            "replace=randomly replace a fraction with other embeddings, "
+            "gaussian_replace=randomly replace a fraction with Gaussian noise"
+        ),
+    )
+    parser.add_argument(
+        "--embedding_noise_std",
+        type=float,
+        default=0.0,
+        help=(
+            "Noise strength. For add: Gaussian std; for fusion/replace/"
+            "gaussian_replace: a in [0, 1]"
+        ),
+    )
+    parser.add_argument(
+        "--embedding_noise_prob",
+        type=float,
+        default=1.0,
+        help="Probability of adding embedding noise per item/token position, valid range [0, 1]",
+    )
+    parser.add_argument(
+        "--eval_embedding_noise",
+        action="store_true",
+        help="Also add the configured embedding noise during validation/test/generation",
+    )
+    parser.add_argument(
+        "--max_len",
+        type=int,
+        default=20,
+        help="Maximum length for padding or truncation",
+    )
+    parser.add_argument(
+        "--train_mode",
+        type=str,
+        default="sliding",
+        choices=["sliding", "parallel"],
+        help="Training data mode: 'sliding' expands one sample per position, "
+        "'parallel' feeds whole overlapping blocks with token-shifted labels "
+        "(causal model only)",
+    )
+    parser.add_argument(
+        "--block_items",
+        type=int,
+        default=40,
+        help="Block size in items for parallel training mode",
+    )
+    parser.add_argument(
+        "--stride_items",
+        type=int,
+        default=20,
+        help="Sliding stride in items between blocks for parallel training mode",
+    )
+    parser.add_argument(
+        "--dataset_path", type=str, default="../data/Beauty", help="Path to the dataset"
+    )
+    parser.add_argument(
+        "--code_path",
+        type=str,
+        default="../data/Beauty/Beauty_t5_rqvae.npy",
+        help="Path to the item-to-code mapping file",
+    )
+    parser.add_argument(
+        "--item_emb_path",
+        type=str,
+        default=None,
+        help="Path to item embedding parquet for auxiliary MSE loss",
+    )
+    parser.add_argument(
+        "--item_emb_dim",
+        type=int,
+        default=0,
+        help="Item embedding dimension for auxiliary MSE loss",
+    )
+    parser.add_argument(
+        "--mse_loss_weight",
+        type=float,
+        default=0.0,
+        help="Weight of auxiliary item embedding MSE loss",
+    )
+    parser.add_argument(
+        "--mse_loss_mode",
+        type=str,
+        default="token",
+        choices=["token", "mean", "mean-bar", "only-hidden", "pre-first"],
+        help="Auxiliary MSE mode: per-token, phase mean, base item hidden, only base hidden, or first pre-item hidden alignment",
+    )
+    parser.add_argument(
+        "--align_loss_type",
+        type=str,
+        default="mse",
+        choices=["mse", "cos"],
+        help="Auxiliary alignment loss type",
+    )
+    parser.add_argument(
+        "--align_target",
+        type=str,
+        default="item",
+        choices=[
+            "item",
+            "latent",
+            "quantized",
+            "codebook",
+            "shallow",
+            "vocab",
+        ],
+        help="Auxiliary alignment target source",
+    )
+    parser.add_argument(
+        "--align_item",
+        type=str,
+        default="next",
+        choices=["current", "pre", "next", "near"],
+        help="Item embedding to align: current history item or next target item",
+    )
+    parser.add_argument(
+        "--add_align_item_emb_to_hidden",
+        action="store_true",
+        help="Backward-compatible alias for --align_item_emb_to_hidden_mode add",
+    )
+    parser.add_argument(
+        "--align_item_emb_to_hidden_mode",
+        type=str,
+        default=None,
+        choices=["none", "add", "concat"],
+        help="Fuse configured align target embedding into last hidden states before logits",
+    )
+    parser.add_argument(
+        "--shallow_layer",
+        type=int,
+        default=1,
+        help="Shallow layer index used when align_target=shallow",
+    )
+    parser.add_argument(
+        "--lm_head",
+        type=str,
+        default="emb",
+        choices=["emb", "linear", "mlp", "mlp-emb"],
+        help="LM head type: tied embedding, independent linear layer, MLP, or MLP then tied embedding",
+    )
+    parser.add_argument(
+        "--early_stop_metric",
+        type=str,
+        default="total",
+        choices=["total", "ce"],
+        help="Validation loss used for early stopping",
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="train",
+        choices=["train", "evaluation"],
+        help="Mode of operation",
+    )
+    parser.add_argument(
+        "--model_type",
+        type=str,
+        default="t5",
+        choices=["t5", "causal", "gpt2"],
+        help="Model type to train",
+    )
+    parser.add_argument(
+        "--log_path", type=str, default="./logs/tiger.log", help="Path to the log file"
+    )
+    parser.add_argument(
+        "--tensorboard_dir", type=str, default=None, help="TensorBoard log directory"
+    )
+    parser.add_argument(
+        "--seed", type=int, default=2025, help="Random seed for reproducibility"
+    )
+    parser.add_argument(
+        "--save_path",
+        type=str,
+        default="./ckpt/tiger.pth",
+        help="Path to save the trained model",
+    )
+    parser.add_argument(
+        "--early_stop", type=int, default=10, help="Early stopping patience"
+    )
+    parser.add_argument(
+        "--test_interval",
+        type=int,
+        default=-1,
+        help="Run test every N epochs during training; -1 means only final test",
+    )
+    parser.add_argument(
+        "--topk_list",
+        type=list,
+        default=[5, 10, 20],
+        help="List of top-k values for evaluation metrics",
+    )
+    parser.add_argument(
+        "--beam_size", type=int, default=30, help="Beam size for generation"
+    )
+    config = vars(parser.parse_args())
+    if config["align_item_emb_to_hidden_mode"] is None:
+        config["align_item_emb_to_hidden_mode"] = (
+            "add" if config["add_align_item_emb_to_hidden"] else "none"
+        )
+    config["add_align_item_emb_to_hidden"] = (
+        config["align_item_emb_to_hidden_mode"] != "none"
+    )
+    if config["item_emb_path"] in {"", "None"}:
+        config["item_emb_path"] = None
+    if config["embedding_noise_std"] < 0.0:
+        raise ValueError("embedding_noise_std must be non-negative")
+    if config["embedding_noise_mode"] in {"fusion", "replace", "gaussian_replace"} and config["embedding_noise_std"] > 1.0:
+        raise ValueError(
+            "embedding_noise_std must be in [0, 1] for fusion/replace/gaussian_replace"
+        )
+    if config["embedding_noise_prob"] < 0.0 or config["embedding_noise_prob"] > 1.0:
+        raise ValueError("embedding_noise_prob must be in [0, 1]")
+    if config["test_interval"] == 0 or config["test_interval"] < -1:
+        raise ValueError("test_interval must be -1 or a positive integer")
+    if config["hidden_layer"] != -1 and config["mse_loss_weight"] > 0:
+        config["mse_loss_mode"] = "only-hidden"
+    # Sliding-window attention span (in tokens) for parallel training: keep the
+    # visible history equal to max_len items (max_len x 4 codes). Full causal
+    # attention (None) otherwise.
+    config["attention_window"] = (
+        config["max_len"] * 4 if config["train_mode"] == "parallel" else None
+    )
+        # Set up logging
+    logging.basicConfig(
+        filename=config["log_path"],
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
+
+    logging.info(f"Configuration: {config}")
+    tb_dir = config["tensorboard_dir"]
+    if tb_dir is None or tb_dir == "None":
+        log_stem = os.path.splitext(os.path.normpath(config["log_path"]))[0]
+        log_parts = log_stem.split(os.sep)
+        if "logs" in log_parts:
+            logs_idx = len(log_parts) - 1 - log_parts[::-1].index("logs")
+            run_parts = log_parts[logs_idx + 1 :]
+            tb_dir = os.path.join("./runs", *run_parts) if run_parts else "./runs"
+        else:
+            tb_dir = os.path.join("./runs", os.path.basename(log_stem))
+    writer = SummaryWriter(tb_dir)
+    logging.info(f"TensorBoard dir: {tb_dir}")
+    set_seed(config["seed"])
+    # Initialize model
+    if config["model_type"] == "causal":
+        model = CausalTIGER(config)
+    else:
+        model = TIGER(config)
+    if config["train_mode"] == "parallel" and config["model_type"] != "causal":
+        raise ValueError("train_mode='parallel' is only supported for model_type='causal'")
+    print(model.n_parameters)
+    logging.info(model.n_parameters)
+    # Check if the device is available
+    device = torch.device(config["device"] if torch.cuda.is_available() else "cpu")
+    print("device: ", device)
+    needs_item_emb = (
+        config["mse_loss_weight"] > 0
+        or config.get("add_align_item_emb_to_hidden", False)
+    )
+    train_dataset = GenRecDataset(
+        dataset_path=config["dataset_path"] + "/train.parquet",
+        code_path=config["code_path"],
+        mode="train_parallel" if config["train_mode"] == "parallel" else "train",
+        max_len=config["max_len"],
+        item_emb_path=(config["item_emb_path"] if needs_item_emb else None),
+        align_item=config["align_item"],
+        block_items=config["block_items"],
+        stride_items=config["stride_items"],
+    )
+    validation_dataset = GenRecDataset(
+        dataset_path=config["dataset_path"] + "/valid.parquet",
+        code_path=config["code_path"],
+        mode="evaluation",
+        max_len=config["max_len"],
+        item_emb_path=(config["item_emb_path"] if needs_item_emb else None),
+        align_item=config["align_item"],
+    )
+    test_dataset = GenRecDataset(
+        dataset_path=config["dataset_path"] + "/test.parquet",
+        code_path=config["code_path"],
+        mode="evaluation",
+        max_len=config["max_len"],
+        item_emb_path=(config["item_emb_path"] if needs_item_emb else None),
+        align_item=config["align_item"],
+    )
+
+    dataloader_generator = torch.Generator()
+    dataloader_generator.manual_seed(config["seed"])
+    train_dataloader = GenRecDataLoader(
+        train_dataset,
+        batch_size=config["batch_size"],
+        shuffle=True,
+        generator=dataloader_generator,
+        worker_init_fn=seed_worker,
+    )
+    validation_dataloader = GenRecDataLoader(
+        validation_dataset,
+        batch_size=config["infer_size"],
+        shuffle=False,
+        worker_init_fn=seed_worker,
+    )
+    test_dataloader = GenRecDataLoader(
+        test_dataset,
+        batch_size=config["infer_size"],
+        shuffle=False,
+        worker_init_fn=seed_worker,
+    )
+
+    print("Building Trie...")
+    trie_sequences = []
+    for code in list(test_dataset.item_to_code.values()):
+        code_list = list(code) if isinstance(code, (np.ndarray, list)) else list(code)
+        if config["model_type"] == "causal":
+            trie_sequences.append(code_list + [config["eos_token_id"]])
+        else:
+            trie_sequences.append(
+                [config["pad_token_id"]] + code_list + [config["eos_token_id"]]
+            )
+    item_trie = Trie(trie_sequences)
+    print("Trie built.")
+
+    model.to(device)
+    if config["mode"] == "evaluation":
+        logging.info(f"Loading model from {config['save_path']} for testing...")
+        model.load_state_dict(torch.load(config["save_path"], map_location=device))
+        test_avg_recalls, test_avg_ndcgs, test_sid_hr, test_ce_loss = evaluate(
+            model,
+            test_dataloader,
+            config["topk_list"],
+            config["beam_size"],
+            device,
+            trie=item_trie,
+        )
+        logging.info(f"Test Recalls: {test_avg_recalls}")
+        logging.info(f"Test NDCGs: {test_avg_ndcgs}")
+        logging.info(f"Test SID HRs: {test_sid_hr}")
+        logging.info(f"Test CE loss: {test_ce_loss}")
+        print(f"Test Recalls: {test_avg_recalls}")
+        print(f"Test NDCGs: {test_avg_ndcgs}")
+        print(f"Test SID HRs: {test_sid_hr}")
+        print(f"Test CE loss: {test_ce_loss}")
+        raise SystemExit
+        # print(f"Train dataset size: {len(train_dataset)}")
+        # print(f"Validation dataset size: {len(validation_dataset)}")
+        # print(f"Test dataset size: {len(test_dataset)}")
+        # for batch in train_dataloader:
+        #     print(f"Batch size: {len(batch['history'])}")
+        #     print(f"the first batch history:{batch['history'][0]}")
+        #     print(f"the first batch target:{batch['target'][0]}")
+        #     print(f"the first batch attention mask:{batch['attention_mask'][0]}")
+        #     break
+
+        # optimizer
+    optimizer = optim.Adam(model.parameters(), lr=config["lr"])
+
+    # Train the model
+    best_loss = 10000.0
+    early_stop_counter = 0
+    best_epoch = 0
+    for epoch in tqdm(range(config["num_epochs"])):
+        logging.info(f"Epoch {epoch + 1}/{config['num_epochs']}")
+        if epoch == 0:
+            avg_seq_len = average_train_sequence_length(train_dataset)
+            sequence_count_msg = (
+                f"Train sequence count: {len(train_dataset)}, "
+                f"train batches per epoch: {len(train_dataloader)}, "
+                f"average train sequence length: {avg_seq_len:.2f}"
+            )
+            print(sequence_count_msg)
+            logging.info(sequence_count_msg)
+        train_losses = train(model, train_dataloader, optimizer, device)
+        logging.info(f"Training total loss: {train_losses['total']}")
+        logging.info(f"Training CE loss: {train_losses['ce']}")
+        logging.info(
+            f"Training {config['align_loss_type'].upper()} align loss: {train_losses['align']}"
+        )
+        logging.info(
+            f"Training geometry effective rank: {train_losses['effective_rank']}"
+        )
+        logging.info(f"Training geometry avg cosine: {train_losses['avg_cosine']}")
+        for token_idx in range(1, 5):
+            logging.info(
+                f"Training geometry effective rank token{token_idx}: {train_losses[f'effective_rank_token{token_idx}']}"
+            )
+            logging.info(
+                f"Training geometry avg cosine token{token_idx}: {train_losses[f'avg_cosine_token{token_idx}']}"
+            )
+        writer.add_scalar("train/loss_total", train_losses["total"], epoch + 1)
+        writer.add_scalar("train/loss_ce", train_losses["ce"], epoch + 1)
+        writer.add_scalar("train/loss_align", train_losses["align"], epoch + 1)
+        writer.add_scalar(
+            "train/effective_rank_token_avg", train_losses["effective_rank"], epoch + 1
+        )
+        writer.add_scalar(
+            "train/avg_cosine_token_avg", train_losses["avg_cosine"], epoch + 1
+        )
+        for token_idx in range(1, 5):
+            writer.add_scalar(
+                f"train/effective_rank_token{token_idx}",
+                train_losses[f"effective_rank_token{token_idx}"],
+                epoch + 1,
+            )
+            writer.add_scalar(
+                f"train/avg_cosine_token{token_idx}",
+                train_losses[f"avg_cosine_token{token_idx}"],
+                epoch + 1,
+            )
+        valid_losses = validate(model, validation_dataloader, device)
+        valid_loss = valid_losses[config["early_stop_metric"]]
+        logging.info(f"Validation total loss: {valid_losses['total']}")
+        logging.info(f"Validation CE loss: {valid_losses['ce']}")
+        logging.info(
+            f"Validation {config['align_loss_type'].upper()} align loss: {valid_losses['align']}"
+        )
+        logging.info(f"Early stop metric ({config['early_stop_metric']}): {valid_loss}")
+        writer.add_scalar("valid/loss_total", valid_losses["total"], epoch + 1)
+        writer.add_scalar("valid/loss_ce", valid_losses["ce"], epoch + 1)
+        writer.add_scalar("valid/loss_align", valid_losses["align"], epoch + 1)
+        if (
+            config["test_interval"] > 0
+            and (epoch + 1) % config["test_interval"] == 0
+        ):
+            test_avg_recalls, test_avg_ndcgs, test_sid_hr, test_ce_loss = evaluate(
+                model,
+                test_dataloader,
+                config["topk_list"],
+                config["beam_size"],
+                device,
+                trie=item_trie,
+            )
+            logging.info(f"Epoch {epoch + 1} Test Recalls: {test_avg_recalls}")
+            logging.info(f"Epoch {epoch + 1} Test NDCGs: {test_avg_ndcgs}")
+            logging.info(f"Epoch {epoch + 1} Test SID HRs: {test_sid_hr}")
+            logging.info(f"Epoch {epoch + 1} Test CE loss: {test_ce_loss}")
+            print(f"Epoch {epoch + 1} Test Recalls: {test_avg_recalls}")
+            print(f"Epoch {epoch + 1} Test NDCGs: {test_avg_ndcgs}")
+            print(f"Epoch {epoch + 1} Test SID HRs: {test_sid_hr}")
+            print(f"Epoch {epoch + 1} Test CE loss: {test_ce_loss}")
+            writer.add_scalar("test/loss_ce", test_ce_loss, epoch + 1)
+            for metric_name, metric_value in test_avg_recalls.items():
+                writer.add_scalar(f"test/{metric_name}", metric_value, epoch + 1)
+            for metric_name, metric_value in test_avg_ndcgs.items():
+                writer.add_scalar(f"test/{metric_name}", metric_value, epoch + 1)
+            model.train()
+        if valid_loss < best_loss:
+            best_loss = valid_loss
+            best_epoch = epoch
+            early_stop_counter = 0  # Reset early stop counter
+            # Save the best model
+            torch.save(model.state_dict(), config["save_path"])
+            logging.info(
+                f"Best validation {config['early_stop_metric']} loss: {best_loss}"
+            )
+            logging.info(f"Best model saved to {config['save_path']}")
+        else:
+            early_stop_counter += 1
+            logging.info(
+                f"No improvement in validation loss. Early stop counter: {early_stop_counter}"
+            )
+            if early_stop_counter >= config["early_stop"]:
+                logging.info("Early stopping triggered.")
+                break
+
+    writer.close()
+    logging.info("Loading best model for final testing...")
+    model.load_state_dict(torch.load(config["save_path"], map_location=device))
+    test_avg_recalls, test_avg_ndcgs, test_sid_hr, test_ce_loss = evaluate(
+        model,
+        test_dataloader,
+        config["topk_list"],
+        config["beam_size"],
+        device,
+        trie=item_trie,
+    )
+    logging.info(f"Final Epoch: {best_epoch + 1}")
+    logging.info(f"Final Test Recalls: {test_avg_recalls}")
+    logging.info(f"Final Test NDCGs: {test_avg_ndcgs}")
+    logging.info(f"Final Test SID HRs: {test_sid_hr}")
+    logging.info(f"Final Test CE loss: {test_ce_loss}")
+    print(f"Final Epoch: {best_epoch + 1}")
+    print(f"Final Test Recalls: {test_avg_recalls}")
+    print(f"Final Test NDCGs: {test_avg_ndcgs}")
+    print(f"Final Test SID HRs: {test_sid_hr}")
+    print(f"Final Test CE loss: {test_ce_loss}")
