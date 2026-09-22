@@ -327,10 +327,12 @@ class CausalTIGER(nn.Module):
             raise ValueError("mse_loss_mode='only-hidden' does not support codebook align")
         if self.align_item == "pre":
             self.align_item = "current"
-        if self.align_item not in {"current", "next", "near"}:
-            raise ValueError("align_item must be 'current', 'next' or 'near'")
+        if self.align_item not in {"current", "next", "near", "nexcur"}:
+            raise ValueError("align_item must be 'current', 'next', 'near' or 'nexcur'")
         if self.align_item == "near" and self.align_target != "shallow":
             raise ValueError("align_item='near' is only supported for shallow align")
+        if self.align_item == "nexcur" and self.align_target in {"shallow", "vocab"}:
+            raise ValueError("align_item='nexcur' only supports external item embedding targets")
         if self.align_target == "vocab" and self.align_item != "next":
             raise ValueError("align_target='vocab' requires align_item='next'")
         if self.mse_loss_mode == "pre-first" and self.align_item != "pre":
@@ -971,6 +973,7 @@ class CausalTIGER(nn.Module):
         item_group: torch.Tensor,
         code_phase: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
+        align_item_override: Optional[str] = None,
     ) -> torch.Tensor:
         # Per-item mean-pool alignment for parallel training. Every supervised
         # position carries the block-item index it predicts (item_group >= 0);
@@ -979,6 +982,26 @@ class CausalTIGER(nn.Module):
         # hidden_to_item_emb, and align with that item's target embedding
         # (target_item_emb is [B, max_items, dim], [B, max_items, 4, dim] for
         # codebook, or derived from vocab embeddings when align_target='vocab').
+        effective_align_item = align_item_override or self.align_item
+        if effective_align_item == "nexcur":
+            next_loss = self._parallel_align_loss(
+                hidden_states,
+                target_item_emb,
+                item_group,
+                code_phase=code_phase,
+                labels=labels,
+                align_item_override="next",
+            )
+            current_loss = self._parallel_align_loss(
+                hidden_states,
+                target_item_emb,
+                item_group,
+                code_phase=code_phase,
+                labels=labels,
+                align_item_override="current",
+            )
+            return 0.5 * next_loss + 0.5 * current_loss
+
         batch_size, _, d_model = hidden_states.shape
         if self.align_target == "vocab":
             if labels is None:
@@ -988,7 +1011,7 @@ class CausalTIGER(nn.Module):
             max_items = target_item_emb.size(1)
         device = hidden_states.device
 
-        target_group = item_group if self.align_item == "next" else item_group - 1
+        target_group = item_group if effective_align_item == "next" else item_group - 1
         valid = (item_group >= 0) & (target_group >= 0) & (target_group < max_items)
         if self.align_target == "codebook":
             if code_phase is None:
@@ -1067,7 +1090,7 @@ class CausalTIGER(nn.Module):
         active_batch = active_slot // max_items
         active_group = active_slot % max_items
         active_target_group = (
-            active_group if self.align_item == "next" else active_group - 1
+            active_group if effective_align_item == "next" else active_group - 1
         )
         active_target_slot = active_batch * max_items + active_target_group
         if self.align_target == "vocab":

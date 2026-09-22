@@ -9,11 +9,11 @@ batch_sizes=(128)
 learning_rates=(1e-3)
 lm_head=mlp
 align_loss_type=cos
-log_dir=0921_noise
+log_dir=0922_noise_nexcur
 
 seeds=(1 42 2025)
-align_targets=(quantized)
-align_items=(next)
+align_targets=(quantized latent)
+align_items=(nexcur)
 mse_loss_weights=(5)
 mse_loss_modes=(mean)
 shallow_layers=(1)
@@ -22,7 +22,7 @@ embedding_noise_modes=(fusion)
 embedding_noise_stds=(0.1 0.3 0.5 0.6 0.7 0.8)
 embedding_noise_probs=(1.0)
 align_item_emb_to_hidden_modes=(none)
-eval_embedding_noise_values=(0)
+eval_embedding_noise_values=(0 1)
 
 for seed in "${seeds[@]}"; do
   for align_target in "${align_targets[@]}"; do

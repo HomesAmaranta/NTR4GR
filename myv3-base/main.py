@@ -775,8 +775,8 @@ if __name__ == "__main__":
         "--align_item",
         type=str,
         default="next",
-        choices=["current", "pre", "next", "near"],
-        help="Item embedding to align: current history item or next target item",
+        choices=["current", "pre", "next", "near", "nexcur"],
+        help="Item embedding to align: current history item, next target item, or averaged next/current targets",
     )
     parser.add_argument(
         "--add_align_item_emb_to_hidden",

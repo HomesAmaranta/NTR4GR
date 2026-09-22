@@ -86,15 +86,19 @@ if [ "$align_item" = "pre" ]; then
   align_item=current
 fi
 case "$align_item" in
-  current|next|near)
+  current|next|near|nexcur)
     ;;
   *)
-    echo "Unknown align_item: ${align_item}. Use current, next, or near." >&2
+    echo "Unknown align_item: ${align_item}. Use current, next, near, or nexcur." >&2
     exit 1
     ;;
 esac
 if [ "$align_item" = "near" ] && [ "$align_target" != "shallow" ]; then
   echo "align_item=near is only supported when align_target=shallow." >&2
+  exit 1
+fi
+if [ "$align_item" = "nexcur" ] && { [ "$align_target" = "shallow" ] || [ "$align_target" = "vocab" ]; }; then
+  echo "align_item=nexcur only supports external item embedding targets." >&2
   exit 1
 fi
 if [ "$align_target" = "vocab" ] && [ "$align_item" != "next" ]; then

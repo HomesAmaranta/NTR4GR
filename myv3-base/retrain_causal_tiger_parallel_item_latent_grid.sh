@@ -9,11 +9,11 @@ batch_sizes=(128)
 learning_rates=(1e-3)
 lm_head=mlp
 align_loss_type=cos
-log_dir=align
+log_dir=0922_nexcur
 
-seeds=(42)
-align_targets=(quantized current)
-align_items=(next)
+seeds=(1 42 2025)
+align_targets=(latent)
+align_items=(nexcur)
 mse_loss_weights=(5)
 mse_loss_modes=(mean)
 shallow_layers=(1)

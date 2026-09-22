@@ -57,13 +57,17 @@ case "$align_target" in
 esac
 
 case "$align_item" in
-  current|pre|next|near)
+  current|pre|next|near|nexcur)
     ;;
   *)
-    echo "Unknown align_item: ${align_item}. Use current, pre, next, or near." >&2
+    echo "Unknown align_item: ${align_item}. Use current, pre, next, near, or nexcur." >&2
     exit 1
     ;;
 esac
+if [ "$align_item" = "nexcur" ] && { [ "$align_target" = "shallow" ] || [ "$align_target" = "vocab" ]; }; then
+  echo "align_item=nexcur only supports external item embedding targets." >&2
+  exit 1
+fi
 
 case "$align_item_emb_to_hidden_mode" in
   1|true|True|TRUE|yes|Yes|YES|add)
