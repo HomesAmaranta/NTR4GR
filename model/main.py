@@ -14,6 +14,7 @@ import random
 import pandas as pd
 from tqdm import tqdm
 import logging
+import torch.nn.functional as F
 from dataset import GenRecDataset
 from dataloader import GenRecDataLoader
 from generation_trie import Trie, prefix_allowed_tokens_fn
@@ -37,6 +38,31 @@ class TIGER(nn.Module):
     )
         # Initialize T5 model with the specified configuration
         self.model = T5ForConditionalGeneration(t5config)
+        self.item_emb_dim = config.get('item_emb_dim', 0)
+        self.mse_loss_weight = config.get('mse_loss_weight', 0.0)
+        self.mse_loss_mode = config.get('mse_loss_mode', 'mean')
+        self.align_loss_type = config.get('align_loss_type', 'mse')
+        self.align_target = config.get('align_target', 'quantized')
+        self.align_item = config.get('align_item', 'current')
+        if self.align_item == 'pre':
+            self.align_item = 'current'
+        if self.mse_loss_mode != 'mean':
+            raise ValueError("TIGER/model only supports mse_loss_mode='mean'")
+        if self.align_loss_type not in {'mse', 'cos'}:
+            raise ValueError("align_loss_type must be 'mse' or 'cos'")
+        if self.align_target not in {'item', 'latent', 'quantized'}:
+            raise ValueError("align_target must be 'item', 'latent' or 'quantized'")
+        if self.align_item not in {'current', 'next'}:
+            raise ValueError("align_item must be 'current', 'pre' or 'next'")
+        self.hidden_to_item_emb = (
+            nn.Sequential(
+                nn.Linear(config['d_model'], config['d_model']),
+                nn.GELU(),
+                nn.Linear(config['d_model'], self.item_emb_dim, bias=False),
+            )
+            if self.item_emb_dim > 0
+            else None
+        )
     
     @property
     def n_parameters(self):
@@ -55,7 +81,32 @@ class TIGER(nn.Module):
           f'#Total trainable parameters: {total_params}\n'
       )
 
-    def forward(self, input_ids: torch.Tensor, attention_mask: Optional[torch.Tensor] = None, labels: Optional[torch.Tensor] = None):
+    def _align_loss_from_hidden(
+        self,
+        hidden_states: torch.Tensor,
+        target_item_emb: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.hidden_to_item_emb is None:
+            return hidden_states.new_zeros(())
+        if target_item_emb.dim() == 3:
+            target_item_emb = target_item_emb.mean(dim=1)
+        pred_item_emb = self.hidden_to_item_emb(hidden_states.mean(dim=1))
+        target_item_emb = target_item_emb.to(pred_item_emb.dtype)
+        if self.align_loss_type == 'cos':
+            return 1.0 - F.cosine_similarity(
+                pred_item_emb,
+                target_item_emb,
+                dim=-1,
+            ).mean()
+        return F.mse_loss(pred_item_emb, target_item_emb, reduction='mean')
+
+    def forward(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
+        target_item_emb: Optional[torch.Tensor] = None,
+    ):
       """Forward pass of the model. Returns the output logits and the loss value.
 
       Args:
@@ -70,9 +121,29 @@ class TIGER(nn.Module):
       outputs = self.model(
           input_ids=input_ids,
           attention_mask=attention_mask,
-          labels=labels
+          labels=labels,
+          output_hidden_states=True,
+          return_dict=True,
       )
-      return outputs.loss, outputs.logits
+      target_hidden_states = outputs.decoder_hidden_states[-1]
+      self.last_target_hidden_states = target_hidden_states.detach()
+      align_loss = target_hidden_states.new_zeros(())
+      if (
+          target_item_emb is not None
+          and self.hidden_to_item_emb is not None
+          and self.mse_loss_weight > 0
+      ):
+          align_loss = self._align_loss_from_hidden(
+              target_hidden_states,
+              target_item_emb,
+          )
+      loss = outputs.loss + self.mse_loss_weight * align_loss
+      self.last_loss_dict = {
+          'total': loss.detach(),
+          'ce': outputs.loss.detach(),
+          'align': align_loss.detach(),
+      }
+      return loss, outputs.logits
     
     def generate(self, input_ids: torch.Tensor, attention_mask: Optional[torch.Tensor] = None,  num_beams: int = 20, **kwargs):
         """Generate recommendations using the model.
@@ -135,32 +206,68 @@ def ndcg_at_k(pos_index, k):
 
 def train(model, train_loader, optimizer, device):
     model.train()
-    total_loss = 0.0
+    totals = {'total': 0.0, 'ce': 0.0, 'align': 0.0}
     for batch in train_loader:
         input_ids = batch['history'].to(device)
         attention_mask = batch['attention_mask'].to(device)
         labels = batch['target'].to(device)
+        target_item_emb = batch.get('target_item_emb')
+        target_item_emb = target_item_emb.to(device) if target_item_emb is not None else None
 
         optimizer.zero_grad()
-        loss, _ = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+        loss, _ = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            labels=labels,
+            target_item_emb=target_item_emb,
+        )
         loss.backward()
         optimizer.step()
 
-        total_loss += loss.item()
+        loss_dict = getattr(model, 'last_loss_dict', None)
+        totals['total'] += loss.item()
+        totals['ce'] += (
+            loss_dict['ce'].item()
+            if loss_dict is not None and 'ce' in loss_dict
+            else loss.item()
+        )
+        totals['align'] += (
+            loss_dict['align'].item()
+            if loss_dict is not None and 'align' in loss_dict
+            else 0.0
+        )
         
-    return total_loss / len(train_loader)
+    return {k: v / len(train_loader) for k, v in totals.items()}
 
 def validate(model, valid_loader, device):
     model.eval()
-    total_loss = 0.0
+    totals = {'total': 0.0, 'ce': 0.0, 'align': 0.0}
     with torch.no_grad():
         for batch in valid_loader:
             input_ids = batch['history'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['target'].to(device)
-            loss, _ = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-            total_loss += loss.item()
-    return total_loss / len(valid_loader)
+            target_item_emb = batch.get('target_item_emb')
+            target_item_emb = target_item_emb.to(device) if target_item_emb is not None else None
+            loss, _ = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+                target_item_emb=target_item_emb,
+            )
+            loss_dict = getattr(model, 'last_loss_dict', None)
+            totals['total'] += loss.item()
+            totals['ce'] += (
+                loss_dict['ce'].item()
+                if loss_dict is not None and 'ce' in loss_dict
+                else loss.item()
+            )
+            totals['align'] += (
+                loss_dict['align'].item()
+                if loss_dict is not None and 'align' in loss_dict
+                else 0.0
+            )
+    return {k: v / len(valid_loader) for k, v in totals.items()}
 
 def evaluate(model, eval_loader, topk_list, beam_size, device, trie=None):
     model.eval()
@@ -223,6 +330,13 @@ if __name__ == "__main__":
     parser.add_argument('--max_len', type=int, default=20, help='Maximum length for padding or truncation')
     parser.add_argument('--dataset_path', type=str, default='../data/Beauty', help='Path to the dataset')
     parser.add_argument('--code_path', type=str, default='../data/Beauty/Beauty_t5_rqvae.npy', help='Path to the item-to-code mapping file')
+    parser.add_argument('--item_emb_path', type=str, default=None, help='Path to current/next item embedding parquet for auxiliary alignment loss')
+    parser.add_argument('--item_emb_dim', type=int, default=0, help='Embedding dim for auxiliary alignment target')
+    parser.add_argument('--mse_loss_weight', type=float, default=0.0, help='Weight of auxiliary representation alignment loss')
+    parser.add_argument('--mse_loss_mode', type=str, default='mean', choices=['mean'], help='Mean-pool decoder final hidden states before alignment')
+    parser.add_argument('--align_loss_type', type=str, default='mse', choices=['mse', 'cos'], help='Auxiliary alignment loss type')
+    parser.add_argument('--align_target', type=str, default='quantized', choices=['item', 'latent', 'quantized'], help='Auxiliary alignment target source')
+    parser.add_argument('--align_item', type=str, default='current', choices=['current', 'pre', 'next'], help='Use current/pre item or next target item embedding for alignment')
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'evaluation'], help='Mode of operation')
     parser.add_argument('--log_path', type=str, default='./logs/tiger.log', help='Path to the log file')
     parser.add_argument('--seed', type=int, default=2025, help='Random seed for reproducibility')
@@ -231,6 +345,12 @@ if __name__ == "__main__":
     parser.add_argument('--topk_list', type=list, default=[5,10,20], help='List of top-k values for evaluation metrics')
     parser.add_argument('--beam_size', type=int, default=30, help='Beam size for generation')
     config = vars(parser.parse_args())
+    if config['item_emb_path'] in {'', 'None'}:
+        config['item_emb_path'] = None
+    if config['mse_loss_weight'] > 0 and config['item_emb_path'] is None:
+        raise ValueError('mse_loss_weight > 0 requires --item_emb_path')
+    if config['mse_loss_weight'] > 0 and config['item_emb_dim'] <= 0:
+        raise ValueError('mse_loss_weight > 0 requires --item_emb_dim > 0')
     # Set up logging
     logging.basicConfig(
         filename=config['log_path'],
@@ -249,18 +369,23 @@ if __name__ == "__main__":
     set_seed(config['seed'])
     # Check if the device is available
     device = torch.device(config['device'] if torch.cuda.is_available() else 'cpu')
+    needs_item_emb = config['mse_loss_weight'] > 0
     
     train_dataset = GenRecDataset(
         dataset_path=config['dataset_path']+ '/train.parquet',
         code_path=config['code_path'],
         mode='train',
-        max_len=config['max_len']
+        max_len=config['max_len'],
+        item_emb_path=(config['item_emb_path'] if needs_item_emb else None),
+        align_item=config['align_item'],
     )
     validation_dataset = GenRecDataset(
         dataset_path=config['dataset_path'] + '/valid.parquet',
         code_path=config['code_path'],
         mode='evaluation',
-        max_len=config['max_len']
+        max_len=config['max_len'],
+        item_emb_path=(config['item_emb_path'] if needs_item_emb else None),
+        align_item=config['align_item'],
     )
     test_dataset = GenRecDataset(
         dataset_path=config['dataset_path'] + '/test.parquet',
@@ -306,8 +431,8 @@ if __name__ == "__main__":
         logging.info(f"Training loss: {train_loss}")
         valid_loss = validate(model, validation_dataloader, device)
         logging.info(f"Validation loss: {valid_loss}")
-        if valid_loss < best_loss:
-            best_loss = valid_loss
+        if valid_loss['total'] < best_loss:
+            best_loss = valid_loss['total']
             best_epoch = epoch
             early_stop_counter = 0  # Reset early stop counter
             # Save the best model

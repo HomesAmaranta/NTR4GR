@@ -3,8 +3,17 @@ set -euo pipefail
 
 cd /mlx_devbox/users/fengyuebo/playground/TIGER/noise
 
+source /home/tiger/miniconda3/etc/profile.d/conda.sh
+conda activate MiniOneRec
+export PYTHONNOUSERSITE=1
+PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
+
+$PYTHON -c "import sys; print('python=', sys.executable)"
+$PYTHON -c "import tensorboard; print('tensorboard ok')"
+$PYTHON -c "import torch; print('cuda=', torch.cuda.is_available(), 'count=', torch.cuda.device_count())"
+
 dataset=Beauty
-checkpoint=${1:?Usage: bash test_noise.sh CHECKPOINT [noise_std] [noise_prob] [eval_noise] [align_loss_type] [mse_loss_weight] [mse_loss_mode] [align_target] [align_item] [lm_head] [align_hidden_mode] [seed] [log_dir] [noise_mode]}
+checkpoint=${1:?Usage: bash test_noise.sh CHECKPOINT [noise_std] [noise_prob] [eval_noise] [align_loss_type] [mse_loss_weight] [mse_loss_mode] [align_target] [align_item] [lm_head] [align_hidden_mode] [seed] [log_dir] [noise_mode] [nexcur_current_weight]}
 embedding_noise_std=${2:-1.0}
 embedding_noise_prob=${3:-1.0}
 eval_embedding_noise=${4:-1}
@@ -18,6 +27,7 @@ align_item_emb_to_hidden_mode=${11:-none}
 seed=${12:-1}
 log_dir=${13:-test_noise}
 embedding_noise_mode=${14:-add}
+nexcur_current_weight=${15:-0.5}
 
 block_items=80
 stride_items=60
@@ -58,13 +68,22 @@ case "$align_target" in
 esac
 
 case "$align_item" in
-  current|pre|next|near)
+  current|pre|next|near|nexcur)
     ;;
   *)
-    echo "Unknown align_item: ${align_item}. Use current, pre, next, or near." >&2
+    echo "Unknown align_item: ${align_item}. Use current, pre, next, near, or nexcur." >&2
     exit 1
     ;;
 esac
+
+if [ "$align_item" = "nexcur" ] && { [ "$align_target" = "shallow" ] || [ "$align_target" = "vocab" ]; }; then
+  echo "align_item=nexcur only supports external item embedding targets." >&2
+  exit 1
+fi
+if [ "$align_item" = "nexcur" ] && [ "$(awk "BEGIN{print ($nexcur_current_weight < 0 || $nexcur_current_weight > 1)}")" -eq 1 ]; then
+  echo "nexcur_current_weight must be in [0, 1]." >&2
+  exit 1
+fi
 
 case "$align_item_emb_to_hidden_mode" in
   1|true|True|TRUE|yes|Yes|YES|add)
@@ -122,9 +141,13 @@ checkpoint_name=$(basename "$checkpoint")
 checkpoint_stem="${checkpoint_name%.pth}"
 log_dir_path="./logs/${log_dir}"
 mkdir -p "$log_dir_path"
-log_path="${log_dir_path}/${checkpoint_stem}_${embedding_noise_mode}noise${embedding_noise_std}_p${embedding_noise_prob}${eval_noise_suffix}${align_hidden_suffix}_seed${seed}.log"
+nexcur_weight_suffix=""
+if [ "$align_item" = "nexcur" ]; then
+  nexcur_weight_suffix="_curw${nexcur_current_weight}"
+fi
+log_path="${log_dir_path}/${checkpoint_stem}_${embedding_noise_mode}noise${embedding_noise_std}_p${embedding_noise_prob}${eval_noise_suffix}${align_hidden_suffix}${nexcur_weight_suffix}_seed${seed}.log"
 
-/usr/bin/python main.py \
+python main.py \
   --model_type causal \
   --mode evaluation \
   --train_mode parallel \
@@ -139,6 +162,7 @@ log_path="${log_dir_path}/${checkpoint_stem}_${embedding_noise_mode}noise${embed
   --align_loss_type "$align_loss_type" \
   --align_target "$align_target" \
   --align_item "$align_item" \
+  --nexcur_current_weight $nexcur_current_weight \
   --shallow_layer $shallow_layer \
   --hidden_layer $hidden_layer \
   --early_stop_metric "$early_stop_metric" \

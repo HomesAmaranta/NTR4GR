@@ -30,7 +30,8 @@ def process_data(file_path, mode, max_len, PAD_TOKEN=0):
             for i in range(1, len(sequence)):
                 processed_data.append({
                     'history': sequence[:i],
-                    'target': sequence[i]
+                    'target': sequence[i],
+                    'pre_item': sequence[i - 1],
                 })
     elif mode == 'evaluation':
         # Use the last item as target and the rest as history
@@ -39,7 +40,8 @@ def process_data(file_path, mode, max_len, PAD_TOKEN=0):
             sequence = row.sequence
             processed_data.append({
                 'history': sequence[:-1],
-                'target': sequence[-1]
+                'target': sequence[-1],
+                'pre_item': sequence[-2] if len(sequence) > 1 else sequence[-1],
             })
     else:
         raise ValueError("Mode must be 'train' or 'evaluation'.")
@@ -88,8 +90,31 @@ def item2code(code_path, codebook_size=256):
 
     return item_to_code, code_to_item
 
+def load_item_embeddings(item_emb_path):
+    data = pd.read_parquet(item_emb_path)
+
+    def to_array(embedding):
+        arr = np.asarray(embedding)
+        if arr.dtype == object:
+            arr = np.stack(embedding)
+        return arr.astype(np.float32)
+
+    return {
+        int(row.ItemID): to_array(row.embedding)
+        for row in data.itertuples(index=False)
+    }
+
 class GenRecDataset(Dataset):
-    def __init__(self, dataset_path, code_path, mode, max_len, PAD_TOKEN=0):
+    def __init__(
+        self,
+        dataset_path,
+        code_path,
+        mode,
+        max_len,
+        PAD_TOKEN=0,
+        item_emb_path=None,
+        align_item='current',
+    ):
         """
         Initialize the GenRecDataset.
         Args:
@@ -104,8 +129,14 @@ class GenRecDataset(Dataset):
         self.mode = mode
         self.max_len = max_len
         self.PAD_TOKEN = PAD_TOKEN
+        if align_item == 'pre':
+            align_item = 'current'
+        if align_item not in {'current', 'next'}:
+            raise ValueError(f"Unsupported align_item: {align_item}")
+        self.align_item = align_item
         # Load item-to-code mapping
         self.item_to_code, self.code_to_item = item2code(code_path)
+        self.item_embeddings = load_item_embeddings(item_emb_path) if item_emb_path else None
         # Process the dataset
         self.data = self._prepare_data()
         
@@ -121,8 +152,15 @@ class GenRecDataset(Dataset):
         )
         # Convert items to codes
         for item in processed_data:
+            target_item = item['target']
+            align_item = item['pre_item'] if self.align_item == 'current' else target_item
             item['history'] = [self.item_to_code.get(x, np.array([self.PAD_TOKEN]*4)) for x in item['history']]
-            item['target'] = self.item_to_code.get(item['target'], np.array([self.PAD_TOKEN]*4))
+            item['target'] = self.item_to_code.get(target_item, np.array([self.PAD_TOKEN]*4))
+            if self.item_embeddings is not None:
+                align_item = int(align_item)
+                if align_item not in self.item_embeddings:
+                    raise KeyError(f"Missing item embedding for align item id: {align_item}")
+                item['target_item_emb'] = self.item_embeddings[align_item]
         return processed_data
     
     def __getitem__(self, index):

@@ -9,6 +9,16 @@
 # `attention_window` is derived automatically as max_len x 4 tokens (parallel
 # mode only), keeping the visible history equal to max_len items.
 
+source /home/tiger/miniconda3/etc/profile.d/conda.sh
+conda activate MiniOneRec
+export PYTHONNOUSERSITE=1
+PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
+
+$PYTHON -c "import sys; print('python=', sys.executable)"
+$PYTHON -c "import tensorboard; print('tensorboard ok')"
+$PYTHON -c "import torch; print('cuda=', torch.cuda.is_available(), 'count=', torch.cuda.device_count())"
+
+
 dataset=Beauty
 block_items=${1:-80}
 stride_items=${2:-60}
@@ -35,6 +45,7 @@ embedding_noise_prob=${18:-1.0}
 align_item_emb_to_hidden_mode=${19:-none}
 eval_embedding_noise=${20:-0}
 embedding_noise_mode=${21:-add}
+nexcur_current_weight=${22:-0.5}
 early_stop_metric=ce
 
 dataset_path="../data/${dataset}"
@@ -87,15 +98,23 @@ if [ "$align_item" = "pre" ]; then
   align_item=current
 fi
 case "$align_item" in
-  current|next|near)
+  current|next|near|nexcur)
     ;;
   *)
-    echo "Unknown align_item: ${align_item}. Use current, next, or near." >&2
+    echo "Unknown align_item: ${align_item}. Use current, next, near, or nexcur." >&2
     exit 1
     ;;
 esac
 if [ "$align_item" = "near" ] && [ "$align_target" != "shallow" ]; then
   echo "align_item=near is only supported when align_target=shallow." >&2
+  exit 1
+fi
+if [ "$align_item" = "nexcur" ] && { [ "$align_target" = "shallow" ] || [ "$align_target" = "vocab" ]; }; then
+  echo "align_item=nexcur only supports external item embedding targets." >&2
+  exit 1
+fi
+if [ "$align_item" = "nexcur" ] && [ "$(awk "BEGIN{print ($nexcur_current_weight < 0 || $nexcur_current_weight > 1)}")" -eq 1 ]; then
+  echo "nexcur_current_weight must be in [0, 1]." >&2
   exit 1
 fi
 if [ "$align_target" = "vocab" ] && [ "$align_item" != "next" ]; then
@@ -138,6 +157,9 @@ if [ "$(awk "BEGIN{print ($mse_loss_weight > 0)}")" -eq 1 ] || [ "$align_item_em
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_shallowL${shallow_layer}_${align_item}"
   else
     align_suffix="_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${align_target}_${align_item}"
+  fi
+  if [ "$align_item" = "nexcur" ]; then
+    align_suffix="${align_suffix}_curw${nexcur_current_weight}"
   fi
 fi
 
@@ -206,7 +228,7 @@ log_path="${log_dir_path}/${file_stem}.log"
 
 mkdir -p "$ckpt_dir_path" "$log_dir_path"
 cd /mlx_devbox/users/fengyuebo/playground/TIGER/noise
-/usr/bin/python main.py \
+python main.py \
   --model_type causal \
   --train_mode parallel \
   --block_items $block_items \
@@ -220,6 +242,7 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/noise
   --align_loss_type $align_loss_type \
   --align_target $align_target \
   --align_item $align_item \
+  --nexcur_current_weight $nexcur_current_weight \
   --shallow_layer $shallow_layer \
   --hidden_layer $hidden_layer \
   --early_stop_metric $early_stop_metric \

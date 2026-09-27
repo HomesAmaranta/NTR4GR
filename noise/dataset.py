@@ -174,7 +174,7 @@ class GenRecDataset(Dataset):
         self.stride_items = stride_items
         if align_item == 'pre':
             align_item = 'current'
-        if align_item not in {'current', 'next', 'near'}:
+        if align_item not in {'current', 'next', 'near', 'nexcur'}:
             raise ValueError(f"Unsupported align_item: {align_item}")
         self.align_item = align_item
         # Load item-to-code mapping

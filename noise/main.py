@@ -406,6 +406,86 @@ def train(model, train_loader, optimizer, device):
         "avg_cosine_token3": 0.0,
         "avg_cosine_token4": 0.0,
     }
+    grad_totals = {}
+    grad_count = 0
+
+    def is_shared_grad_param(name):
+        excluded = (
+            "lm_head",
+            "hidden_to_item_emb",
+            "align_item_emb_to_hidden",
+            "align_hidden_concat_proj",
+        )
+        return not any(part in name for part in excluded)
+
+    grad_params = [
+        (name, param)
+        for name, param in model.named_parameters()
+        if param.requires_grad and is_shared_grad_param(name)
+    ]
+
+    def compute_grad_metrics(loss_tensors):
+        ce_loss = loss_tensors.get("ce")
+        if ce_loss is None or not ce_loss.requires_grad or not grad_params:
+            return {}
+
+        params = [param for _, param in grad_params]
+        ce_grads = torch.autograd.grad(
+            ce_loss,
+            params,
+            retain_graph=True,
+            allow_unused=True,
+        )
+        metrics = {}
+        for align_name, align_loss in (
+            ("total", loss_tensors.get("align_total")),
+            ("next", loss_tensors.get("align_next")),
+            ("current", loss_tensors.get("align_current")),
+        ):
+            if align_loss is None or not align_loss.requires_grad:
+                continue
+            align_grads = torch.autograd.grad(
+                align_loss,
+                params,
+                retain_graph=True,
+                allow_unused=True,
+            )
+            dot = ce_loss.new_zeros(())
+            ce_norm_sq = ce_loss.new_zeros(())
+            align_norm_sq = ce_loss.new_zeros(())
+            for ce_grad, align_grad, param in zip(ce_grads, align_grads, params):
+                if ce_grad is None:
+                    ce_grad = torch.zeros_like(param)
+                if align_grad is None:
+                    align_grad = torch.zeros_like(param)
+                dot = dot + (ce_grad * align_grad).sum()
+                ce_norm_sq = ce_norm_sq + ce_grad.pow(2).sum()
+                align_norm_sq = align_norm_sq + align_grad.pow(2).sum()
+
+            ce_norm = ce_norm_sq.sqrt()
+            align_norm = align_norm_sq.sqrt()
+            denom = (ce_norm * align_norm).clamp_min(1e-12)
+            cos = dot / denom
+            metrics[f"grad/cos_ce_align_{align_name}_shared"] = cos.detach().item()
+            metrics[f"grad/dot_ce_align_{align_name}_shared"] = dot.detach().item()
+            metrics[f"grad/norm_align_{align_name}_shared"] = (
+                align_norm.detach().item()
+            )
+            metrics[f"grad/conflict_ce_align_{align_name}_shared"] = float(
+                cos.detach().item() < 0.0
+            )
+        if metrics:
+            metrics["grad/norm_ce_shared"] = ce_norm.detach().item()
+        return metrics
+
+    def add_grad_metrics(metrics):
+        nonlocal grad_count
+        if not metrics:
+            return
+        grad_count += 1
+        for key, value in metrics.items():
+            grad_totals[key] = grad_totals.get(key, 0.0) + value
+
     for batch in train_loader:
         parallel = "labels" in batch
         if parallel:
@@ -435,8 +515,12 @@ def train(model, train_loader, optimizer, device):
                 input_code_mask=input_code_mask,
                 parallel=True,
             )
+            grad_metrics = compute_grad_metrics(
+                getattr(model, "last_loss_tensors", {}) or {}
+            )
             loss.backward()
             optimizer.step()
+            add_grad_metrics(grad_metrics)
 
             loss_dict = getattr(model, "last_loss_dict", None)
             totals["total"] += loss.item()
@@ -480,8 +564,12 @@ def train(model, train_loader, optimizer, device):
             loss, _ = model(
                 input_ids=input_ids, attention_mask=attention_mask, labels=labels
             )
+        grad_metrics = compute_grad_metrics(
+            getattr(model, "last_loss_tensors", {}) or {}
+        )
         loss.backward()
         optimizer.step()
+        add_grad_metrics(grad_metrics)
 
         loss_dict = getattr(model, "last_loss_dict", None)
         totals["total"] += loss.item()
@@ -500,7 +588,10 @@ def train(model, train_loader, optimizer, device):
             geometry = compute_geometry_metrics(hidden_states)
             for key, value in geometry.items():
                 totals[key] += value
-    return {k: v / len(train_loader) for k, v in totals.items()}
+    averaged = {k: v / len(train_loader) for k, v in totals.items()}
+    if grad_count > 0:
+        averaged.update({k: v / grad_count for k, v in grad_totals.items()})
+    return averaged
 
 
 def validate(model, valid_loader, device):
@@ -844,8 +935,14 @@ if __name__ == "__main__":
         "--align_item",
         type=str,
         default="next",
-        choices=["current", "pre", "next", "near"],
-        help="Item embedding to align: current history item or next target item",
+        choices=["current", "pre", "next", "near", "nexcur"],
+        help="Item embedding to align: current history item, next target item, or averaged next/current targets",
+    )
+    parser.add_argument(
+        "--nexcur_current_weight",
+        type=float,
+        default=0.5,
+        help="Current-item loss ratio for align_item=nexcur; next ratio is 1 - this value",
     )
     parser.add_argument(
         "--add_align_item_emb_to_hidden",
@@ -1122,6 +1219,9 @@ if __name__ == "__main__":
         writer.add_scalar("train/loss_total", train_losses["total"], epoch + 1)
         writer.add_scalar("train/loss_ce", train_losses["ce"], epoch + 1)
         writer.add_scalar("train/loss_align", train_losses["align"], epoch + 1)
+        for metric_name, metric_value in sorted(train_losses.items()):
+            if metric_name.startswith("grad/"):
+                writer.add_scalar(metric_name, metric_value, epoch + 1)
         writer.add_scalar(
             "train/effective_rank_token_avg", train_losses["effective_rank"], epoch + 1
         )

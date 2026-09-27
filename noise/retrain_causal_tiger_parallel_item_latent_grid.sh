@@ -9,25 +9,27 @@ batch_sizes=(128)
 learning_rates=(1e-3)
 lm_head=mlp
 align_loss_type=cos
-log_dir=0922_noise_nexcur
+log_dir=0925_noise_nexcur
 
-seeds=(1 42 2025)
-align_targets=(quantized latent)
+seeds=(42)
+align_targets=(quantized)
 align_items=(nexcur)
+nexcur_current_weights=(0.01)
 mse_loss_weights=(5)
 mse_loss_modes=(mean)
 shallow_layers=(1)
 hidden_layers=(-1)
 embedding_noise_modes=(fusion)
-embedding_noise_stds=(0.1 0.3 0.5 0.6 0.7 0.8)
+embedding_noise_stds=(0)
 embedding_noise_probs=(1.0)
 align_item_emb_to_hidden_modes=(none)
-eval_embedding_noise_values=(0 1)
+eval_embedding_noise_values=(0)
 
 for seed in "${seeds[@]}"; do
   for align_target in "${align_targets[@]}"; do
     for align_item in "${align_items[@]}"; do
-      for mse_loss_weight in "${mse_loss_weights[@]}"; do
+      for nexcur_current_weight in "${nexcur_current_weights[@]}"; do
+        for mse_loss_weight in "${mse_loss_weights[@]}"; do
         current_modes=("${mse_loss_modes[@]}")
         if [ "$align_item" = "near" ]; then
           current_modes=(token)
@@ -64,7 +66,11 @@ for seed in "${seeds[@]}"; do
                                 align_hidden_desc="_concatalignhidden"
                                 ;;
                             esac
-                            desc="causal_tiger_Beauty_parallel_b${block_items}_s${stride_items}_bs${bs}_lr${lr}_head${lm_head}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${target_desc}_${align_item}${hidden_desc}${noise_desc}${eval_noise_desc}${align_hidden_desc}_seed${seed}"
+                            nexcur_weight_desc=""
+                            if [ "$align_item" = "nexcur" ]; then
+                              nexcur_weight_desc="_curw${nexcur_current_weight}"
+                            fi
+                            desc="causal_tiger_Beauty_parallel_b${block_items}_s${stride_items}_bs${bs}_lr${lr}_head${lm_head}_${align_loss_type}${mse_loss_weight}_${mse_loss_mode}_${target_desc}_${align_item}${nexcur_weight_desc}${hidden_desc}${noise_desc}${eval_noise_desc}${align_hidden_desc}_seed${seed}"
                             mytask ./retrain_causal_tiger_parallel.sh \
                               "$block_items" \
                               "$stride_items" \
@@ -87,6 +93,7 @@ for seed in "${seeds[@]}"; do
                               "$align_item_emb_to_hidden_mode" \
                               "$eval_embedding_noise" \
                               "$embedding_noise_mode" \
+                              "$nexcur_current_weight" \
                               -m "$desc"
                           done
                         done
@@ -97,6 +104,7 @@ for seed in "${seeds[@]}"; do
               done
             done
           done
+        done
         done
       done
     done

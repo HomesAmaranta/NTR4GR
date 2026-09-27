@@ -32,6 +32,7 @@ class GenRecDataLoader(DataLoader):
         # Assuming each item in batch is a dictionary with 'history' and 'target'
         histories = [item['history'] for item in batch]
         targets = [item['target'] for item in batch]
+        target_item_embs = [item.get('target_item_emb') for item in batch]
 
         # Flatten histories and targets
         flattened_histories = torch.stack(
@@ -46,4 +47,17 @@ class GenRecDataLoader(DataLoader):
             [torch.tensor([1 if elem != pad_token else 0 for elem in h], dtype=torch.int64) for h in flattened_histories]
         )
 
-        return {'history': flattened_histories, 'target': flattened_targets, 'attention_mask': attention_masks}
+        output = {
+            'history': flattened_histories,
+            'target': flattened_targets,
+            'attention_mask': attention_masks,
+        }
+        if target_item_embs[0] is not None:
+            output['target_item_emb'] = torch.stack(
+                [
+                    torch.tensor(np.asarray(emb), dtype=torch.float32)
+                    for emb in target_item_embs
+                ]
+            )
+
+        return output
