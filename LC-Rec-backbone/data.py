@@ -89,6 +89,8 @@ class SeqRecDataset(Dataset):
         for tokens in self.indices.values():
             for t in tokens:
                 new_tokens.add(t)
+        if self.special_token_for_answer:
+            new_tokens.add(self.special_token_for_answer)
         return sorted(list(new_tokens))
 
     def _load_data(self):
