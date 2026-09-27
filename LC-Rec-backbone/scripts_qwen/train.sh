@@ -6,7 +6,7 @@ which python
 DATASET=Beauty
 lora="--lora"
 only_train_response="--only_train_response"
-model_class=Qwen3-1.7B
+model_class=Qwen3-0.6B
 ft=1
 ckpt_name=None # your ckpt path
 index_name=_t5_rqvae.npy
@@ -14,7 +14,7 @@ data_file=.parquet
 post_name=test
 lr=2e-5
 seed=2025 # your seed
-cd /mlx_devbox/users/fengyuebo/playground/DACT/LC-Rec-backbone/scripts_qwen
+cd /mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/scripts_qwen
 
 model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-0.6B
 for wd in 0

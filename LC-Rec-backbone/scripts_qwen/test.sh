@@ -9,11 +9,11 @@ for lr in 3e-4
     do
         (
         CKPT_PATH= # your ckpt path
-        logfile=../log/Qwen/test/${DATASET}/phase$phase/Reformer-LC-Rec-Qwen2.5-1.5B-${lr}lr-0wd-lora-qvoud-64r-128a-bf16-int8-log.txt 
+        logfile=../log/Qwen/test/${DATASET}/phase$phase/Reformer-LC-Rec-Qwen3-0.6B-${lr}lr-0wd-lora-qvoud-64r-128a-bf16-int8-log.txt
 
         CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 --master_port=5881 ../test_qwen_ddp.py \
             --dataset $DATASET \
-            --base_model Qwen/Qwen2.5-1.5B-Instruct \
+            --base_model /mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-0.6B \
             --ckpt_path $CKPT_PATH \
             --test_batch_size 32 \
             --num_beams 20 \
@@ -28,4 +28,3 @@ for lr in 3e-4
             --lora
         )
     done
-

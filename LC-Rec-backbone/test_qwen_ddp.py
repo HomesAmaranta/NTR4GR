@@ -14,7 +14,7 @@ import transformers
 from peft import PeftModel 
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import Qwen2Tokenizer, Qwen2Config, Qwen2ForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from utils import *
 from collator import TestCollator
 from evaluate import get_topk_results, get_metrics_results
@@ -51,7 +51,7 @@ def test(args):
     device_map = {"": local_rank}
     device = torch.device("cuda",local_rank)
 
-    tokenizer = Qwen2Tokenizer.from_pretrained(args.ckpt_path)
+    tokenizer = AutoTokenizer.from_pretrained(args.ckpt_path, use_fast=False)
     tokenizer.padding_side = "left"
 
     load_8bit = True 
@@ -62,7 +62,7 @@ def test(args):
     if not args.lora:
         args.base_model = args.ckpt_path
 
-    model = Qwen2ForCausalLM.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(
         args.base_model,
         torch_dtype=dtype,
         load_in_8bit=load_8bit,

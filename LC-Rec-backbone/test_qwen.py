@@ -15,7 +15,7 @@ import transformers
 from peft import PeftModel 
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import Qwen2Tokenizer, Qwen2Config, Qwen2ForCausalLM, GenerationConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 from utils import *
 from collator import TestCollator
 from evaluate import get_topk_results, get_metrics_results
@@ -191,7 +191,7 @@ def test(args):
     device_map = {"": args.gpu_id}
     device = torch.device("cuda",args.gpu_id)
 
-    tokenizer = Qwen2Tokenizer.from_pretrained(args.ckpt_path)
+    tokenizer = AutoTokenizer.from_pretrained(args.ckpt_path, use_fast=False)
     tokenizer.padding_side = "left"
 
     tokenizer.pad_token = tokenizer.eos_token
@@ -205,7 +205,7 @@ def test(args):
     if not args.lora:
         args.base_model = args.ckpt_path
 
-    model = Qwen2ForCausalLM.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(
         args.base_model,
         torch_dtype=dtype,
         load_in_8bit=load_8bit,

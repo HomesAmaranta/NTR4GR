@@ -22,7 +22,7 @@ os.environ["WANDB_MODE"]="disabled"
 # replace_llama_attn_with_flash_attn()
 
 import transformers
-from transformers import Qwen2Tokenizer, Qwen2Config, Qwen2ForCausalLM, EarlyStoppingCallback
+from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM, EarlyStoppingCallback
 
 from peft import (
     TaskType,
@@ -53,14 +53,15 @@ def train(args):
     device_map = {"": local_rank}
     args.resume_from_checkpoint=find_path(args.resume_from_checkpoint)
     print("resume_from_checkpoint:",args.resume_from_checkpoint)
-    config = Qwen2Config.from_pretrained(args.base_model)
+    config = AutoConfig.from_pretrained(args.base_model)
     if args.resume_from_checkpoint=="None" or args.resume_from_checkpoint is None:
-        tokenizer = Qwen2Tokenizer.from_pretrained(args.base_model,
+        tokenizer = AutoTokenizer.from_pretrained(args.base_model,
+                                                use_fast=False,
                                                 model_max_length=args.model_max_length,
                                                 padding_side="left",)
     else:
         print("Loading tokenizer from checkpoint...")
-        tokenizer = Qwen2Tokenizer.from_pretrained(args.resume_from_checkpoint)
+        tokenizer = AutoTokenizer.from_pretrained(args.resume_from_checkpoint, use_fast=False)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.pad_token_id = tokenizer.eos_token_id
 
@@ -82,7 +83,7 @@ def train(args):
     dtype =torch.bfloat16
     bf16 = True 
 
-    model = Qwen2ForCausalLM.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(
         args.base_model,
         torch_dtype=dtype,
         load_in_8bit=load_8bit,

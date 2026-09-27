@@ -17,7 +17,7 @@ def parse_global_args(parser):
 
 
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
-    parser.add_argument("--base_model", type=str, default="t5-small",help="basic model path")
+    parser.add_argument("--base_model", type=str, default="Qwen/Qwen3-0.6B",help="basic model path")
     parser.add_argument("--ft", type=int, default=0, help="Random seed")
     parser.add_argument("--post", type=str, default=None, help="Random seed")
     parser.add_argument("--phase", type=str, default=None,help="phase path")
