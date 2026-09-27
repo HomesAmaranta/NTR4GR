@@ -95,6 +95,45 @@ class Collator_DecoderOnly_manual(object):
             
         return inputs
 
+class AlignmentCollator(Collator_DecoderOnly_manual):
+    """Keep the original LM batch and add four causal prediction positions."""
+
+    def __init__(self, args, tokenizer):
+        super().__init__(args, tokenizer)
+        separator = tokenizer.encode(args.special_token_for_answer, add_special_tokens=False)
+        if len(separator) != 1:
+            raise ValueError("Alignment requires the answer separator to be registered as one token")
+        self.separator_id = separator[0]
+
+    def __call__(self, batch):
+        inputs = super().__call__(batch)
+        positions = []
+        for row, sample in enumerate(batch):
+            token_ids = inputs["input_ids"][row]
+            mask = inputs["attention_mask"][row]
+            separator_positions = torch.where((token_ids == self.separator_id) & mask.bool())[0]
+            if len(separator_positions) != 1:
+                raise ValueError("Expected one answer separator; check prompt formatting and model_max_length")
+            separator = separator_positions.item()
+            target_ids = self.tokenizer.encode(sample["labels"], add_special_tokens=False)
+            if len(target_ids) != 4:
+                raise ValueError("Alignment requires exactly four target SID tokens")
+            start, end = separator + 1, separator + 5
+            if (
+                end > token_ids.shape[0]
+                or token_ids[start:end].tolist() != target_ids
+                or not mask[start:end].bool().all()
+            ):
+                raise ValueError("The complete target SID was truncated; increase model_max_length")
+            # Target positions [c1,c2,c3,c4] minus one => [separator,c1,c2,c3].
+            positions.append(list(range(separator, separator + 4)))
+        inputs["alignment_positions"] = torch.tensor(positions, dtype=torch.long)
+        inputs["target_item_emb"] = torch.stack([
+            torch.as_tensor(sample["target_item_emb"], dtype=torch.float32) for sample in batch
+        ])
+        return inputs
+
+
 class Collator_DecoderOnly(object):
 
     def __init__(self, args, tokenizer):
@@ -143,4 +182,3 @@ class TestCollator(object):
         )
 
         return (inputs, targets)
-

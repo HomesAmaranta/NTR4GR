@@ -51,6 +51,37 @@ class SeqRecDataset(Dataset):
         self.data = self._load_data()
         
         self.new_tokens = self._extract_new_tokens()
+        self.item_embeddings = None
+        if mode in {"train", "valid"} and getattr(args, "mse_loss_weight", 0.0) > 0:
+            self.align_item = args.align_item
+            latent_files = {
+                "latent": "item_emb_rqvae_encoder_latent.parquet",
+                "quantized": "item_emb_rqvae_quantized_latent.parquet",
+            }
+            self.item_emb_path = args.item_emb_path or os.path.join(
+                self.data_path, self.dataset, latent_files[args.align_target]
+            )
+            self.item_embeddings = self._load_item_embeddings(args.item_emb_dim)
+
+    def _load_item_embeddings(self, item_emb_dim):
+        print(f"Loading alignment embeddings from: {self.item_emb_path}")
+        table = pd.read_parquet(self.item_emb_path)
+        embeddings = {}
+        for row in table.itertuples(index=False):
+            embedding = np.asarray(row.embedding)
+            if embedding.dtype == object:
+                embedding = np.stack(row.embedding)
+            embedding = embedding.astype(np.float32)
+            # Match model's mean reduction for targets with multiple vectors.
+            if embedding.ndim == 2:
+                embedding = embedding.mean(axis=0)
+            if embedding.shape != (item_emb_dim,) or not np.isfinite(embedding).all():
+                raise ValueError(
+                    f"Invalid alignment embedding for ItemID={row.ItemID}: "
+                    f"expected a finite vector of dimension {item_emb_dim}, got {embedding.shape}"
+                )
+            embeddings[int(row.ItemID)] = embedding
+        return embeddings
 
     def _load_indices(self):
         index_path = os.path.join(self.data_path, self.dataset, self.dataset + self.index_file)
@@ -168,10 +199,19 @@ class SeqRecDataset(Dataset):
         
         response_text = current_prompt['response'].format(**data_dict)
         
-        return {
+        sample = {
             "input_ids": input_text,
             "labels": response_text
         }
+        if self.item_embeddings is not None:
+            # Select from this expanded sample's raw item IDs, before SID remapping.
+            # Empty evaluation histories fall back to target, as in model/dataset.py.
+            item_id = history_ids[-1] if self.align_item == "current" and len(history_ids) else target_id
+            item_id = int(item_id)
+            if item_id not in self.item_embeddings:
+                raise KeyError(f"Missing alignment embedding for ItemID={item_id} in {self.item_emb_path}")
+            sample["target_item_emb"] = self.item_embeddings[item_id]
+        return sample
 
 
 class BaseDataset(Dataset):

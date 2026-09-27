@@ -34,11 +34,16 @@ from peft import (
 
 
 from utils import *
-from collator import Collator, Collator_DecoderOnly, Collator_DecoderOnly_manual, TestCollator
+from collator import Collator, Collator_DecoderOnly, Collator_DecoderOnly_manual, AlignmentCollator, TestCollator
 from torch.utils.data import DataLoader
 
 def train(args):
 
+    if args.mse_loss_weight < 0:
+        raise ValueError("mse_loss_weight must be nonnegative")
+    use_alignment = args.mse_loss_weight > 0
+    if use_alignment and args.item_emb_dim <= 0:
+        raise ValueError("Alignment requires item_emb_dim > 0")
     set_seed(args.seed)
     ensure_dir(args.output_dir)
 
@@ -54,6 +59,19 @@ def train(args):
     args.resume_from_checkpoint=find_path(args.resume_from_checkpoint)
     print("resume_from_checkpoint:",args.resume_from_checkpoint)
     config = AutoConfig.from_pretrained(args.base_model)
+    model_loader = AutoModelForCausalLM
+    if use_alignment:
+        from alignment import AlignedQwen3ForCausalLM
+        if config.model_type != "qwen3":
+            raise ValueError("Representation alignment currently supports Qwen3")
+        model_loader = AlignedQwen3ForCausalLM
+        config.lcrec_alignment = {
+            "loss_weight": args.mse_loss_weight,
+            "align_loss_type": args.align_loss_type,
+            "align_target": args.align_target,
+            "align_item": args.align_item,
+            "item_emb_dim": args.item_emb_dim,
+        }
     if args.resume_from_checkpoint=="None" or args.resume_from_checkpoint is None:
         tokenizer = AutoTokenizer.from_pretrained(args.base_model,
                                                 use_fast=False,
@@ -77,13 +95,14 @@ def train(args):
         tokenizer.save_pretrained(args.output_dir)
         config.save_pretrained(args.output_dir)
 
-    collator = Collator_DecoderOnly_manual(args, tokenizer)
+    collator_cls = AlignmentCollator if use_alignment else Collator_DecoderOnly_manual
+    collator = collator_cls(args, tokenizer)
 
     load_8bit = True 
     dtype =torch.bfloat16
     bf16 = True 
 
-    model = AutoModelForCausalLM.from_pretrained(
+    model = model_loader.from_pretrained(
         args.base_model,
         torch_dtype=dtype,
         load_in_8bit=load_8bit,
@@ -93,11 +112,15 @@ def train(args):
     model.resize_token_embeddings(len(tokenizer))
     
     model = prepare_model_for_kbit_training(model)
+    modules_to_save = args.lora_modules_to_save.split(",")
+    if use_alignment:
+        model.initialize_alignment(args.item_emb_dim, args.mse_loss_weight)
+        modules_to_save.append("hidden_to_item_emb")
     config = LoraConfig(
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
         target_modules=args.lora_target_modules.split(","),
-        modules_to_save=args.lora_modules_to_save.split(","),
+        modules_to_save=modules_to_save,
         lora_dropout=args.lora_dropout,
         bias="none",
         inference_mode=False,

@@ -14,6 +14,10 @@ data_file=.parquet
 post_name=test
 lr=2e-5
 seed=2025 # your seed
+mse_loss_weight=${MSE_LOSS_WEIGHT:-5}
+align_target=${ALIGN_TARGET:-latent}
+align_item=${ALIGN_ITEM:-current}
+align_loss_type=cos
 cd /mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/scripts_qwen
 
 model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-0.6B
@@ -22,6 +26,9 @@ mkdir /mnt/local/localcache00/lcrec
 for wd in 0
 do
     suffix=${model_class}-${lr}lr-${wd}wd-${suffix}
+    if [ "$mse_loss_weight" != "0" ]; then
+        suffix=${suffix}-${align_item}-${align_target}-${align_loss_type}${mse_loss_weight}
+    fi
     
     OUTPUT_DIR=/mnt/local/localcache00/lcrec/${DATASET}/${suffix}
     TORCH_DISTRIBUTED_DEBUG=DETAIL \
@@ -59,6 +66,10 @@ do
         --ft 1 \
         --post $post_name \
         --seed ${seed} \
+        --mse_loss_weight ${mse_loss_weight} \
+        --align_target ${align_target} \
+        --align_item ${align_item} \
+        --align_loss_type ${align_loss_type} \
         --data_file ${data_file} \
         ${subset} \
         ${only_train_response} 

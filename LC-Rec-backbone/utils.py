@@ -65,6 +65,14 @@ def parse_train_args(parser):
     parser.add_argument("--logging_step", type=int, default=2)
     parser.add_argument("--model_max_length", type=int, default=1024)
     parser.add_argument("--weight_decay", type=float, default=0.01)
+    parser.add_argument("--mse_loss_weight", type=float, default=0.0,
+                        help="Cosine alignment weight; 0 preserves the original training path")
+    parser.add_argument("--align_loss_type", choices=["cos"], default="cos")
+    parser.add_argument("--align_target", choices=["latent", "quantized"], default="latent")
+    parser.add_argument("--align_item", choices=["current", "next"], default="current")
+    parser.add_argument("--item_emb_path", type=str, default=None,
+                        help="Optional alignment parquet override; otherwise selected by align_target")
+    parser.add_argument("--item_emb_dim", type=int, default=32)
     parser.add_argument("--ft_ckpt_path", type=str,
                         default=None,
                         help="The checkpoint path")
