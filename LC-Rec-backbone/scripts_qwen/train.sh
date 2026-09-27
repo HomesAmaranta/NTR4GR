@@ -17,11 +17,13 @@ seed=2025 # your seed
 cd /mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/scripts_qwen
 
 model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-0.6B
+
+mkdir /mnt/local/localcache00/lcrec
 for wd in 0
 do
     suffix=${model_class}-${lr}lr-${wd}wd-${suffix}
     
-    OUTPUT_DIR=/mnt/local/localcache00/fyb/lcrec/${DATASET}/${suffix}
+    OUTPUT_DIR=/mnt/local/localcache00/lcrec/${DATASET}/${suffix}
     TORCH_DISTRIBUTED_DEBUG=DETAIL \
     NCCL_DEBUG=INFO \
     NCCL_NET=Socket \
@@ -33,17 +35,15 @@ do
         --standalone \
         --nproc_per_node=4 \
         --master_port=5881 \
-        --tee 3 \
-        --log-dir ./torchrun_logs \
         ../finetune_lora.py \
         --base_model $model_path \
         --output_dir $OUTPUT_DIR \
         --subseq \
         --dataset $DATASET \
-        --per_device_batch_size 16 \
-        --gradient_accumulation_steps 2 \
+        --per_device_batch_size 64 \
+        --gradient_accumulation_steps 1 \
         --learning_rate $lr \
-        --epochs 50 \
+        --epochs 10 \
         --lora_r 8 \
         --lora_alpha 32 \
         --lora_target_modules "q_proj,v_proj,o_proj,up_proj,down_proj" \
