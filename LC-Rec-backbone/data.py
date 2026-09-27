@@ -29,8 +29,8 @@ class SeqRecDataset(Dataset):
         self.mode = mode
         self.dataset = args.dataset
         self.data_path = args.data_path 
-        self.index_file = args.index_file 
-        self.data_file = args.data_file
+        self.index_file = "_t5_rqvae.npy"
+        self.data_file = ".parquet"
 
         self.max_his_len = args.max_his_len
         self.add_prefix = getattr(args, 'add_prefix', False) 
@@ -98,6 +98,17 @@ class SeqRecDataset(Dataset):
             df = pd.read_parquet(path)
             if 'history' not in df.columns or 'target' not in df.columns:
                  raise ValueError(f"Parquet file must contain 'history' and 'target' columns.")
+            if self.mode == "train":
+                # Expand before __getitem__ truncates each history to max_his_len.
+                samples = []
+                for row in df.itertuples(index=False):
+                    sequence = list(row.history) + [row.target]
+                    for i in range(1, len(sequence)):
+                        samples.append({
+                            "history": sequence[:i],
+                            "target": sequence[i],
+                        })
+                return pd.DataFrame(samples, columns=["history", "target"])
             return df
         except Exception as e:
             print(f"Error loading parquet file: {e}")

@@ -3,34 +3,25 @@ export WANDB_MODE=disabled
 export CUDA_LAUNCH_BLOCKING=1 
 which torchrun
 which python
-DATASET=Tools
+DATASET=Beauty
 lora="--lora"
 only_train_response="--only_train_response"
-model_class=Qwen2.5-1.5B
-subset=""
+model_class=Qwen3-1.7B
 ft=1
 ckpt_name=None # your ckpt path
-index_name=_0.7_dact.npy
-data_file=_0.7.parquet
+index_name=_t5_rqvae.npy
+data_file=.parquet
 post_name=test
 lr=2e-5
 seed=2025 # your seed
 cd /mlx_devbox/users/fengyuebo/playground/DACT/LC-Rec-backbone/scripts_qwen
 
-model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen2.5-1.5B # or write your cached model path
-phase=0.7
+model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-0.6B
 for wd in 0
 do
     suffix=${model_class}-${lr}lr-${wd}wd-${suffix}
-    logfile=../log/Qwen//${DATASET}/phase${phase}/${index_name}/train_${suffix}-log.txt 
-    logdir=../log/Qwen//${DATASET}/phase${phase}/${index_name}
-    if [ ! -d "$logdir" ]; then
-        mkdir -p "$logdir"
-        echo "Directory $logdir created."
-    else
-        echo "Directory $logdir already exists."
-    fi
-    OUTPUT_DIR=../ckpt/Qwen/${DATASET}/phase${phase}/${index_name}/${suffix}
+    
+    OUTPUT_DIR=/mnt/local/localcache00/fyb/lcrec/${DATASET}/${suffix}
     TORCH_DISTRIBUTED_DEBUG=DETAIL \
     NCCL_DEBUG=INFO \
     NCCL_NET=Socket \
@@ -65,7 +56,6 @@ do
         --test_batch_size 4 \
         --resume_from_checkpoint ${ckpt_name} \
         --num_beams 20 \
-        --phase ${phase} \
         --ft 1 \
         --post $post_name \
         --seed ${seed} \
