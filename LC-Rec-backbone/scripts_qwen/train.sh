@@ -1,20 +1,25 @@
 PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
 export WANDB_MODE=disabled
 
+unset NCCL_DEBUG
+unset NCCL_DEBUG_SUBSYS
+unset TORCH_DISTRIBUTED_DEBUG
+unset NCCL_SOCKET_IFNAME
+
 which torchrun
 which python
 DATASET=Beauty
 lora="--lora"
 only_train_response="--only_train_response"
 model_class=Qwen3-0.6B
-ft=1
+ft=0
 ckpt_name=None # your ckpt path
 index_name=_t5_rqvae.npy
 data_file=.parquet
 post_name=test
 lr=2e-5
 seed=2025 # your seed
-mse_loss_weight=${MSE_LOSS_WEIGHT:-5}
+mse_loss_weight=${MSE_LOSS_WEIGHT:-0}
 align_target=${ALIGN_TARGET:-latent}
 align_item=${ALIGN_ITEM:-current}
 align_loss_type=cos
@@ -61,7 +66,7 @@ do
         --test_batch_size 4 \
         --resume_from_checkpoint ${ckpt_name} \
         --num_beams 20 \
-        --ft 1 \
+        --ft 0 \
         --post $post_name \
         --seed ${seed} \
         --mse_loss_weight ${mse_loss_weight} \
