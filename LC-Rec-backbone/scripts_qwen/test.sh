@@ -26,7 +26,7 @@ do
     if [ "$mse_loss_weight" != "0" ]; then
         suffix=${suffix}-${align_item}-${align_target}-${align_loss_type}${mse_loss_weight}
     fi
-    CKPT_PATH=/mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/ckpt/Beauty/Qwen3-0.6B-2e-5lr-0wd--current-latent-cos5/checkpoint-4998
+    CKPT_PATH=/mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/ckpt/Beauty/Qwen3-0.6B-2e-5lr-0wd--current-latent-cos5/checkpoint-2550
 
     TORCH_DISTRIBUTED_DEBUG=DETAIL \
     NCCL_NET=Socket \

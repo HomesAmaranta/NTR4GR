@@ -17,7 +17,7 @@ ckpt_name=None # your ckpt path
 index_name=_t5_rqvae.npy
 data_file=.parquet
 post_name=test
-lr=2e-5
+lr=1e-3
 seed=2025 # your seed
 mse_loss_weight=${MSE_LOSS_WEIGHT:-0}
 align_target=${ALIGN_TARGET:-latent}
@@ -50,7 +50,7 @@ do
         --output_dir $OUTPUT_DIR \
         --subseq \
         --dataset $DATASET \
-        --per_device_batch_size 64 \
+        --per_device_batch_size 128 \
         --gradient_accumulation_steps 1 \
         --learning_rate $lr \
         --epochs 10 \
@@ -66,7 +66,7 @@ do
         --test_batch_size 4 \
         --resume_from_checkpoint ${ckpt_name} \
         --num_beams 20 \
-        --ft 0 \
+        --ft 1 \
         --post $post_name \
         --seed ${seed} \
         --mse_loss_weight ${mse_loss_weight} \
