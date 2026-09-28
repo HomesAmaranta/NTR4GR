@@ -2,6 +2,7 @@ import warnings
 warnings.filterwarnings("ignore")
 import argparse
 import os
+import shutil
 import sys
 from typing import List
 # import wandb
@@ -227,15 +228,30 @@ def train(args):
         try:
             trainer.save_state()
             trainer.save_model(output_dir=args.output_dir)
-            if int(os.environ.get("LOCAL_RANK"))==0: 
-                opt_file = os.path.join(find_path(args.output_dir), "optimizer.pt")
-                if os.path.exists(opt_file):
-                    os.remove(opt_file)
         except:
-            if int(os.environ.get("LOCAL_RANK"))==0: 
+            if trainer.is_world_process_zero():
                 model.save_pretrained(args.output_dir)
                 tokenizer.save_pretrained(args.output_dir)
                 print(f"The best model is saved at {args.output_dir}")
+        if trainer.is_world_process_zero():
+            adapter_path = os.path.join(args.output_dir, "adapter_model.bin")
+            if not os.path.isfile(adapter_path):
+                raise FileNotFoundError(
+                    f"Best adapter was not saved to {adapter_path}; "
+                    "refusing to delete a checkpoint"
+                )
+            checkpoints = []
+            for name in os.listdir(args.output_dir):
+                if not name.startswith("checkpoint-"):
+                    continue
+                step = name.removeprefix("checkpoint-")
+                path = os.path.join(args.output_dir, name)
+                if step.isdigit() and os.path.isdir(path):
+                    checkpoints.append((int(step), path))
+            if checkpoints:
+                _, latest_checkpoint = max(checkpoints)
+                shutil.rmtree(latest_checkpoint)
+                print(f"Deleted latest checkpoint: {latest_checkpoint}")
 
     if local_rank == 0 and args.eval_after_train:
         from test_qwen import Trie, prefix_allowed_tokens_fn, get_greedy_prefix_allowed_tokens_fn, get_topk_results
