@@ -1,7 +1,7 @@
 PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
 export WANDB_MODE=disabled
-export CUDA_LAUNCH_BLOCKING=1 
 
+unset NCCL_SOCKET_IFNAME
 DATASET=Beauty
 model_class=Qwen3-0.6B
 index_name=_t5_rqvae.npy
@@ -22,10 +22,9 @@ do
     if [ "$mse_loss_weight" != "0" ]; then
         suffix=${suffix}-${align_item}-${align_target}-${align_loss_type}${mse_loss_weight}
     fi
-    CKPT_PATH=${CKPT_PATH:-/mnt/local/localcache00/lcrec/${DATASET}/${suffix}}
+    CKPT_PATH=/mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/ckpt/Qwen3-0.6B-2e-5lr-0wd-/checkpoint-4794
 
     TORCH_DISTRIBUTED_DEBUG=DETAIL \
-    NCCL_DEBUG=INFO \
     NCCL_NET=Socket \
     NCCL_NET_PLUGIN=none \
     NCCL_IB_DISABLE=1 \

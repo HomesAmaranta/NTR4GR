@@ -1,6 +1,6 @@
 PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
 export WANDB_MODE=disabled
-export CUDA_LAUNCH_BLOCKING=1 
+
 which torchrun
 which python
 DATASET=Beauty
@@ -18,11 +18,10 @@ mse_loss_weight=${MSE_LOSS_WEIGHT:-5}
 align_target=${ALIGN_TARGET:-latent}
 align_item=${ALIGN_ITEM:-current}
 align_loss_type=cos
+
 cd /mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/scripts_qwen
 
 model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-0.6B
-
-mkdir /mnt/local/localcache00/lcrec
 for wd in 0
 do
     suffix=${model_class}-${lr}lr-${wd}wd-${suffix}
@@ -30,9 +29,8 @@ do
         suffix=${suffix}-${align_item}-${align_target}-${align_loss_type}${mse_loss_weight}
     fi
     
-    OUTPUT_DIR=/mnt/local/localcache00/lcrec/${DATASET}/${suffix}
+    OUTPUT_DIR=/mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/ckpt/${DATASET}/${suffix}
     TORCH_DISTRIBUTED_DEBUG=DETAIL \
-    NCCL_DEBUG=INFO \
     NCCL_NET=Socket \
     NCCL_NET_PLUGIN=none \
     NCCL_IB_DISABLE=1 \

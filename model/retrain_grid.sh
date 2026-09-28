@@ -5,12 +5,12 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/model
 
 dataset=Beauty
 batch_sizes=(256)
-learning_rates=(1e-4)
+learning_rates=(5e-4)
 align_loss_type=cos
 
 seeds=(1 42 2025)
 mse_loss_weights=(0)
-align_targets=(latent)
+align_targets=(latent )
 align_items=(current)
 
 for seed in "${seeds[@]}"; do
