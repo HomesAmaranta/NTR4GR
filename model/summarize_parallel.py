@@ -59,13 +59,8 @@ def is_supported_training_config(config):
 
 def alignment_name(config):
     weight = config.get("mse_loss_weight", 0.0)
-    try:
-        enabled = float(weight) != 0.0
-    except (TypeError, ValueError):
-        enabled = bool(weight)
-    if not enabled:
-        return "none"
-    return f"{config.get('align_loss_type', 'mse')}{fmt_float(weight)}"
+    loss_type = config.get("align_loss_type") or "cos"
+    return f"{loss_type}{fmt_float(weight)}"
 
 
 def fmt(value):
