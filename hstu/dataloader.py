@@ -1,49 +1,56 @@
-import numpy as np
+from functools import partial
+
 import torch
 from torch.utils.data import DataLoader
 
+try:
+    from .dataset import IGNORE_INDEX
+except ImportError:
+    from dataset import IGNORE_INDEX
+
+
 class GenRecDataLoader(DataLoader):
-    """
-    GenRecDataLoader for Generative Recommendation tasks.
-    
-    Args:
-        dataset (Dataset): The dataset to load data from.
-        batch_size (int): Number of samples per batch.
-        shuffle (bool): Whether to shuffle the data at every epoch.
-        num_workers (int): Number of subprocesses to use for data loading.
-        collate_fn (callable, optional): Function to merge a list of samples to form a mini-batch.
-    """
-    def __init__(self, dataset, batch_size=32, shuffle=True, num_workers=4, collate_fn=None):
-        collate_fn = self.collate_fn
-        super(GenRecDataLoader, self).__init__(dataset, batch_size=batch_size, shuffle=shuffle,
-                                               num_workers=num_workers, collate_fn=collate_fn)
-    
-            
-    def collate_fn(self, batch, pad_token=0):
-        """
-        crate attention mask for input sequence.
-        
-        Args:
-            batch (list): List of samples from the dataset.
-        
-        Returns:
-            dict: Batched data with padded sequences.
-        """
-        # Assuming each item in batch is a dictionary with 'history' and 'target'
-        histories = [item['history'] for item in batch]
-        targets = [item['target'] for item in batch]
+    """Right-pad SID sequences while preserving per-token NTP labels."""
 
-        # Flatten histories and targets
-        flattened_histories = torch.stack(
-            [torch.tensor([elem for sublist in history for elem in sublist], dtype=torch.int64) for history in histories]
-        )
-        flattened_targets = torch.stack(
-            [torch.tensor(target, dtype=torch.int64) for target in targets]
+    def __init__(self, dataset, batch_size=32, shuffle=True, num_workers=4):
+        super().__init__(
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            collate_fn=partial(
+                self.collate_fn, pad_token=dataset.pad_token
+            ),
         )
 
-        # Create attention masks for flattened histories
-        attention_masks = torch.stack(
-            [torch.tensor([1 if elem != pad_token else 0 for elem in h], dtype=torch.int64) for h in flattened_histories]
-        )
+    @staticmethod
+    def collate_fn(batch, pad_token=0):
+        max_length = max(len(sample["input_ids"]) for sample in batch)
+        input_ids = []
+        attention_masks = []
+        labels = []
 
-        return {'history': flattened_histories, 'target': flattened_targets, 'attention_mask': attention_masks}
+        for sample in batch:
+            ids = sample["input_ids"]
+            pad_length = max_length - len(ids)
+            input_ids.append(ids + [pad_token] * pad_length)
+            attention_masks.append([1] * len(ids) + [0] * pad_length)
+            if "labels" in sample:
+                labels.append(
+                    sample["labels"] + [IGNORE_INDEX] * pad_length
+                )
+
+        output = {
+            "input_ids": torch.tensor(input_ids, dtype=torch.long),
+            "attention_mask": torch.tensor(attention_masks, dtype=torch.long),
+            "lengths": torch.tensor(
+                [len(sample["input_ids"]) for sample in batch], dtype=torch.long
+            ),
+        }
+        if labels:
+            output["labels"] = torch.tensor(labels, dtype=torch.long)
+        if "target" in batch[0]:
+            output["target"] = torch.tensor(
+                [sample["target"] for sample in batch], dtype=torch.long
+            )
+        return output

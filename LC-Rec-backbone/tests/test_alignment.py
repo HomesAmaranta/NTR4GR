@@ -215,6 +215,11 @@ class AlignmentModelTests(unittest.TestCase):
         unchanged = aligned(**original_inputs)
         torch.testing.assert_close(unchanged.loss, original.loss, rtol=0, atol=0)
         torch.testing.assert_close(unchanged.logits, original.logits, rtol=0, atol=0)
+        validation = aligned(**batch)
+        torch.testing.assert_close(validation.loss, original.loss, rtol=0, atol=0)
+        torch.testing.assert_close(validation.logits, original.logits, rtol=0, atol=0)
+
+        aligned.train()
         active = aligned(**batch)
         self.assertIsNone(active.hidden_states)
         self.assertNotIn("hidden_states", active)

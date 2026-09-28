@@ -12,7 +12,7 @@ index_name=_t5_rqvae.npy
 data_file=.parquet
 lr=2e-5
 seed=2025
-mse_loss_weight=${MSE_LOSS_WEIGHT:-5}
+mse_loss_weight=${MSE_LOSS_WEIGHT:-0}
 align_target=${ALIGN_TARGET:-latent}
 align_item=${ALIGN_ITEM:-current}
 align_loss_type=cos
@@ -26,7 +26,7 @@ do
     if [ "$mse_loss_weight" != "0" ]; then
         suffix=${suffix}-${align_item}-${align_target}-${align_loss_type}${mse_loss_weight}
     fi
-    CKPT_PATH=/mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/ckpt/Beauty/Qwen3-0.6B-2e-5lr-0wd--current-latent-cos5/checkpoint-4998
+    ckpt_path=${CKPT_PATH:-/mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/ckpt/${DATASET}/${suffix}}
 
     TORCH_DISTRIBUTED_DEBUG=DETAIL \
     NCCL_NET=Socket \
@@ -41,7 +41,7 @@ do
         ../test_qwen_ddp.py \
         --dataset $DATASET \
         --base_model $model_path \
-        --ckpt_path "$CKPT_PATH" \
+        --ckpt_path "$ckpt_path" \
         --test_batch_size 32 \
         --num_beams 20 \
         --seed ${seed} \

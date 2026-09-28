@@ -237,8 +237,7 @@ def test(args):
             adapters_weights = torch.load(checkpoint_name)
             set_peft_model_state_dict(model, adapters_weights)
         else:
-            if local_rank == 0:
-                print(f"Checkpoint {checkpoint_name} not found")
+            raise FileNotFoundError(f"Checkpoint {checkpoint_name} not found")
 
     print("** model loaded")
     model.eval()

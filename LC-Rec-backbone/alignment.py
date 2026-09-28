@@ -52,7 +52,11 @@ class AlignedQwen3ForCausalLM(Qwen3ForCausalLM):
         return_dict=None,
         **kwargs,
     ):
-        if target_item_emb is None and alignment_positions is None:
+        # Alignment is a training-only objective. Trainer switches the model to
+        # eval mode for validation, where checkpoint selection must use CE only.
+        if not self.training or (
+            target_item_emb is None and alignment_positions is None
+        ):
             return super().forward(
                 input_ids=input_ids, attention_mask=attention_mask, labels=labels,
                 output_hidden_states=output_hidden_states, return_dict=return_dict, **kwargs,
