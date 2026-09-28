@@ -12,7 +12,7 @@ index_name=_t5_rqvae.npy
 data_file=.parquet
 lr=2e-5
 seed=2025
-mse_loss_weight=${MSE_LOSS_WEIGHT:-5}
+mse_loss_weight=${MSE_LOSS_WEIGHT:-0}
 align_target=${ALIGN_TARGET:-latent}
 align_item=${ALIGN_ITEM:-current}
 align_loss_type=cos
@@ -41,7 +41,7 @@ do
         ../test_qwen_ddp.py \
         --dataset $DATASET \
         --base_model $model_path \
-        --ckpt_path "$CKPT_PATH" \
+        --ckpt_path "$ckpt_path" \
         --test_batch_size 32 \
         --num_beams 20 \
         --seed ${seed} \

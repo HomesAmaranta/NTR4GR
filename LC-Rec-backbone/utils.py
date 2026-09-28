@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import random
 import datetime
 
@@ -295,23 +294,6 @@ def print_results(loss, valid_result, test_result):
 def find_path(base_path):
     if base_path=="None" or base_path is None:
         return base_path
-    if re.fullmatch(r".*checkpoint-\d+$", base_path) and os.path.isdir(base_path):
-        return base_path
-
-    if not os.path.isdir(base_path):
-        base_path=base_path.replace("2e-5","1e-4")
     if not os.path.isdir(base_path):
         raise ValueError(f"Path is not a directory or does not exist: {base_path}")
-
-    checkpoints = []
-    for item in os.listdir(base_path):
-        full_path = os.path.join(base_path, item)
-        if os.path.isdir(full_path) and re.fullmatch(r"checkpoint-\d+", item):
-            checkpoints.append((int(item.split("-")[-1]), full_path))
-
-    if not checkpoints:
-        raise ValueError(f"No 'checkpoint-<number>' subdirectory found in: {base_path}")
-
-    latest = max(checkpoints, key=lambda x: x[0])[1]
-    print(f"Resuming from checkpoint: {latest}")
-    return latest
+    return base_path

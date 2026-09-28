@@ -94,8 +94,7 @@ def test(args):
             set_peft_model_state_dict(model, adapters_weights)
             del adapters_weights
         else:
-            if local_rank == 0:
-                print(f"Checkpoint {checkpoint_name} not found")
+            raise FileNotFoundError(f"Checkpoint {checkpoint_name} not found")
                 
     model = DistributedDataParallel(model, device_ids=[local_rank])
     model.eval()
