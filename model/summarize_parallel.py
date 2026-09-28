@@ -104,10 +104,6 @@ def entry_sort_key(entry):
     return (
         hidden_layer_sort_key(entry["hidden_layer_raw"]),
         entry["lr_raw"],
-        entry["noise_mode"],
-        entry["noise_std_raw"],
-        entry["noise_prob_raw"],
-        entry["eval_noise"],
         entry["align_hidden_mode"],
         entry["target"],
         entry["item"],
@@ -126,10 +122,6 @@ def entry_to_row(entry):
         entry["shallow_layer"],
         entry["hidden_layer"],
         entry["lr"],
-        entry["noise_mode"],
-        entry["noise_std"],
-        entry["noise_prob"],
-        entry["eval_noise"],
         entry["align_hidden_mode"],
         entry["item"],
         entry["k"],
@@ -154,10 +146,6 @@ def aggregate_entries(entries):
             entry["shallow_layer"],
             entry["hidden_layer"],
             entry["lr"],
-            entry["noise_mode"],
-            entry["noise_std"],
-            entry["noise_prob"],
-            entry["eval_noise"],
             entry["align_hidden_mode"],
             entry["item"],
             entry["k"],
@@ -184,10 +172,6 @@ def build_table(rows):
         "shallow_layer",
         "hidden_layer",
         "lr",
-        "noise_mode",
-        "noise_std",
-        "noise_prob",
-        "eval_noise",
         "align_hidden_mode",
         "item",
         "k",
@@ -244,10 +228,6 @@ def main():
         align = alignment_name(config)
         hidden_layer = config.get("hidden_layer", -1)
         lr = config.get("lr")
-        noise_mode = config.get("embedding_noise_mode", "add")
-        noise_std = config.get("embedding_noise_std", 0.0)
-        noise_prob = config.get("embedding_noise_prob", 1.0)
-        eval_noise = bool(config.get("eval_embedding_noise", False))
         align_hidden_mode = config.get("align_item_emb_to_hidden_mode")
         if align_hidden_mode is None:
             align_hidden_mode = (
@@ -269,16 +249,6 @@ def main():
                 "hidden_layer_raw": hidden_layer,
                 "lr": fmt_float(lr),
                 "lr_raw": float(lr) if lr is not None else float("inf"),
-                "noise_mode": fmt(noise_mode),
-                "noise_std": fmt_float(noise_std),
-                "noise_std_raw": (
-                    float(noise_std) if noise_std is not None else float("inf")
-                ),
-                "noise_prob": fmt_float(noise_prob),
-                "noise_prob_raw": (
-                    float(noise_prob) if noise_prob is not None else float("inf")
-                ),
-                "eval_noise": str(eval_noise),
                 "align_hidden_mode": str(align_hidden_mode),
                 "item": fmt(config.get("align_item")),
                 "k": fmt(config.get("align_current_k")),
