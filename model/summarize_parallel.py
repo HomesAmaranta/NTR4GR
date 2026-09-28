@@ -1,0 +1,311 @@
+import argparse
+import ast
+import re
+from pathlib import Path
+
+
+FINAL_EPOCH_RE = re.compile(r"Final Epoch:\s*(?P<epoch>\d+)")
+METRIC_KEYS = [
+    "Recall@5",
+    "Recall@10",
+    "Recall@20",
+    "NDCG@5",
+    "NDCG@10",
+    "NDCG@20",
+]
+
+
+def parse_config(log_path: Path):
+    for line in log_path.read_text(errors="ignore").splitlines():
+        if "Configuration:" not in line:
+            continue
+        raw = line.split("Configuration:", 1)[1].strip()
+        try:
+            return ast.literal_eval(raw)
+        except (ValueError, SyntaxError):
+            return None
+    return None
+
+
+def parse_last_metrics(log_path: Path):
+    last_recalls = None
+    last_ndcgs = None
+    for line in log_path.read_text(errors="ignore").splitlines():
+        if "Final Test Recalls:" in line:
+            last_recalls = ast.literal_eval(line.split("Final Test Recalls:", 1)[1].strip())
+        elif "Final Test NDCGs:" in line:
+            last_ndcgs = ast.literal_eval(line.split("Final Test NDCGs:", 1)[1].strip())
+    if last_recalls is None or last_ndcgs is None:
+        return None
+    return last_recalls, last_ndcgs
+
+
+def parse_converged_epoch(log_path: Path):
+    converged_epoch = None
+    for line in log_path.read_text(errors="ignore").splitlines():
+        match = FINAL_EPOCH_RE.search(line)
+        if match is not None:
+            converged_epoch = int(match.group("epoch"))
+    return converged_epoch
+
+
+def is_supported_training_config(config):
+    """Accept both parallel-training logs and the standard TIGER train logs."""
+    train_mode = config.get("train_mode")
+    if train_mode is not None:
+        return train_mode == "parallel"
+    return config.get("mode") == "train"
+
+
+def alignment_name(config):
+    weight = config.get("mse_loss_weight", 0.0)
+    try:
+        enabled = float(weight) != 0.0
+    except (TypeError, ValueError):
+        enabled = bool(weight)
+    if not enabled:
+        return "none"
+    return f"{config.get('align_loss_type', 'mse')}{fmt_float(weight)}"
+
+
+def fmt(value):
+    if value is None:
+        return "-"
+    return str(value)
+
+
+def fmt_float(value):
+    if value is None:
+        return "-"
+    try:
+        return f"{float(value):g}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def hidden_layer_sort_key(value):
+    try:
+        layer = int(value)
+    except (TypeError, ValueError):
+        return 10**9
+    if layer < 0:
+        return abs(layer) - 1
+    return 10**6 + layer
+
+
+def mean(values):
+    values = [value for value in values if value is not None]
+    if not values:
+        return None
+    return sum(values) / len(values)
+
+
+def entry_sort_key(entry):
+    return (
+        hidden_layer_sort_key(entry["hidden_layer_raw"]),
+        entry["lr_raw"],
+        entry["noise_mode"],
+        entry["noise_std_raw"],
+        entry["noise_prob_raw"],
+        entry["eval_noise"],
+        entry["align_hidden_mode"],
+        entry["target"],
+        entry["item"],
+        entry["k"],
+        entry["loss_mode"],
+        entry["seed"],
+        entry["log_name"],
+    )
+
+
+def entry_to_row(entry):
+    return [
+        entry["align"],
+        entry["loss_mode"],
+        entry["target"],
+        entry["shallow_layer"],
+        entry["hidden_layer"],
+        entry["lr"],
+        entry["noise_mode"],
+        entry["noise_std"],
+        entry["noise_prob"],
+        entry["eval_noise"],
+        entry["align_hidden_mode"],
+        entry["item"],
+        entry["k"],
+        entry["seed"],
+        f"{entry['Recall@5']:.6f}",
+        f"{entry['Recall@10']:.6f}",
+        f"{entry['Recall@20']:.6f}",
+        f"{entry['NDCG@5']:.6f}",
+        f"{entry['NDCG@10']:.6f}",
+        f"{entry['NDCG@20']:.6f}",
+        fmt_float(entry["conv_epoch"]),
+    ]
+
+
+def aggregate_entries(entries):
+    groups = {}
+    for entry in entries:
+        group_key = (
+            entry["align"],
+            entry["loss_mode"],
+            entry["target"],
+            entry["shallow_layer"],
+            entry["hidden_layer"],
+            entry["lr"],
+            entry["noise_mode"],
+            entry["noise_std"],
+            entry["noise_prob"],
+            entry["eval_noise"],
+            entry["align_hidden_mode"],
+            entry["item"],
+            entry["k"],
+        )
+        groups.setdefault(group_key, []).append(entry)
+
+    aggregated = []
+    for group in groups.values():
+        base = dict(group[0])
+        base["seed"] = f"mean({len(group)})"
+        base["log_name"] = ""
+        for key in METRIC_KEYS:
+            base[key] = mean([entry[key] for entry in group])
+        base["conv_epoch"] = mean([entry["conv_epoch"] for entry in group])
+        aggregated.append(base)
+    return aggregated
+
+
+def build_table(rows):
+    headers = [
+        "align",
+        "loss_mode",
+        "target",
+        "shallow_layer",
+        "hidden_layer",
+        "lr",
+        "noise_mode",
+        "noise_std",
+        "noise_prob",
+        "eval_noise",
+        "align_hidden_mode",
+        "item",
+        "k",
+        "seed",
+        "Recall@5",
+        "Recall@10",
+        "Recall@20",
+        "NDCG@5",
+        "NDCG@10",
+        "NDCG@20",
+        "conv_epoch",
+    ]
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join(["---"] * len(headers)) + " |",
+    ]
+    for row in rows:
+        lines.append("| " + " | ".join(row) + " |")
+    return "\n".join(lines)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--logs_dir", type=str, default="./logs")
+    parser.add_argument("--output", type=str, default="./parallel_0904_all_summary.md")
+    parser.add_argument(
+        "--align_items",
+        type=str,
+        default="",
+        help="Comma-separated align_item values to keep; use empty string to keep all",
+    )
+    parser.add_argument(
+        "--mean",
+        action="store_true",
+        help="Average rows with the same config across seeds",
+    )
+    args = parser.parse_args()
+    keep_align_items = {
+        item.strip() for item in args.align_items.split(",") if item.strip()
+    }
+
+    entries = []
+    for log_path in sorted(Path(args.logs_dir).glob("*.log")):
+        config = parse_config(log_path)
+        if not config or not is_supported_training_config(config):
+            continue
+        if keep_align_items and config.get("align_item") not in keep_align_items:
+            continue
+        metrics = parse_last_metrics(log_path)
+        if metrics is None:
+            continue
+        recalls, ndcgs = metrics
+        converged_epoch = parse_converged_epoch(log_path)
+        align = alignment_name(config)
+        hidden_layer = config.get("hidden_layer", -1)
+        lr = config.get("lr")
+        noise_mode = config.get("embedding_noise_mode", "add")
+        noise_std = config.get("embedding_noise_std", 0.0)
+        noise_prob = config.get("embedding_noise_prob", 1.0)
+        eval_noise = bool(config.get("eval_embedding_noise", False))
+        align_hidden_mode = config.get("align_item_emb_to_hidden_mode")
+        if align_hidden_mode is None:
+            align_hidden_mode = (
+                "add"
+                if bool(config.get("add_align_item_emb_to_hidden", False))
+                else "none"
+            )
+        entries.append(
+            {
+                "align": align,
+                "loss_mode": fmt(config.get("mse_loss_mode")),
+                "target": fmt(config.get("align_target")),
+                "shallow_layer": (
+                    fmt(config.get("shallow_layer"))
+                    if config.get("align_target") == "shallow"
+                    else "-"
+                ),
+                "hidden_layer": fmt(config.get("hidden_layer", -1)),
+                "hidden_layer_raw": hidden_layer,
+                "lr": fmt_float(lr),
+                "lr_raw": float(lr) if lr is not None else float("inf"),
+                "noise_mode": fmt(noise_mode),
+                "noise_std": fmt_float(noise_std),
+                "noise_std_raw": (
+                    float(noise_std) if noise_std is not None else float("inf")
+                ),
+                "noise_prob": fmt_float(noise_prob),
+                "noise_prob_raw": (
+                    float(noise_prob) if noise_prob is not None else float("inf")
+                ),
+                "eval_noise": str(eval_noise),
+                "align_hidden_mode": str(align_hidden_mode),
+                "item": fmt(config.get("align_item")),
+                "k": fmt(config.get("align_current_k")),
+                "seed": fmt(config.get("seed")),
+                "Recall@5": recalls.get("Recall@5", float("nan")),
+                "Recall@10": recalls.get("Recall@10", float("nan")),
+                "Recall@20": recalls.get("Recall@20", float("nan")),
+                "NDCG@5": ndcgs.get("NDCG@5", float("nan")),
+                "NDCG@10": ndcgs.get("NDCG@10", float("nan")),
+                "NDCG@20": ndcgs.get("NDCG@20", float("nan")),
+                "conv_epoch": converged_epoch,
+                "log_name": log_path.name,
+            }
+        )
+
+    if not entries:
+        print(f"No finished parallel logs found in {args.logs_dir}")
+        return
+
+    if args.mean:
+        entries = aggregate_entries(entries)
+    rows = [entry_to_row(entry) for entry in sorted(entries, key=entry_sort_key)]
+    table = build_table(rows)
+    # Path(args.output).write_text(table + "\n")
+    print(table)
+    # print(f"\nsaved to {args.output}")
+
+
+if __name__ == "__main__":
+    main()

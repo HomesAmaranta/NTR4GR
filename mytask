@@ -1,0 +1,1965 @@
+#!/usr/bin/env python3
+"""mytask - simple sequential local task scheduler.
+
+Usage:
+  mytask <script.sh> [args...] [GPU_COUNT] [-m "desc"]   submit a task (optional description)
+  mytask run <script.sh> [args...] [-m "desc"]  run NOW, bypassing the queue
+                                    (starts immediately in parallel with
+                                    whatever else is queued/running)
+  mytask show [-d N|all] [-D DATE] [-w]  list tasks (default: last 24h; -d N: last N*24h;
+                                    -D 260603 or YYYY-MM-DD: tasks started that day;
+                                    -w/--full: don't truncate DESC/CMD)
+  mytask info <id>               show full info of a task (untruncated)
+  mytask log <id>                print task log
+  mytask kill <id|a-b>           cancel/kill a task or an inclusive id range
+  mytask parallel [N]            show/set parallelism (local total, worker per GPU)
+  mytask workers [off|auto|ID...] show/set GPU worker dispatch
+  mytask off [ID[,ID]...]        disable workers for automatic assignment
+  mytask on ID[,ID]...           re-enable disabled workers
+  mytask trust-workers [off|ID...] show/set workers allowed when probe fails
+  mytask worker-ssh [ID TARGET|off ID] show/set SSH launch target for a worker
+  mytask gpus [--detail] [ID...] list GPUs by worker
+  mytask gpu-tasks [ID...]       list running task ids by GPU
+  mytask gpu-policy [UTIL FREE]  show/set idle GPU thresholds
+  mytask clear                   remove finished tasks from list (keep logs)
+  mytask stop-daemon             stop the background daemon
+  mytask --daemon                (internal) run the scheduler loop
+"""
+
+import sys
+import os
+import json
+import re
+import time
+import errno
+import signal
+import fcntl
+import shlex
+import shutil
+import subprocess
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+ROOT = Path(os.path.realpath(__file__)).parent / "data"
+TASKS_FILE = ROOT / "tasks.json"
+CONFIG_FILE = ROOT / "config.json"
+LOGS_DIR = ROOT / "logs"
+SCRIPTS_DIR = ROOT / "scripts"
+DAEMON_PID = ROOT / "daemon.pid"
+LOCK_FILE = ROOT / "tasks.lock"
+DAEMON_LOG = ROOT / "daemon.log"
+
+IDLE_EXIT_SECONDS = 300  # daemon exits after 5 min idle
+MLXC_BIN = "/opt/tiger/mlx_deploy/mlxc"
+DEFAULT_WORKER_SSH_KEY = str(Path.home() / ".ssh" / "id_merlin_managed_rsa")
+# All workers are reached over SSH by default. The address is derived from the
+# worker id with this template unless an explicit target is set in worker_ssh.
+DEFAULT_WORKER_SSH_USER = "fengyuebo"
+DEFAULT_WORKER_SSH_HOST = "merlin-ssh-us.tiktok-row.org"
+DEFAULT_GPU_UTIL_MAX = 30
+DEFAULT_GPU_FREE_MIN = 70
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+YAML_EXTS = (".yaml", ".yml")
+
+
+# ---------- storage ----------
+
+def init():
+    ROOT.mkdir(parents=True, exist_ok=True)
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    SCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
+    if not TASKS_FILE.exists():
+        TASKS_FILE.write_text("[]")
+    if not CONFIG_FILE.exists():
+        CONFIG_FILE.write_text(json.dumps({"parallel": 1}, indent=2))
+
+
+def _bucket_name(tid):
+    """Range-named bucket grouping every 1000 task ids: 0-999, 1000-1999, ..."""
+    lo = (tid // 1000) * 1000
+    return f"{lo}-{lo + 999}"
+
+
+def task_cache_dir(tid):
+    """Per-task cache dir holding the snapshotted sh + yaml + dataset copies."""
+    return SCRIPTS_DIR / _bucket_name(tid) / str(tid)
+
+
+def purge_dataset_modules(t):
+    """Delete the runtime dataset snapshot modules placed under the project's
+    data/ package. Called when a task reaches a terminal state so the working
+    copies don't pollute the training project. Archival copies in the task dir
+    are kept."""
+    for p in t.get("cached_dataset_modules") or []:
+        try:
+            Path(p).unlink()
+        except (FileNotFoundError, OSError):
+            pass
+
+
+def cleanup_cached_script(t):
+    """Best-effort full purge of a task's cached artifacts (dead code today;
+    kept in sync with the new layout). Removes the working dataset modules and
+    the whole per-task cache dir."""
+    purge_dataset_modules(t)
+    p = t.get("cached_script")
+    tdir = Path(p).parent if p else None
+    for p in [t.get("cached_script"), *(t.get("cached_yamls") or []),
+              *(t.get("cached_datasets") or [])]:
+        if not p:
+            continue
+        try:
+            Path(p).unlink()
+        except (FileNotFoundError, OSError):
+            pass
+    if tdir:
+        try:
+            tdir.rmdir()
+        except OSError:
+            pass
+
+
+def _looks_like_yaml_path(s):
+    return isinstance(s, str) and s.lower().endswith(YAML_EXTS)
+
+
+def snapshot_yamls(extra, dest_dir):
+    """Replace yaml-looking paths in `extra` with copies under `dest_dir`.
+
+    Supports two forms:
+      - bare path:           ".../foo.yaml"
+      - key=path:            "--model_yaml=.../foo.yaml"
+    Returns (new_extra, cached_paths).
+    Files that don't exist on disk are left untouched.
+    """
+    new_extra = list(extra)
+    cached_paths = []
+    used = False
+
+    def _cache(src_path):
+        nonlocal used
+        if not used:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            used = True
+        # avoid name collisions across multiple yamls with same basename
+        dst = dest_dir / src_path.name
+        i = 1
+        while dst.exists():
+            dst = dest_dir / f"{src_path.stem}_{i}{src_path.suffix}"
+            i += 1
+        shutil.copy2(src_path, dst)
+        cached_paths.append(str(dst))
+        return str(dst)
+
+    for i, a in enumerate(new_extra):
+        if _looks_like_yaml_path(a):
+            p = Path(a).expanduser()
+            if p.is_file():
+                new_extra[i] = _cache(p.resolve())
+            continue
+        if "=" in a:
+            k, v = a.split("=", 1)
+            if _looks_like_yaml_path(v):
+                p = Path(v).expanduser()
+                if p.is_file():
+                    new_extra[i] = f"{k}={_cache(p.resolve())}"
+    return new_extra, cached_paths
+
+
+# Match yaml/yml paths inside a shell script. We accept bare tokens, single-
+# or double-quoted strings, and key=value forms. The path itself can contain
+# letters, digits, dot, slash, dash, underscore, tilde, and $ (for env vars
+# we don't expand — only literal paths get rewritten).
+_YAML_TOKEN = re.compile(
+    r"""(?P<full>(?P<quote>["']?)(?P<path>[A-Za-z0-9_./~\-]+\.(?:yaml|yml))(?P=quote))""",
+    re.IGNORECASE,
+)
+
+
+def snapshot_yamls_in_script(cached_script_path, script_cwd, dest_dir):
+    """Scan a (cached) shell script, replace literal *.yaml/.yml paths with
+    snapshot copies under `dest_dir`.
+
+    Resolution order for each match:
+      1. as-is (absolute, or relative to caller's cwd)
+      2. relative to the original script directory
+
+    Files that cannot be resolved are left untouched (assumed to be runtime-
+    constructed paths, env vars, or user-provided args).
+
+    Mutates the cached script in place. Returns cached_paths.
+    """
+    text = Path(cached_script_path).read_text(encoding="utf-8", errors="replace")
+    cached_paths = []
+    used = False
+    seen = {}  # original_resolved_path -> cached_path
+
+    def _cache(src_path):
+        nonlocal used
+        key = str(src_path)
+        if key in seen:
+            return seen[key]
+        if not used:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            used = True
+        dst = dest_dir / src_path.name
+        i = 1
+        while dst.exists():
+            dst = dest_dir / f"{src_path.stem}_{i}{src_path.suffix}"
+            i += 1
+        shutil.copy2(src_path, dst)
+        cached_paths.append(str(dst))
+        seen[key] = str(dst)
+        return str(dst)
+
+    def _resolve(raw):
+        # Skip paths with shell expansions we can't safely resolve.
+        if "$" in raw or "`" in raw:
+            return None
+        candidates = []
+        p = Path(raw).expanduser()
+        if p.is_absolute():
+            candidates.append(p)
+        else:
+            candidates.append(Path(script_cwd) / p)
+            try:
+                candidates.append(Path(cached_script_path).parent / p)
+            except Exception:
+                pass
+        for c in candidates:
+            try:
+                if c.is_file():
+                    return c.resolve()
+            except OSError:
+                continue
+        return None
+
+    def _sub(m):
+        raw = m.group("path")
+        quote = m.group("quote") or ""
+        resolved = _resolve(raw)
+        if resolved is None:
+            return m.group(0)
+        return f"{quote}{_cache(resolved)}{quote}"
+
+    new_text = _YAML_TOKEN.sub(_sub, text)
+    if new_text != text:
+        Path(cached_script_path).write_text(new_text, encoding="utf-8")
+    return cached_paths
+
+
+# Match `--dataset_version <name>` / `--dataset_version=<name>`. The value is a
+# bare python module name (letters, digits, underscore).
+_DATASET_TOKEN = re.compile(r"(--dataset_version[ \t=]+)([A-Za-z_]\w*)")
+_DATASET_NAME = re.compile(r"[A-Za-z_]\w*$")
+
+
+def _dataset_src(name, script_cwd):
+    """The training project resolves --dataset_version <name> via
+    importlib.import_module(f"data.{name}"), i.e. <cwd>/data/<name>.py."""
+    p = Path(script_cwd) / "data" / f"{name}.py"
+    return p if p.is_file() else None
+
+
+def _snapshot_one_dataset(name, tid, script_cwd, dest_dir, state):
+    """Freeze data/<name>.py for this task. Returns the (possibly rewritten)
+    module name to use. Memoized via `state` so the same name referenced in
+    both args and the script maps to one snapshot.
+
+    Creates two copies:
+      - working module  <cwd>/data/<name>__mt<tid>.py   (runtime-effective,
+        deleted when the task reaches a terminal state)
+      - archival copy   <dest_dir>/<name>.py            (kept as a record)
+    Names that can't be resolved on disk are left unchanged.
+    """
+    if name in state["seen"]:
+        return state["seen"][name]
+    src = _dataset_src(name, script_cwd)
+    if src is None:
+        state["seen"][name] = name
+        return name
+    src = src.resolve()
+    new_name = f"{name}__mt{tid}"
+    work = src.parent / f"{new_name}.py"
+    shutil.copy2(src, work)
+    state["modules"].append(str(work))
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    arch = dest_dir / f"{name}.py"
+    i = 1
+    while arch.exists():
+        arch = dest_dir / f"{name}_{i}.py"
+        i += 1
+    shutil.copy2(src, arch)
+    state["archives"].append(str(arch))
+    state["seen"][name] = new_name
+    return new_name
+
+
+def snapshot_dataset_in_args(extra, tid, script_cwd, dest_dir, state):
+    """Rewrite --dataset_version values in the extra CLI args to frozen copies."""
+    new_extra = list(extra)
+    i = 0
+    while i < len(new_extra):
+        a = new_extra[i]
+        if a == "--dataset_version" and i + 1 < len(new_extra):
+            nm = new_extra[i + 1]
+            if _DATASET_NAME.match(nm):
+                new_extra[i + 1] = _snapshot_one_dataset(
+                    nm, tid, script_cwd, dest_dir, state
+                )
+            i += 2
+            continue
+        if a.startswith("--dataset_version="):
+            nm = a.split("=", 1)[1]
+            if _DATASET_NAME.match(nm):
+                new_extra[i] = "--dataset_version=" + _snapshot_one_dataset(
+                    nm, tid, script_cwd, dest_dir, state
+                )
+        i += 1
+    return new_extra
+
+
+def snapshot_dataset_in_script(cached_script_path, tid, script_cwd, dest_dir, state):
+    """Rewrite --dataset_version values embedded in the (cached) script."""
+    text = Path(cached_script_path).read_text(encoding="utf-8", errors="replace")
+
+    def _sub(m):
+        return m.group(1) + _snapshot_one_dataset(
+            m.group(2), tid, script_cwd, dest_dir, state
+        )
+
+    new_text = _DATASET_TOKEN.sub(_sub, text)
+    if new_text != text:
+        Path(cached_script_path).write_text(new_text, encoding="utf-8")
+
+
+@contextmanager
+def locked():
+    init()
+    f = open(LOCK_FILE, "w")
+    fcntl.flock(f, fcntl.LOCK_EX)
+    try:
+        yield
+    finally:
+        fcntl.flock(f, fcntl.LOCK_UN)
+        f.close()
+
+
+def load_tasks():
+    try:
+        return json.loads(TASKS_FILE.read_text() or "[]")
+    except json.JSONDecodeError:
+        return []
+
+
+def save_tasks(tasks):
+    tmp = TASKS_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(tasks, indent=2, ensure_ascii=False))
+    tmp.replace(TASKS_FILE)
+
+
+def load_config():
+    try:
+        cfg = json.loads(CONFIG_FILE.read_text() or "{}")
+    except (FileNotFoundError, json.JSONDecodeError):
+        cfg = {}
+    parallel = int(cfg.get("parallel", 1) or 1)
+    workers = cfg.get("workers") or []
+    if isinstance(workers, str):
+        workers = [w for w in re.split(r"[,\s]+", workers.strip()) if w]
+    trusted_workers = cfg.get("trusted_workers") or []
+    if isinstance(trusted_workers, str):
+        trusted_workers = [w for w in re.split(r"[,\s]+", trusted_workers.strip()) if w]
+    disabled_workers = cfg.get("disabled_workers") or []
+    if isinstance(disabled_workers, str):
+        disabled_workers = [w for w in re.split(r"[,\s]+", disabled_workers.strip()) if w]
+    worker_ssh = cfg.get("worker_ssh") or {}
+    if not isinstance(worker_ssh, dict):
+        worker_ssh = {}
+    worker_dispatch = bool(cfg.get("worker_dispatch", False))
+    worker_auto_discover = bool(cfg.get("worker_auto_discover", False))
+    gpu_util_max = int(cfg.get("gpu_util_max", DEFAULT_GPU_UTIL_MAX))
+    gpu_free_min = int(cfg.get("gpu_free_min", DEFAULT_GPU_FREE_MIN))
+    return {
+        "parallel": max(1, parallel),
+        "worker_dispatch": worker_dispatch,
+        "worker_auto_discover": worker_auto_discover,
+        "workers": [str(w) for w in workers],
+        "trusted_workers": [str(w) for w in trusted_workers],
+        "disabled_workers": [str(w) for w in disabled_workers],
+        "worker_ssh": {str(k): str(v) for k, v in worker_ssh.items() if v},
+        "worker_ssh_user": str(cfg.get("worker_ssh_user") or DEFAULT_WORKER_SSH_USER),
+        "worker_ssh_host": str(cfg.get("worker_ssh_host") or DEFAULT_WORKER_SSH_HOST),
+        "gpu_util_max": gpu_util_max,
+        "gpu_free_min": gpu_free_min,
+    }
+
+
+def save_config(cfg):
+    CONFIG_FILE.write_text(json.dumps(cfg, indent=2, ensure_ascii=False))
+
+
+def now_iso():
+    return datetime.now(BEIJING_TZ).isoformat(timespec="seconds")
+
+
+def parse_task_datetime(value):
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+    if dt.tzinfo is None:
+        # Older records were written on this UTC host without timezone info.
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(BEIJING_TZ)
+
+
+def display_time(value):
+    dt = parse_task_datetime(value)
+    if dt is None:
+        return "-"
+    return dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def parallel_summary(cfg):
+    if cfg.get("worker_dispatch"):
+        return f"{cfg['parallel']}/gpu total_slots=dynamic"
+    return f"{cfg['parallel']} total"
+
+
+def next_id(tasks):
+    return max((t["id"] for t in tasks), default=0) + 1
+
+
+def pid_alive(pid):
+    if not pid:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def reap_dead_running_tasks(tasks, managed_ids=()):
+    managed_ids = set(managed_ids or ())
+    changed = False
+    for t in tasks:
+        if t.get("status") != "running":
+            continue
+        if t.get("mode") == "immediate":
+            continue
+        if t.get("id") in managed_ids:
+            continue
+        if pid_alive(t.get("pid") or 0):
+            continue
+        t["status"] = "orphaned"
+        t["finished_at"] = now_iso()
+        t["exit_code"] = t.get("exit_code")
+        changed = True
+    return changed
+
+
+def mlxc_available():
+    return os.path.exists(MLXC_BIN) and os.access(MLXC_BIN, os.X_OK)
+
+
+def discover_workers():
+    return list(worker_inventory().keys())
+
+
+def worker_inventory():
+    if not mlxc_available():
+        return {}
+    try:
+        out = subprocess.run(
+            [MLXC_BIN, "worker", "list"],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=30,
+        )
+    except Exception:
+        return {}
+    inventory = {}
+    for line in out.stdout.splitlines():
+        parts = line.split()
+        if parts and parts[0].isdigit():
+            gpu_count = int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 0
+            gpu_type = parts[4] if len(parts) > 4 else "-"
+            inventory[parts[0]] = {"gpu_count": gpu_count, "gpu_type": gpu_type}
+    return inventory
+
+
+def configured_workers(cfg):
+    workers = list(cfg.get("workers") or [])
+    if cfg.get("worker_auto_discover"):
+        for wid in discover_workers():
+            if wid not in workers:
+                workers.append(wid)
+    disabled = set(cfg.get("disabled_workers") or [])
+    return [str(w) for w in workers if str(w) not in disabled]
+
+
+def _parse_smi_int(value):
+    m = re.search(r"\d+", str(value))
+    return int(m.group(0)) if m else None
+
+
+def default_ssh_target(worker_id, cfg=None):
+    """Derive the SSH login target for a worker from its id."""
+    user = (cfg or {}).get("worker_ssh_user") or DEFAULT_WORKER_SSH_USER
+    host = (cfg or {}).get("worker_ssh_host") or DEFAULT_WORKER_SSH_HOST
+    return f"{worker_id}.{user}.worker@{host}"
+
+
+def resolve_ssh_target(worker_id, cfg=None):
+    """Return the SSH target for a worker.
+
+    An explicit mapping in worker_ssh always wins; otherwise every worker
+    defaults to the derived SSH address so all workers are dispatched over SSH.
+    """
+    cfg = cfg or {}
+    explicit = (cfg.get("worker_ssh") or {}).get(str(worker_id))
+    if explicit:
+        return explicit
+    return default_ssh_target(worker_id, cfg)
+
+
+def _ssh_base_argv(ssh_target):
+    return [
+        "ssh",
+        "-i",
+        DEFAULT_WORKER_SSH_KEY,
+        "-o",
+        "IdentitiesOnly=yes",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "ConnectTimeout=15",
+        ssh_target,
+    ]
+
+
+def _ssh_remote_bash_argv(ssh_target, script):
+    """Build an SSH argv that runs the whole script as one remote bash command."""
+    return _ssh_base_argv(ssh_target) + [f"bash -lc {shlex.quote(script)}"]
+
+
+# Python snippet run on a worker to report per-GPU state via torch (no nvidia-smi).
+GPU_PROBE_CODE = r'''
+import json
+import os
+import socket
+
+info = {
+    "ok": False,
+    "hostname": socket.gethostname(),
+    "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+    "nvidia_visible_devices": os.environ.get("NVIDIA_VISIBLE_DEVICES"),
+    "probe_source": "torch",
+    "gpus": [],
+}
+try:
+    import torch
+
+    info["torch_version"] = torch.__version__
+    info["cuda_available"] = torch.cuda.is_available()
+    info["device_count"] = torch.cuda.device_count()
+    if info["cuda_available"]:
+        for idx in range(info["device_count"]):
+            props = torch.cuda.get_device_properties(idx)
+            free_b, total_b = torch.cuda.mem_get_info(idx)
+            used_b = total_b - free_b
+            info["gpus"].append(
+                {
+                    "gpu_index": str(idx),
+                    "gpu_uuid": None,
+                    "gpu_name": props.name,
+                    "gpu_capability": f"{props.major}.{props.minor}",
+                    "memory_used_mib": int(used_b // 1024 // 1024),
+                    "memory_total_mib": int(total_b // 1024 // 1024),
+                    "memory_free_mib": int(free_b // 1024 // 1024),
+                    "gpu_util": None,
+                    "probe_source": "torch",
+                }
+            )
+        info["ok"] = bool(info["gpus"])
+    else:
+        info["error"] = "torch cuda is not available"
+except Exception as exc:
+    info["error"] = f"{type(exc).__name__}: {exc}"
+
+print("MYTASK_GPU_PROBE_JSON=" + json.dumps(info, sort_keys=True))
+'''
+
+
+def _parse_probe_output(worker_id, stdout, returncode, source):
+    result = {"worker_id": str(worker_id), "ok": False, "raw": stdout.strip()}
+    for line in stdout.splitlines():
+        if line.startswith("MYTASK_GPU_PROBE_JSON="):
+            try:
+                result.update(json.loads(line.split("=", 1)[1]))
+            except json.JSONDecodeError as exc:
+                result["error"] = f"invalid probe json: {exc}"
+            break
+    if returncode != 0:
+        result["ok"] = False
+        result["error"] = result.get("error") or f"{source} exit={returncode}"
+    return result
+
+
+def probe_worker_gpu_ssh(worker_id, ssh_target):
+    """Return per-GPU state for a worker via SSH + torch."""
+    argv = _ssh_remote_bash_argv(ssh_target, f"/usr/bin/python -c {shlex.quote(GPU_PROBE_CODE)}")
+    try:
+        out = subprocess.run(
+            argv,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=20,
+        )
+    except Exception as exc:
+        return {"worker_id": str(worker_id), "ok": False, "error": str(exc)}
+    return _parse_probe_output(worker_id, out.stdout, out.returncode, "ssh")
+
+
+def probe_worker_gpu(worker_id, cfg=None):
+    """Return per-GPU state for a worker.
+
+    All workers are probed over SSH first. If SSH probing fails and mlxc is
+    available, fall back to `mlxc worker login` (legacy path).
+    """
+    ssh_target = resolve_ssh_target(worker_id, cfg)
+    if ssh_target:
+        info = probe_worker_gpu_ssh(worker_id, ssh_target)
+        if info.get("ok"):
+            return info
+    return probe_worker_gpu_mlxc(worker_id)
+
+
+def probe_worker_gpu_mlxc(worker_id):
+    """Legacy probe via `mlx worker login` (kept as a fallback)."""
+    if not mlxc_available():
+        return {"worker_id": str(worker_id), "ok": False, "error": f"{MLXC_BIN} not found"}
+    code = r'''
+import json
+import os
+import socket
+
+info = {
+    "ok": False,
+    "hostname": socket.gethostname(),
+    "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+    "nvidia_visible_devices": os.environ.get("NVIDIA_VISIBLE_DEVICES"),
+    "probe_source": "torch",
+    "gpus": [],
+}
+try:
+    import torch
+
+    info["torch_version"] = torch.__version__
+    info["cuda_available"] = torch.cuda.is_available()
+    info["device_count"] = torch.cuda.device_count()
+    if info["cuda_available"]:
+        for idx in range(info["device_count"]):
+            props = torch.cuda.get_device_properties(idx)
+            free_b, total_b = torch.cuda.mem_get_info(idx)
+            used_b = total_b - free_b
+            info["gpus"].append(
+                {
+                    "gpu_index": str(idx),
+                    "gpu_uuid": None,
+                    "gpu_name": props.name,
+                    "gpu_capability": f"{props.major}.{props.minor}",
+                    "memory_used_mib": int(used_b // 1024 // 1024),
+                    "memory_total_mib": int(total_b // 1024 // 1024),
+                    "memory_free_mib": int(free_b // 1024 // 1024),
+                    "gpu_util": None,
+                    "probe_source": "torch",
+                }
+            )
+        info["ok"] = bool(info["gpus"])
+    else:
+        info["error"] = "torch cuda is not available"
+except Exception as exc:
+    info["error"] = f"{type(exc).__name__}: {exc}"
+
+print("MYTASK_GPU_PROBE_JSON=" + json.dumps(info, sort_keys=True))
+'''
+    try:
+        out = subprocess.run(
+            [MLXC_BIN, "worker", "login", str(worker_id), "--", "/usr/bin/python", "-c", code],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=20,
+        )
+    except Exception as exc:
+        return {"worker_id": str(worker_id), "ok": False, "error": str(exc)}
+    result = {"worker_id": str(worker_id), "ok": False, "raw": out.stdout.strip()}
+    for line in out.stdout.splitlines():
+        if line.startswith("MYTASK_GPU_PROBE_JSON="):
+            try:
+                result.update(json.loads(line.split("=", 1)[1]))
+            except json.JSONDecodeError as exc:
+                result["error"] = f"invalid probe json: {exc}"
+            break
+    if out.returncode != 0:
+        result["ok"] = False
+        result["error"] = result.get("error") or f"mlx worker login exit={out.returncode}"
+    return result
+
+
+def gpu_free_percent(info):
+    used = _parse_smi_int(info.get("memory_used_mib"))
+    total = _parse_smi_int(info.get("memory_total_mib"))
+    if total is None or total <= 0 or used is None:
+        return None
+    return (total - used) * 100.0 / total
+
+
+def gpu_is_idle(gpu, cfg):
+    util = _parse_smi_int(gpu.get("gpu_util"))
+    free_pct = gpu_free_percent(gpu)
+    if free_pct is None:
+        return False
+    if util is None:
+        return free_pct > cfg["gpu_free_min"]
+    return util < cfg["gpu_util_max"] and free_pct > cfg["gpu_free_min"]
+
+
+def gpu_slot_id(worker_id, gpu_index):
+    return f"{worker_id}:{gpu_index}"
+
+
+def task_gpu_slots(task):
+    slots = task.get("gpu_slots")
+    if slots:
+        return [str(slot) for slot in slots if slot]
+    slot = task.get("gpu_slot")
+    if slot:
+        return [str(slot)]
+    if task.get("worker_id") and task.get("gpu_index") is not None:
+        return [gpu_slot_id(task.get("worker_id"), task.get("gpu_index"))]
+    return []
+
+
+def gpu_preference_rank(gpu):
+    name = str(gpu.get("gpu_name") or "").upper()
+    if "H100" in name:
+        return 0
+    if "A100" in name:
+        return 2
+    return 1
+
+
+def trusted_worker_gpu_info(worker_id, cfg, inventory=None):
+    worker_id = str(worker_id)
+    if worker_id not in set(cfg.get("trusted_workers") or []):
+        return None
+    if inventory is None:
+        inventory = worker_inventory()
+    inv = inventory.get(worker_id, {})
+    gpu_count = int(inv.get("gpu_count") or 0)
+    if gpu_count <= 0:
+        return None
+    gpu_type = inv.get("gpu_type") or "trusted-gpu"
+    return {
+        "ok": True,
+        "worker_id": worker_id,
+        "hostname": None,
+        "probe_source": "trusted",
+        "trusted": True,
+        "gpus": [
+            {
+                "gpu_index": str(idx),
+                "gpu_uuid": None,
+                "gpu_name": gpu_type,
+                "memory_used_mib": 0,
+                "memory_total_mib": 100,
+                "memory_free_mib": 100,
+                "gpu_util": None,
+                "probe_source": "trusted",
+                "trusted": True,
+            }
+            for idx in range(gpu_count)
+        ],
+    }
+
+
+def select_worker_gpus(cfg, busy_slots=(), gpu_count=1):
+    gpu_count = max(1, int(gpu_count or 1))
+    busy_counts = {}
+    for slot in busy_slots:
+        if slot:
+            busy_counts[str(slot)] = busy_counts.get(str(slot), 0) + 1
+    per_gpu_limit = cfg["parallel"]
+    inventory = worker_inventory()
+    candidates = []
+    workers = list(configured_workers(cfg))
+    # Probe all workers concurrently: each probe is an independent blocking SSH
+    # round-trip, so a thread pool turns the wall-clock cost from a sum into a
+    # max. The candidate list is still built in the original worker order below
+    # so selection (min over rank/worker_pos/gpu_pos) is unchanged.
+    probed = {}
+    if workers:
+        with ThreadPoolExecutor(max_workers=len(workers)) as pool:
+            for worker_id, info in zip(
+                workers, pool.map(lambda w: probe_worker_gpu(w, cfg), workers)
+            ):
+                probed[worker_id] = info
+    for worker_pos, worker_id in enumerate(workers):
+        info = probed.get(worker_id) or {}
+        if not info.get("ok"):
+            info = trusted_worker_gpu_info(worker_id, cfg, inventory=inventory)
+            if not info:
+                continue
+        worker_gpus = []
+        for gpu_pos, gpu in enumerate(info.get("gpus") or []):
+            slot = gpu_slot_id(worker_id, gpu.get("gpu_index"))
+            if busy_counts.get(slot, 0) >= per_gpu_limit:
+                continue
+            if gpu_is_idle(gpu, cfg):
+                worker_gpus.append((gpu_preference_rank(gpu), gpu_pos, gpu))
+        if len(worker_gpus) >= gpu_count:
+            worker_gpus = sorted(worker_gpus, key=lambda x: x[:2])[:gpu_count]
+            rank = max(x[0] for x in worker_gpus)
+            first_gpu_pos = min(x[1] for x in worker_gpus)
+            candidates.append((rank, worker_pos, first_gpu_pos, str(worker_id), info, [x[2] for x in worker_gpus]))
+    if candidates:
+        _rank, _worker_pos, _gpu_pos, worker_id, info, gpus = min(candidates, key=lambda x: x[:3])
+        return worker_id, info, gpus
+    return None, None, []
+
+
+def select_worker_gpu(cfg, busy_slots=()):
+    worker_id, info, gpus = select_worker_gpus(cfg, busy_slots=busy_slots, gpu_count=1)
+    return worker_id, info, gpus[0] if gpus else None
+
+
+def build_launch_command(task, cfg, busy_slots=()):
+    if not cfg.get("worker_dispatch"):
+        return task["cmd"], None
+    requested_gpu_count = max(1, int(task.get("gpu_count") or 1))
+    worker_id, info, gpus = select_worker_gpus(
+        cfg, busy_slots=busy_slots, gpu_count=requested_gpu_count
+    )
+    if not worker_id:
+        return None, None
+    cmd = " ".join(shlex.quote(c) for c in task["cmd"])
+    # Always cd into the task's submission cwd on the remote worker. The paths
+    # live on a shared filesystem, so the submit-side path is valid on the
+    # worker too. Do NOT gate this on a local os.path.isdir() check: when that
+    # returned False the cd was dropped and the script ran from the SSH login
+    # dir (/home/tiger), breaking relative paths like main.py / ../data.
+    cwd = shlex.quote(task["cwd"]) if task.get("cwd") else None
+    gpu_indices = [str(gpu.get("gpu_index")) for gpu in gpus]
+    gpu_visible = ",".join(gpu_indices)
+    remote_cmd = (
+        f"export CUDA_VISIBLE_DEVICES={shlex.quote(gpu_visible)}; "
+        f"export MYTASK_GPU_COUNT={shlex.quote(str(requested_gpu_count))}; "
+        f"exec {cmd}"
+    )
+    remote = f"cd {cwd} && {remote_cmd}" if cwd else remote_cmd
+    # All workers are dispatched over SSH. The target is taken from worker_ssh
+    # if set, otherwise derived from the worker id.
+    ssh_target = resolve_ssh_target(worker_id, cfg)
+    launcher = "ssh"
+    launch_cmd = _ssh_remote_bash_argv(ssh_target, remote)
+    gpu_free_values = [gpu_free_percent(gpu) for gpu in gpus]
+    gpu_free_values = [x for x in gpu_free_values if x is not None]
+    min_gpu_free = min(gpu_free_values) if gpu_free_values else None
+    return launch_cmd, {
+        "worker_id": worker_id,
+        "worker_host": info.get("hostname"),
+        "gpu_index": gpu_visible,
+        "gpu_indices": gpu_indices,
+        "gpu_slot": gpu_slot_id(worker_id, gpu_indices[0]) if gpu_indices else None,
+        "gpu_slots": [gpu_slot_id(worker_id, idx) for idx in gpu_indices],
+        "gpu_uuid": ",".join(str(gpu.get("gpu_uuid") or "-") for gpu in gpus),
+        "gpu_name": ",".join(str(gpu.get("gpu_name") or "-") for gpu in gpus),
+        "gpu_util": ",".join(str(gpu.get("gpu_util")) for gpu in gpus),
+        "gpu_free_percent": min_gpu_free,
+        "gpu_count": requested_gpu_count,
+        "launcher": launcher,
+        "ssh_target": ssh_target,
+    }
+
+
+# ---------- commands ----------
+
+def display_cmd(t):
+    """Command to show the user: original submitted script path, not the cached copy."""
+    dc = t.get("display_cmd")
+    if dc:
+        return dc
+    # Fallback for tasks submitted before display_cmd existed: swap the cached
+    # script (cmd[1]) back to the original script path; args kept as stored.
+    c = t.get("cmd")
+    if c and len(c) >= 2 and t.get("script"):
+        return [c[0], t["script"], *c[2:]]
+    return c or [t.get("script", "")]
+
+
+def _prepare_submission(argv, mode):
+    """Parse argv (script + args + optional -m/--desc), snapshot yaml/dataset
+    refs, and append a new task record with the given `mode` ("queued" for
+    the normal daemon-served queue, "immediate" for `mytask run`).
+
+    Returns (tid, task, script_path, extra, cached_yamls, ds_state).
+    """
+    desc = ""
+    rest = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("-m", "--desc") and i + 1 < len(argv):
+            desc = argv[i + 1]
+            i += 2
+            continue
+        if a.startswith("-m="):
+            desc = a[3:]
+            i += 1
+            continue
+        if a.startswith("--desc="):
+            desc = a[7:]
+            i += 1
+            continue
+        rest.append(a)
+        i += 1
+    if not rest:
+        print("mytask: missing script", file=sys.stderr)
+        sys.exit(1)
+    script = rest[0]
+    script_path = Path(script).expanduser()
+    if not script_path.exists():
+        print(f"mytask: {script}: no such file", file=sys.stderr)
+        sys.exit(1)
+    script_path = script_path.resolve()
+    extra = rest[1:]
+    gpu_count = 1
+    if mode == "queued" and extra and re.fullmatch(r"[1-9]\d*", extra[-1]):
+        gpu_count = int(extra[-1])
+        extra = extra[:-1]
+    today = datetime.now().strftime("%Y-%m-%d")
+    day_dir = LOGS_DIR / today
+    day_dir.mkdir(parents=True, exist_ok=True)
+    init()
+    with locked():
+        tasks = load_tasks()
+        tid = next_id(tasks)
+        cwd = os.getcwd()
+        tdir = task_cache_dir(tid)
+        tdir.mkdir(parents=True, exist_ok=True)
+        cached = tdir / f"{tid}{script_path.suffix or '.sh'}"
+        shutil.copy2(script_path, cached)
+        new_extra, cached_yamls = snapshot_yamls(extra, tdir)
+        # Also rewrite literal yaml paths embedded inside the (cached) script.
+        script_yamls = snapshot_yamls_in_script(cached, script_cwd=cwd, dest_dir=tdir)
+        if script_yamls:
+            cached_yamls = list(cached_yamls) + script_yamls
+        # Freeze the --dataset_version module (args + script) so later edits to
+        # data/<name>.py don't change a queued/running task.
+        ds_state = {"modules": [], "archives": [], "seen": {}}
+        new_extra = snapshot_dataset_in_args(new_extra, tid, cwd, tdir, ds_state)
+        snapshot_dataset_in_script(cached, tid, cwd, tdir, ds_state)
+        cmd = ["bash", str(cached), *new_extra]
+        task = {
+            "id": tid,
+            "cmd": cmd,
+            "display_cmd": ["bash", str(script_path), *extra],
+            "gpu_count": gpu_count,
+            "script": str(script_path),
+            "cached_script": str(cached),
+            "cached_yamls": cached_yamls,
+            "cached_dataset_modules": ds_state["modules"],
+            "cached_datasets": ds_state["archives"],
+            "desc": desc,
+            "cwd": cwd,
+            "status": "pending",
+            "mode": mode,
+            "submitted_at": now_iso(),
+            "started_at": None,
+            "finished_at": None,
+            "exit_code": None,
+            "pid": None,
+            "log": str(day_dir / f"{tid}.log"),
+        }
+        tasks.append(task)
+        save_tasks(tasks)
+    return tid, task, script_path, extra, cached_yamls, ds_state
+
+
+def _submission_msg(verb, tid, script_path, extra, cached_yamls, ds_state, desc, gpu_count=1):
+    msg = f"{verb} task {tid}: {script_path}"
+    if extra:
+        msg += " " + " ".join(shlex.quote(c) for c in extra)
+    if gpu_count and int(gpu_count) > 1:
+        msg += f"   [gpus={gpu_count}]"
+    if cached_yamls:
+        msg += f"   [snapshotted {len(cached_yamls)} yaml]"
+    if ds_state["modules"]:
+        msg += f"   [snapshotted {len(ds_state['modules'])} dataset]"
+    if desc:
+        msg += f"   # {desc}"
+    return msg
+
+
+def cmd_submit(argv):
+    tid, task, script_path, extra, cached_yamls, ds_state = _prepare_submission(
+        argv, mode="queued"
+    )
+    print(_submission_msg("submitted", tid, script_path, extra, cached_yamls, ds_state, task["desc"], task.get("gpu_count", 1)))
+    ensure_daemon()
+
+
+def cmd_run(argv):
+    """Run a task right now, bypassing the daemon's serial queue: it starts
+    immediately and can execute in parallel with whatever the daemon is
+    already running."""
+    tid, task, script_path, extra, cached_yamls, ds_state = _prepare_submission(
+        argv, mode="immediate"
+    )
+    subprocess.Popen(
+        [sys.executable, os.path.abspath(__file__), "--run-one", str(tid)],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+        close_fds=True,
+    )
+    print(_submission_msg("running", tid, script_path, extra, cached_yamls, ds_state, task["desc"], task.get("gpu_count", 1))
+          + "   [bypassing queue]")
+
+
+def _parse_show_date(s):
+    """Parse a date filter: YYMMDD (260603), YYMMDD_HHMMSS (260603_085554),
+    YYYY-MM-DD, or YYYYMMDD. Only the date part is used."""
+    s = s.strip().split("_", 1)[0]   # drop optional _HHMMSS time suffix
+    for fmt in ("%y%m%d", "%Y-%m-%d", "%Y%m%d"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def cmd_show(argv):
+    # parse -d N (or -d all) — rolling window in days, default 1 (last 24h)
+    # parse -D <date> (YYMMDD / YYYY-MM-DD) — tasks that STARTED on that calendar day
+    days = 1
+    on_date = None
+    full = False
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("-w", "--full"):
+            full = True
+            i += 1
+            continue
+        if a == "-d" and i + 1 < len(argv):
+            v = argv[i + 1]
+            days = 0 if v == "all" else int(v)
+            i += 2
+            continue
+        if a.startswith("-d="):
+            v = a[3:]
+            days = 0 if v == "all" else int(v)
+            i += 1
+            continue
+        if a == "-D" and i + 1 < len(argv):
+            on_date = _parse_show_date(argv[i + 1])
+            if on_date is None:
+                print(f"mytask: invalid -D date '{argv[i+1]}' (use YYMMDD, YYMMDD_HHMMSS or YYYY-MM-DD)", file=sys.stderr)
+                sys.exit(1)
+            i += 2
+            continue
+        if a.startswith("-D="):
+            v = a[3:]
+            on_date = _parse_show_date(v)
+            if on_date is None:
+                print(f"mytask: invalid -D date '{v}' (use YYMMDD, YYMMDD_HHMMSS or YYYY-MM-DD)", file=sys.stderr)
+                sys.exit(1)
+            i += 1
+            continue
+        i += 1
+
+    tasks = load_tasks()
+    if not tasks:
+        print("(no tasks)")
+        return
+
+    # -D <date>: show tasks that STARTED on that calendar day (overrides -d window)
+    if on_date is not None:
+        def started_on(t):
+            v = t.get("started_at")
+            if not v:
+                return False
+            dt = parse_task_datetime(v)
+            return dt is not None and dt.date() == on_date
+        tasks = [t for t in tasks if started_on(t)]
+        daemon_status = "running" if daemon_alive() else "stopped"
+        cfg = load_config()
+        worker_mode = "on" if cfg.get("worker_dispatch") else "off"
+        print(f"daemon: {daemon_status}   parallel: {parallel_summary(cfg)}   workers: {worker_mode}   showing: started on {on_date.isoformat()}   tasks: {len(tasks)}")
+        _print_task_table(tasks, full=full)
+        return
+
+    # filter by submitted_at, rolling window of `days`*24h from now
+    if days > 0:
+        cutoff = datetime.now(BEIJING_TZ) - timedelta(days=days)
+        def in_range(t):
+            # always show pending/running regardless of time
+            if t["status"] in ("pending", "running"):
+                return True
+            dt = parse_task_datetime(t.get("submitted_at"))
+            if dt is None:
+                return True
+            return dt >= cutoff
+        tasks = [t for t in tasks if in_range(t)]
+
+    daemon_status = "running" if daemon_alive() else "stopped"
+    cfg = load_config()
+    worker_mode = "on" if cfg.get("worker_dispatch") else "off"
+    print(f"daemon: {daemon_status}   parallel: {parallel_summary(cfg)}   workers: {worker_mode}   showing: {'all' if days == 0 else f'last {days}x24h'}   tasks: {len(tasks)}")
+    _print_task_table(tasks, full=full)
+
+
+def _print_task_table(tasks, full=False):
+    if not tasks:
+        return
+    fmt = "{:>4}  {:<10}  {:<19}  {:<19}  {:>5}  {:<20}  {}"
+    print(fmt.format("ID", "STATUS", "STARTED(BJ)", "FINISHED(BJ)", "EXIT", "DESC", "CMD"))
+    for t in tasks:
+        cmd = " ".join(shlex.quote(c) for c in display_cmd(t))
+        if not full and len(cmd) > 60:
+            cmd = cmd[:57] + "..."
+        desc = t.get("desc") or "-"
+        if not full and len(desc) > 20:
+            desc = desc[:17] + "..."
+        print(fmt.format(
+            t["id"],
+            t["status"],
+            display_time(t.get("started_at")),
+            display_time(t.get("finished_at")),
+            "-" if t["exit_code"] is None else str(t["exit_code"]),
+            desc,
+            cmd,
+        ))
+
+
+def cmd_info(argv):
+    if not argv:
+        print("mytask: info requires a task id", file=sys.stderr)
+        sys.exit(1)
+    tid = int(argv[0])
+    tasks = load_tasks()
+    t = next((x for x in tasks if x["id"] == tid), None)
+    if not t:
+        print(f"mytask: no task with id {tid}", file=sys.stderr)
+        sys.exit(1)
+    cmd = " ".join(shlex.quote(c) for c in display_cmd(t))
+    fmt = "{:>4}  {:<10}  {:<19}  {:<19}  {:>5}  {:<20}  {}"
+    print(fmt.format("ID", "STATUS", "STARTED(BJ)", "FINISHED(BJ)", "EXIT", "DESC", "CMD"))
+    print(fmt.format(
+        t["id"],
+        t["status"],
+        display_time(t.get("started_at")),
+        display_time(t.get("finished_at")),
+        "-" if t["exit_code"] is None else str(t["exit_code"]),
+        t.get("desc") or "-",
+        cmd,
+    ))
+    if t.get("worker_id"):
+        gpu_indices = t.get("gpu_indices") or t.get("gpu_index") or "-"
+        gpu_slots = t.get("gpu_slots") or t.get("gpu_slot") or "-"
+        print(
+            f"worker: {t.get('worker_id')} host={t.get('worker_host') or '-'} "
+            f"gpu_index={gpu_indices} gpu_slot={gpu_slots} "
+            f"gpu={t.get('gpu_uuid') or '-'}"
+        )
+
+
+def cmd_log(argv):
+    if not argv:
+        print("mytask: log requires a task id", file=sys.stderr)
+        sys.exit(1)
+    tid = int(argv[0])
+    tasks = load_tasks()
+    t = next((x for x in tasks if x["id"] == tid), None)
+    if not t:
+        print(f"mytask: no task with id {tid}", file=sys.stderr)
+        sys.exit(1)
+    log_path = Path(t["log"])
+    if not log_path.exists():
+        print(f"(no log yet for task {tid})")
+        return
+    with open(log_path) as f:
+        sys.stdout.write(f.read())
+
+
+def _parse_id_range(spec):
+    if "-" in spec:
+        a, b = spec.split("-", 1)
+        lo, hi = int(a), int(b)
+        if lo > hi:
+            lo, hi = hi, lo
+        return list(range(lo, hi + 1))
+    return [int(spec)]
+
+
+def cmd_kill(argv):
+    if not argv:
+        print("mytask: kill requires a task id or range (e.g. 3 or 3-7)", file=sys.stderr)
+        sys.exit(1)
+    try:
+        tids = _parse_id_range(argv[0])
+    except ValueError:
+        print(f"mytask: invalid id/range '{argv[0]}'", file=sys.stderr)
+        sys.exit(1)
+    with locked():
+        tasks = load_tasks()
+        by_id = {x["id"]: x for x in tasks}
+        changed = False
+        for tid in tids:
+            t = by_id.get(tid)
+            if not t:
+                print(f"task {tid}: no such task")
+                continue
+            if t["status"] == "pending":
+                t["status"] = "cancelled"
+                t["finished_at"] = now_iso()
+                purge_dataset_modules(t)
+                changed = True
+                print(f"task {tid}: cancelled (was pending)")
+                continue
+            if t["status"] == "running" and t["pid"]:
+                try:
+                    pgid = os.getpgid(t["pid"])
+                    os.killpg(pgid, signal.SIGTERM)
+                    t["status"] = "killed"
+                    t["finished_at"] = now_iso()
+                    t["exit_code"] = -signal.SIGTERM
+                    purge_dataset_modules(t)
+                    changed = True
+                    print(f"task {tid}: sent SIGTERM to pgid {pgid}")
+                except ProcessLookupError:
+                    t["status"] = "killed"
+                    t["finished_at"] = now_iso()
+                    t["exit_code"] = -1
+                    changed = True
+                    print(f"task {tid}: process already gone, marked killed")
+                continue
+            print(f"task {tid}: status is {t['status']}, nothing to kill")
+        if changed:
+            save_tasks(tasks)
+
+
+def cmd_parallel(argv):
+    with locked():
+        cfg = load_config()
+        if not argv:
+            scope = "per GPU worker" if cfg.get("worker_dispatch") else "total local"
+            print(f"parallel: {cfg['parallel']} ({scope})")
+            return
+        try:
+            n = int(argv[0])
+        except ValueError:
+            print(f"mytask: invalid parallel value '{argv[0]}'", file=sys.stderr)
+            sys.exit(1)
+        if n < 1:
+            print("mytask: parallel must be >= 1", file=sys.stderr)
+            sys.exit(1)
+        old = cfg["parallel"]
+        cfg["parallel"] = n
+        save_config(cfg)
+    ensure_daemon()
+    scope = "per GPU worker" if cfg.get("worker_dispatch") else "total local"
+    print(f"parallel: {old} -> {n} ({scope})")
+
+
+def cmd_workers(argv):
+    with locked():
+        cfg = load_config()
+        if not argv:
+            mode = "on" if cfg["worker_dispatch"] else "off"
+            source = "auto" if cfg["worker_auto_discover"] else "configured"
+            print(f"worker_dispatch: {mode}")
+            print(f"worker_source: {source}")
+            print(f"workers: {' '.join(configured_workers(cfg)) or '-'}")
+            print(f"trusted_workers: {' '.join(cfg.get('trusted_workers') or []) or '-'}")
+            print(f"disabled_workers: {' '.join(cfg.get('disabled_workers') or []) or '-'}")
+            worker_ssh = cfg.get("worker_ssh") or {}
+            ssh_desc = " ".join(f"{k}={v}" for k, v in sorted(worker_ssh.items()))
+            print(f"worker_ssh: {ssh_desc or '-'}")
+            print(f"gpu_policy: util<{cfg['gpu_util_max']} free>{cfg['gpu_free_min']}%")
+            return
+        if argv[0] == "off":
+            cfg["worker_dispatch"] = False
+            cfg["worker_auto_discover"] = False
+            save_config(cfg)
+            print("worker_dispatch: off")
+            return
+        if argv[0] == "auto":
+            cfg["worker_dispatch"] = True
+            cfg["worker_auto_discover"] = True
+            cfg["workers"] = []
+            save_config(cfg)
+            ensure_daemon()
+            print(f"worker_dispatch: on   workers: {' '.join(configured_workers(cfg)) or '-'}")
+            return
+        workers = [w for w in argv if w]
+        cfg["worker_dispatch"] = True
+        cfg["worker_auto_discover"] = False
+        cfg["workers"] = workers
+        save_config(cfg)
+    ensure_daemon()
+    print(f"worker_dispatch: on   workers: {' '.join(workers)}")
+
+
+def parse_worker_ids(args):
+    ids = []
+    for arg in args:
+        for item in re.split(r"[,\s]+", str(arg).strip()):
+            if item and item not in ids:
+                ids.append(item)
+    return ids
+
+
+def cmd_off(argv):
+    with locked():
+        cfg = load_config()
+        disabled = list(cfg.get("disabled_workers") or [])
+        if not argv:
+            print(f"disabled_workers: {' '.join(disabled) or '-'}")
+            return
+        worker_ids = parse_worker_ids(argv)
+        if not worker_ids:
+            print("mytask: usage: mytask off ID[,ID...]", file=sys.stderr)
+            sys.exit(1)
+        for worker_id in worker_ids:
+            if worker_id not in disabled:
+                disabled.append(worker_id)
+        cfg["disabled_workers"] = disabled
+        save_config(cfg)
+    print(f"disabled_workers: {' '.join(disabled) or '-'}")
+
+
+def cmd_on(argv):
+    if not argv:
+        print("mytask: usage: mytask on ID[,ID...]", file=sys.stderr)
+        sys.exit(1)
+    worker_ids = set(parse_worker_ids(argv))
+    with locked():
+        cfg = load_config()
+        disabled = [w for w in (cfg.get("disabled_workers") or []) if w not in worker_ids]
+        cfg["disabled_workers"] = disabled
+        save_config(cfg)
+    print(f"disabled_workers: {' '.join(disabled) or '-'}")
+
+
+def cmd_trust_workers(argv):
+    with locked():
+        cfg = load_config()
+        if not argv:
+            print(f"trusted_workers: {' '.join(cfg.get('trusted_workers') or []) or '-'}")
+            return
+        if argv[0] == "off":
+            cfg["trusted_workers"] = []
+            save_config(cfg)
+            print("trusted_workers: -")
+            return
+        trusted = [str(w) for w in argv if w]
+        cfg["trusted_workers"] = trusted
+        save_config(cfg)
+    ensure_daemon()
+    print(f"trusted_workers: {' '.join(trusted) or '-'}")
+
+
+def cmd_worker_ssh(argv):
+    with locked():
+        cfg = load_config()
+        worker_ssh = dict(cfg.get("worker_ssh") or {})
+        if not argv:
+            if not worker_ssh:
+                print("worker_ssh: -")
+            else:
+                for worker_id in sorted(worker_ssh):
+                    print(f"{worker_id}: {worker_ssh[worker_id]}")
+            return
+        if argv[0] == "off":
+            if len(argv) < 2:
+                print("mytask: usage: mytask worker-ssh off ID", file=sys.stderr)
+                sys.exit(1)
+            worker_id = str(argv[1])
+            worker_ssh.pop(worker_id, None)
+            cfg["worker_ssh"] = worker_ssh
+            save_config(cfg)
+            print(f"worker_ssh {worker_id}: -")
+            return
+        if len(argv) < 2:
+            print("mytask: usage: mytask worker-ssh ID TARGET", file=sys.stderr)
+            sys.exit(1)
+        worker_id = str(argv[0])
+        target = str(argv[1])
+        worker_ssh[worker_id] = target
+        cfg["worker_ssh"] = worker_ssh
+        save_config(cfg)
+    ensure_daemon()
+    print(f"worker_ssh {worker_id}: {target}")
+
+
+def cmd_gpus(argv):
+    detail = False
+    workers_arg = []
+    for arg in argv:
+        if arg == "--detail":
+            detail = True
+        else:
+            workers_arg.append(arg)
+    inventory = worker_inventory()
+    workers = workers_arg or list(inventory.keys())
+    if not workers:
+        print("mytask: no workers found; try `mytask workers auto` after workers are launched", file=sys.stderr)
+        sys.exit(1)
+    print("{:<12}  {}".format("WORKER", "GPU"))
+    if not detail:
+        for worker_id, gpu_index, gpu in iter_worker_gpu_rows(workers, inventory=inventory):
+            gpu_type = gpu.get("gpu_name") or gpu.get("gpu_type") or "-"
+            print("{:<12}  {}".format(str(worker_id), f"index={gpu_index} type={gpu_type}"))
+        return
+    for worker_id in workers:
+        worker_id = str(worker_id)
+        info = probe_worker_gpu(worker_id, load_config())
+        if not info.get("ok"):
+            trusted_info = trusted_worker_gpu_info(worker_id, load_config(), inventory=inventory)
+            if trusted_info:
+                for gpu in trusted_info.get("gpus") or []:
+                    gpu_desc = (
+                        f"index={gpu.get('gpu_index')} "
+                        f"uuid={gpu.get('gpu_uuid')} "
+                        f"name={gpu.get('gpu_name')} "
+                        f"util=unknown "
+                        f"free=trusted "
+                        f"source=trusted"
+                    )
+                    print("{:<12}  {}".format(worker_id, gpu_desc))
+                continue
+            inv = inventory.get(worker_id, {})
+            gpu_count = int(inv.get("gpu_count") or 0)
+            gpu_type = inv.get("gpu_type") or "-"
+            if gpu_count > 0:
+                for idx in range(gpu_count):
+                    print("{:<12}  {}".format(worker_id, f"index={idx} type={gpu_type} status=probe_unavailable"))
+            else:
+                err = info.get("error") or "probe failed"
+                print("{:<12}  {}".format(worker_id, f"ERROR {err}"))
+            continue
+        for gpu in info.get("gpus") or []:
+            free_pct = gpu_free_percent(gpu)
+            free_s = "-" if free_pct is None else f"{free_pct:.1f}%"
+            util = gpu.get("gpu_util")
+            util_s = "unknown" if util is None else f"{util}%"
+            gpu_desc = (
+                f"index={gpu.get('gpu_index')} "
+                f"uuid={gpu.get('gpu_uuid')} "
+                f"name={gpu.get('gpu_name')} "
+                f"util={util_s} "
+                f"free={free_s} "
+                f"source={gpu.get('probe_source') or info.get('probe_source') or '-'}"
+            )
+            print("{:<12}  {}".format(worker_id, gpu_desc))
+
+
+def iter_worker_gpu_rows(workers, inventory=None):
+    if inventory is None:
+        inventory = worker_inventory()
+    for worker_id in workers:
+        worker_id = str(worker_id)
+        inv = inventory.get(worker_id, {})
+        gpu_count = int(inv.get("gpu_count") or 0)
+        gpu_type = inv.get("gpu_type") or "-"
+        for idx in range(gpu_count):
+            yield worker_id, str(idx), {"gpu_index": str(idx), "gpu_name": gpu_type}
+
+
+def cmd_gpu_tasks(argv):
+    inventory = worker_inventory()
+    workers = argv or list(inventory.keys())
+    if not workers:
+        print("mytask: no workers found; try `mytask workers auto` after workers are launched", file=sys.stderr)
+        sys.exit(1)
+    with locked():
+        tasks = load_tasks()
+    running_by_slot = {}
+    for task in tasks:
+        if task.get("status") != "running":
+            continue
+        if task.get("mode") != "immediate" and not pid_alive(task.get("pid") or 0):
+            continue
+        for slot in task_gpu_slots(task):
+            running_by_slot.setdefault(slot, []).append(str(task.get("id")))
+    print("{:<12}  {:<10}  {:<16}  {}".format("WORKER", "GPU", "GPU_TYPE", "RUNNING_TASKS"))
+    seen_slots = set()
+    for worker_id, gpu_index, gpu in iter_worker_gpu_rows(workers, inventory=inventory):
+        slot = gpu_slot_id(worker_id, gpu_index)
+        seen_slots.add(slot)
+        task_ids = ",".join(running_by_slot.get(slot, [])) or "-"
+        gpu_type = gpu.get("gpu_name") or gpu.get("gpu_type") or "-"
+        print("{:<12}  {:<10}  {:<16}  {}".format(worker_id, gpu_index, gpu_type, task_ids))
+    for slot in sorted(set(running_by_slot) - seen_slots):
+        worker_id, _, gpu_index = slot.partition(":")
+        task_ids = ",".join(running_by_slot[slot])
+        print("{:<12}  {:<10}  {:<16}  {}".format(worker_id or "-", gpu_index or "-", "-", task_ids))
+
+
+def cmd_gpu_policy(argv):
+    with locked():
+        cfg = load_config()
+        if not argv:
+            print(f"gpu_policy: util<{cfg['gpu_util_max']} free>{cfg['gpu_free_min']}%")
+            return
+        if len(argv) != 2:
+            print("mytask: gpu-policy requires UTIL FREE, e.g. gpu-policy 30 70", file=sys.stderr)
+            sys.exit(1)
+        try:
+            util_max = int(argv[0])
+            free_min = int(argv[1])
+        except ValueError:
+            print("mytask: gpu-policy values must be integers", file=sys.stderr)
+            sys.exit(1)
+        if util_max < 0 or util_max > 100 or free_min < 0 or free_min > 100:
+            print("mytask: gpu-policy values must be between 0 and 100", file=sys.stderr)
+            sys.exit(1)
+        cfg["gpu_util_max"] = util_max
+        cfg["gpu_free_min"] = free_min
+        save_config(cfg)
+    ensure_daemon()
+    print(f"gpu_policy: util<{util_max} free>{free_min}%")
+
+
+def cmd_clear(_argv):
+    with locked():
+        tasks = load_tasks()
+        keep = [t for t in tasks if t["status"] in ("pending", "running")]
+        removed = len(tasks) - len(keep)
+        save_tasks(keep)
+    print(f"cleared {removed} finished task(s)")
+
+
+def cmd_stop_daemon(_argv):
+    if not DAEMON_PID.exists():
+        print("daemon not running")
+        return
+    try:
+        pid = int(DAEMON_PID.read_text().strip())
+    except (ValueError, FileNotFoundError):
+        print("daemon pid file invalid")
+        return
+    if not pid_alive(pid):
+        DAEMON_PID.unlink(missing_ok=True)
+        print("daemon not running")
+        return
+    os.kill(pid, signal.SIGTERM)
+    print(f"sent SIGTERM to daemon (pid {pid})")
+
+
+def run_one(tid):
+    """Run a single 'immediate' task to completion in this process, updating
+    tasks.json as it starts/finishes. Launched detached by `mytask run` so it
+    survives the parent CLI invocation returning; runs independently of the
+    daemon's serial loop, hence can overlap with a queued task."""
+    init()
+    tasks = load_tasks()
+    t = next((x for x in tasks if x["id"] == tid), None)
+    if t is None:
+        return
+
+    log_path = Path(t["log"])
+    log_f = open(log_path, "w")
+    log_f.write(f"=== task {t['id']} (immediate) ===\n")
+    if t.get("desc"):
+        log_f.write(f"desc: {t['desc']}\n")
+    log_f.write(f"cmd: {' '.join(shlex.quote(c) for c in t['cmd'])}\n")
+    log_f.write(f"cwd: {t['cwd']}\n")
+    log_f.write(f"submitted: {t['submitted_at']}\n")
+    log_f.write(f"started:   {now_iso()}\n")
+    log_f.write("=== output ===\n")
+    log_f.flush()
+
+    try:
+        proc = subprocess.Popen(
+            t["cmd"],
+            cwd=t["cwd"] if os.path.isdir(t["cwd"]) else None,
+            stdout=log_f,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except Exception as e:
+        log_f.write(f"\n=== failed to start: {e} ===\n")
+        log_f.close()
+        with locked():
+            tasks = load_tasks()
+            for x in tasks:
+                if x["id"] == tid:
+                    x["status"] = "failed"
+                    x["finished_at"] = now_iso()
+                    x["exit_code"] = -1
+                    purge_dataset_modules(x)
+            save_tasks(tasks)
+        return
+
+    with locked():
+        tasks = load_tasks()
+        for x in tasks:
+            if x["id"] == tid:
+                x["status"] = "running"
+                x["pid"] = proc.pid
+                x["started_at"] = now_iso()
+        save_tasks(tasks)
+
+    ret = proc.wait()
+    log_f.write(f"\n=== finished: {now_iso()} exit={ret} ===\n")
+    log_f.close()
+    with locked():
+        tasks = load_tasks()
+        for x in tasks:
+            if x["id"] == tid:
+                if x["status"] == "running":
+                    x["status"] = "done" if ret == 0 else "failed"
+                x["exit_code"] = ret
+                x["finished_at"] = now_iso()
+                purge_dataset_modules(x)
+        save_tasks(tasks)
+
+
+# ---------- daemon ----------
+
+def daemon_alive():
+    if not DAEMON_PID.exists():
+        return False
+    try:
+        return pid_alive(int(DAEMON_PID.read_text().strip()))
+    except (ValueError, FileNotFoundError):
+        return False
+
+
+def ensure_daemon():
+    if daemon_alive():
+        return
+    DAEMON_PID.unlink(missing_ok=True)
+    log_f = open(DAEMON_LOG, "a")
+    subprocess.Popen(
+        [sys.executable, os.path.abspath(__file__), "--daemon"],
+        stdin=subprocess.DEVNULL,
+        stdout=log_f,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+        close_fds=True,
+    )
+    log_f.close()
+    # give it a moment to write its pid
+    for _ in range(20):
+        if daemon_alive():
+            return
+        time.sleep(0.1)
+
+
+_stop_requested = False
+
+
+def _handle_stop(signum, frame):
+    global _stop_requested
+    _stop_requested = True
+
+
+def run_daemon():
+    init()
+    # single-instance guard via the lock file (separate from queue lock)
+    guard_path = ROOT / "daemon.lock"
+    guard = open(guard_path, "w")
+    try:
+        fcntl.flock(guard, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return  # another daemon is running
+
+    DAEMON_PID.write_text(str(os.getpid()))
+    signal.signal(signal.SIGTERM, _handle_stop)
+    signal.signal(signal.SIGINT, _handle_stop)
+
+    # Recover tasks from a previous daemon. If the process is still alive, keep
+    # it as running and count its GPU slot as busy for future scheduling.
+    with locked():
+        tasks = load_tasks()
+        changed = reap_dead_running_tasks(tasks)
+        if changed:
+            save_tasks(tasks)
+        # Sweep leaked dataset snapshot modules from crashed runs: any task not
+        # pending/running no longer needs its working copies under data/.
+        for t in tasks:
+            if t["status"] not in ("pending", "running"):
+                purge_dataset_modules(t)
+
+    current = []  # list of dicts: {id, proc, log_f}
+    last_active = time.time()
+
+    print(f"[{now_iso()}] daemon started pid={os.getpid()}", flush=True)
+
+    try:
+        while not _stop_requested:
+            # check current processes
+            for item in list(current):
+                ret = item["proc"].poll()
+                if ret is not None:
+                    item["log_f"].write(
+                        f"\n=== finished: {now_iso()} exit={ret} ===\n"
+                    )
+                    item["log_f"].close()
+                    with locked():
+                        tasks = load_tasks()
+                        for t in tasks:
+                            if t["id"] == item["id"]:
+                                if t["status"] == "running":
+                                    t["status"] = "done" if ret == 0 else "failed"
+                                t["exit_code"] = ret
+                                t["finished_at"] = now_iso()
+                                purge_dataset_modules(t)
+                        save_tasks(tasks)
+                    print(f"[{now_iso()}] task {item['id']} finished exit={ret}", flush=True)
+                    current.remove(item)
+                    last_active = time.time()
+
+            # pick next tasks up to current parallel limit
+            cfg = load_config()
+            while cfg.get("worker_dispatch") or len(current) < cfg["parallel"]:
+                with locked():
+                    tasks = load_tasks()
+                    if reap_dead_running_tasks(
+                        tasks, managed_ids=[item["id"] for item in current]
+                    ):
+                        save_tasks(tasks)
+                    next_task = next((t for t in tasks if t["status"] == "pending"), None)
+                if next_task is None:
+                    break
+
+                current_ids = {item["id"] for item in current}
+                busy_slots = []
+                for t in tasks:
+                    if t.get("status") == "running" and (
+                        t.get("id") in current_ids or pid_alive(t.get("pid") or 0)
+                    ):
+                        busy_slots.extend(task_gpu_slots(t))
+                launch_cmd, assignment = build_launch_command(
+                    next_task, cfg, busy_slots=busy_slots
+                )
+                if launch_cmd is None:
+                    print(
+                        f"[{now_iso()}] no idle GPU for task {next_task['id']} "
+                        f"(need {next_task.get('gpu_count', 1)} GPU(s) on one worker, "
+                        f"util<{cfg['gpu_util_max']} free>{cfg['gpu_free_min']}%)",
+                        flush=True,
+                    )
+                    break
+
+                log_path = Path(next_task["log"])
+                log_f = open(log_path, "w")
+                log_f.write(f"=== task {next_task['id']} ===\n")
+                if next_task.get("desc"):
+                    log_f.write(f"desc: {next_task['desc']}\n")
+                log_f.write(f"cmd: {' '.join(shlex.quote(c) for c in next_task['cmd'])}\n")
+                log_f.write(f"cwd: {next_task['cwd']}\n")
+                if assignment:
+                    free_pct = assignment.get("gpu_free_percent")
+                    free_s = "-" if free_pct is None else f"{free_pct:.1f}%"
+                    log_f.write(
+                        "worker: "
+                        f"{assignment.get('worker_id')} "
+                        f"host={assignment.get('worker_host') or '-'} "
+                        f"gpu_index={assignment.get('gpu_index') or '-'} "
+                        f"gpu={assignment.get('gpu_uuid') or '-'} "
+                        f"util={assignment.get('gpu_util')} "
+                        f"free={free_s} "
+                        f"launcher={assignment.get('launcher') or '-'} "
+                        f"ssh_target={assignment.get('ssh_target') or '-'}\n"
+                    )
+                log_f.write(f"submitted: {next_task['submitted_at']}\n")
+                log_f.write(f"started:   {now_iso()}\n")
+                log_f.write("=== output ===\n")
+                log_f.flush()
+                try:
+                    proc = subprocess.Popen(
+                        launch_cmd,
+                        cwd=None if assignment else (
+                            next_task["cwd"] if os.path.isdir(next_task["cwd"]) else None
+                        ),
+                        stdout=log_f,
+                        stderr=subprocess.STDOUT,
+                        stdin=subprocess.DEVNULL,
+                        start_new_session=True,
+                    )
+                except Exception as e:
+                    log_f.write(f"\n=== failed to start: {e} ===\n")
+                    log_f.close()
+                    with locked():
+                        tasks = load_tasks()
+                        for t in tasks:
+                            if t["id"] == next_task["id"]:
+                                t["status"] = "failed"
+                                t["finished_at"] = now_iso()
+                                t["exit_code"] = -1
+                                purge_dataset_modules(t)
+                        save_tasks(tasks)
+                    next_task = None
+                else:
+                    with locked():
+                        tasks = load_tasks()
+                        for t in tasks:
+                            if t["id"] == next_task["id"]:
+                                t["status"] = "running"
+                                t["pid"] = proc.pid
+                                t["started_at"] = now_iso()
+                                if assignment:
+                                    t.update(assignment)
+                        save_tasks(tasks)
+                    current.append(
+                        {
+                            "id": next_task["id"],
+                            "proc": proc,
+                            "log_f": log_f,
+                            "worker_id": assignment.get("worker_id") if assignment else None,
+                            "gpu_slot": assignment.get("gpu_slot") if assignment else None,
+                            "gpu_slots": assignment.get("gpu_slots") if assignment else None,
+                        }
+                    )
+                    where = f" worker={assignment['worker_id']} gpu={assignment['gpu_index']}" if assignment else ""
+                    print(f"[{now_iso()}] task {next_task['id']} started pid={proc.pid}{where}", flush=True)
+                    last_active = time.time()
+                if next_task is None:
+                    break
+
+            # check for killed-on-running: if user marked status killed, kill process group
+            if current:
+                with locked():
+                    tasks = load_tasks()
+                    killed_ids = {t["id"] for t in tasks if t["status"] == "killed"}
+                    for item in current:
+                        if item["id"] in killed_ids:
+                            try:
+                                os.killpg(os.getpgid(item["proc"].pid), signal.SIGTERM)
+                            except ProcessLookupError:
+                                pass
+
+            # idle exit
+            with locked():
+                has_pending = any(t["status"] == "pending" for t in load_tasks())
+            if not current and not has_pending and time.time() - last_active > IDLE_EXIT_SECONDS:
+                print(f"[{now_iso()}] idle, exiting", flush=True)
+                break
+
+            time.sleep(1)
+    finally:
+        # if we are stopping while a task runs, leave it running but record state
+        for item in current:
+            ret = item["proc"].poll()
+            if ret is None:
+                # detach: leave task as running, daemon will pick up status on next run via orphan logic
+                item["log_f"].write(
+                    f"\n=== daemon stopping at {now_iso()}, task continues in background ===\n"
+                )
+            item["log_f"].close()
+        DAEMON_PID.unlink(missing_ok=True)
+        print(f"[{now_iso()}] daemon exit", flush=True)
+
+
+# ---------- entry ----------
+
+USAGE = __doc__
+
+
+def main():
+    args = sys.argv[1:]
+    if not args:
+        print(USAGE)
+        sys.exit(1)
+
+    cmd, rest = args[0], args[1:]
+
+    if cmd == "--daemon":
+        run_daemon()
+        return
+    if cmd == "--run-one":
+        run_one(int(rest[0]))
+        return
+    if cmd in ("-h", "--help", "help"):
+        print(USAGE)
+        return
+    if cmd == "show":
+        cmd_show(rest)
+        return
+    if cmd == "info":
+        cmd_info(rest)
+        return
+    if cmd == "log":
+        cmd_log(rest)
+        return
+    if cmd == "kill":
+        cmd_kill(rest)
+        return
+    if cmd == "parallel":
+        cmd_parallel(rest)
+        return
+    if cmd == "workers":
+        cmd_workers(rest)
+        return
+    if cmd == "off":
+        cmd_off(rest)
+        return
+    if cmd == "on":
+        cmd_on(rest)
+        return
+    if cmd == "trust-workers":
+        cmd_trust_workers(rest)
+        return
+    if cmd == "worker-ssh":
+        cmd_worker_ssh(rest)
+        return
+    if cmd == "gpus":
+        cmd_gpus(rest)
+        return
+    if cmd == "gpu-tasks":
+        cmd_gpu_tasks(rest)
+        return
+    if cmd == "gpu-policy":
+        cmd_gpu_policy(rest)
+        return
+    if cmd == "clear":
+        cmd_clear(rest)
+        return
+    if cmd == "stop-daemon":
+        cmd_stop_daemon(rest)
+        return
+    if cmd == "run":
+        cmd_run(rest)
+        return
+
+    # default: submit
+    cmd_submit(args)
+
+
+if __name__ == "__main__":
+    main()

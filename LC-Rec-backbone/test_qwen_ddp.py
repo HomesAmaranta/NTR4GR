@@ -134,8 +134,14 @@ def test(args):
     prefix_allowed_tokens = prefix_allowed_tokens_fn(candidate_trie, tokenizer)
 
 
-    test_loader = DataLoader(test_data, batch_size=args.test_batch_size, collate_fn=collator,
-                              num_workers=2, pin_memory=True,shuffle=False)#,
+    test_loader = DataLoader(
+        test_data,
+        batch_size=args.test_batch_size,
+        sampler=ddp_sampler,
+        collate_fn=collator,
+        num_workers=2,
+        pin_memory=True,
+    )
 
     if local_rank == 0:
         print("data num:", len(test_data))
@@ -157,10 +163,8 @@ def test(args):
             for step, batch in enumerate(tqdm(test_loader)):
            
 
-                inputs = batch[0].to(device)
+                inputs = batch[0].to(device, non_blocking=True)
                 targets = batch[1]
-                if step%world_size!=local_rank:
-                    continue
                 total += len(targets)
                 output = model.module.generate(
                     input_ids=inputs["input_ids"],
