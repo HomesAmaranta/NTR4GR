@@ -1,4 +1,4 @@
-set -eo pipefail
+set -o pipefail
 
 PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
 export WANDB_MODE=disabled
@@ -13,25 +13,27 @@ which python
 DATASET=Beauty
 lora="--lora"
 only_train_response="--only_train_response"
-model_class=Qwen3-0.6B
-ft=0
+ft=1
 ckpt_name=None # your ckpt path
 index_name=_t5_rqvae.npy
 data_file=.parquet
 post_name=test
-lr=1e-3
 seed=2025 # your seed
-mse_loss_weight=${MSE_LOSS_WEIGHT:-0}
 align_target=${ALIGN_TARGET:-latent}
 align_item=${ALIGN_ITEM:-current}
 align_loss_type=cos
+mse_loss_weight=${MSE_LOSS_WEIGHT:-5}
+model_class=Qwen3-1.7B
+lr=5e-4
+lora_r=16
+lora_alpha=64
 
 cd /mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/scripts_qwen
 
-model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-0.6B
+model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/$model_class
 for wd in 0
 do
-    suffix=${model_class}-${lr}lr-${wd}wd-${suffix}
+    suffix=${model_class}-${lr}lr-${wd}wd-${suffix}-lora_r${lora_r}
     if [ "$mse_loss_weight" != "0" ]; then
         suffix=${suffix}-${align_item}-${align_target}-${align_loss_type}${mse_loss_weight}
     fi
@@ -55,9 +57,9 @@ do
         --per_device_batch_size 128 \
         --gradient_accumulation_steps 1 \
         --learning_rate $lr \
-        --epochs 10 \
-        --lora_r 8 \
-        --lora_alpha 32 \
+        --epochs 7 \
+        --lora_r $lora_r \
+        --lora_alpha $lora_alpha \
         --lora_target_modules "q_proj,v_proj,o_proj,up_proj,down_proj" \
         --weight_decay $wd \
         --save_and_eval_strategy steps \
@@ -103,8 +105,8 @@ do
         --test_batch_size 32 \
         --num_beams 20 \
         --seed ${seed} \
-        --lora_r 8 \
-        --lora_alpha 32 \
+        --lora_r $lora_r \
+        --lora_alpha $lora_alpha \
         --lora_target_modules "q_proj,v_proj,o_proj,up_proj,down_proj" \
         --lora_modules_to_save "embed_tokens,lm_head" \
         --index_file ${index_name} \

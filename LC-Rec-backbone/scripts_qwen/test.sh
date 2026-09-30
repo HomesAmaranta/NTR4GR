@@ -7,7 +7,6 @@ unset TORCH_DISTRIBUTED_DEBUG
 
 unset NCCL_SOCKET_IFNAME
 DATASET=Beauty
-model_class=Qwen3-0.6B
 index_name=_t5_rqvae.npy
 data_file=.parquet
 lr=2e-5
@@ -18,15 +17,12 @@ align_item=${ALIGN_ITEM:-current}
 align_loss_type=cos
 cd /mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/scripts_qwen
 
-model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-0.6B
+model_path=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-1.7B
 
 for wd in 0
 do
-    suffix=${model_class}-${lr}lr-${wd}wd-${suffix}
-    if [ "$mse_loss_weight" != "0" ]; then
-        suffix=${suffix}-${align_item}-${align_target}-${align_loss_type}${mse_loss_weight}
-    fi
-    CKPT_PATH=/mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/ckpt/Beauty/Qwen3-0.6B-2e-5lr-0wd-/
+
+    CKPT_PATH=/mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/ckpt/Beauty/Qwen3-1.7B-5e-4lr-0wd-
 
     TORCH_DISTRIBUTED_DEBUG=DETAIL \
     NCCL_NET=Socket \
@@ -45,8 +41,8 @@ do
         --test_batch_size 32 \
         --num_beams 20 \
         --seed ${seed} \
-        --lora_r 8 \
-        --lora_alpha 32 \
+        --lora_r 16 \
+        --lora_alpha 64 \
         --lora_target_modules "q_proj,v_proj,o_proj,up_proj,down_proj" \
         --lora_modules_to_save "embed_tokens,lm_head" \
         --index_file ${index_name} \

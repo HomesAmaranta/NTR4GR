@@ -198,6 +198,7 @@ def train(args):
             report_to=None,
             bf16=bf16,
             logging_steps=args.logging_step,
+            save_only_model=True,
             optim=args.optim,
             gradient_checkpointing=True,
             eval_strategy=args.save_and_eval_strategy,
