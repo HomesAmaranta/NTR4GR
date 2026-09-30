@@ -129,7 +129,8 @@ class TIGER(nn.Module):
       self.last_target_hidden_states = target_hidden_states.detach()
       align_loss = target_hidden_states.new_zeros(())
       if (
-          target_item_emb is not None
+          self.training
+          and target_item_emb is not None
           and self.hidden_to_item_emb is not None
           and self.mse_loss_weight > 0
       ):
@@ -421,7 +422,7 @@ if __name__ == "__main__":
 
     # Train the model
     model.to(device)
-    best_loss = 10000.0
+    best_ce_loss = float('inf')
     early_stop_counter = 0
     best_epoch = 0
     
@@ -431,13 +432,13 @@ if __name__ == "__main__":
         logging.info(f"Training loss: {train_loss}")
         valid_loss = validate(model, validation_dataloader, device)
         logging.info(f"Validation loss: {valid_loss}")
-        if valid_loss['total'] < best_loss:
-            best_loss = valid_loss['total']
+        if valid_loss['ce'] < best_ce_loss:
+            best_ce_loss = valid_loss['ce']
             best_epoch = epoch
             early_stop_counter = 0  # Reset early stop counter
             # Save the best model
             torch.save(model.state_dict(), config['save_path'])
-            logging.info(f"Best validation loss: {best_loss}")
+            logging.info(f"Best validation CE loss: {best_ce_loss}")
             logging.info(f"Best model saved to {config['save_path']}")
         else:
             early_stop_counter += 1
