@@ -14,6 +14,8 @@ align_loss_type=${6:-cos}
 align_item=${7:-current}
 seed=${8:-2025}
 name_suffix=${9:-}
+constrained_ce=${10:-1}
+invalid_mass_loss_weight=${11:-0}
 
 dataset_path="../data/${dataset}"
 code_path="../data/${dataset}/${dataset}_t5_rqvae.npy"
@@ -62,7 +64,7 @@ if [ -n "$name_suffix" ]; then
   name_suffix="_${name_suffix}"
 fi
 
-file_stem="tiger_${dataset}_${align_item}_mean_${align_target}_${align_loss_type}${mse_loss_weight}_bs${batch_size}_lr${lr}_seed${seed}${name_suffix}"
+file_stem="tiger_${dataset}_${align_item}_mean_${align_target}_${align_loss_type}${mse_loss_weight}_cce${constrained_ce}_im${invalid_mass_loss_weight}_bs${batch_size}_lr${lr}_seed${seed}${name_suffix}"
 ckpt_dir_path="./ckpt"
 log_dir_path="./logs"
 save_path="${ckpt_dir_path}/${file_stem}.pth"
@@ -81,6 +83,8 @@ cd /mlx_devbox/users/fengyuebo/playground/TIGER/model
   --align_loss_type "$align_loss_type" \
   --align_target "$align_target" \
   --align_item "$align_item" \
+  --constrained_ce "$constrained_ce" \
+  --invalid_mass_loss_weight "$invalid_mass_loss_weight" \
   --save_path "$save_path" \
   --log_path "$log_path" \
   --batch_size "$batch_size" \
