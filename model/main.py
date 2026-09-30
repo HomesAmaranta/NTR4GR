@@ -45,6 +45,10 @@ class TIGER(nn.Module):
         self.align_target = config.get('align_target', 'quantized')
         self.align_item = config.get('align_item', 'current')
         self.constrained_ce = bool(config.get('constrained_ce', True))
+        self.invalid_mass_loss_weight = config.get(
+            'invalid_mass_loss_weight',
+            0.0,
+        )
         self.item_trie = None
         if self.align_item == 'pre':
             self.align_item = 'current'
@@ -69,13 +73,13 @@ class TIGER(nn.Module):
     def set_item_trie(self, item_trie: Trie) -> None:
         self.item_trie = item_trie
 
-    def _constrained_ce_loss(
+    def _legal_token_mask(
         self,
         logits: torch.Tensor,
         labels: torch.Tensor,
     ) -> torch.Tensor:
         if self.item_trie is None:
-            raise RuntimeError("constrained_ce requires an item trie")
+            raise RuntimeError("token constraints require an item trie")
 
         batch_size, sequence_length, vocab_size = logits.shape
         labels_list = labels.detach().cpu().tolist()
@@ -107,13 +111,41 @@ class TIGER(nn.Module):
                     )
                 allowed_mask[batch_index, position, allowed_tokens] = True
 
-        allowed_mask = allowed_mask.to(logits.device)
+        return allowed_mask.to(logits.device)
+
+    def _constrained_ce_loss(
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        allowed_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        vocab_size = logits.shape[-1]
         masked_logits = logits.masked_fill(~allowed_mask, float('-inf'))
         return F.cross_entropy(
             masked_logits.reshape(-1, vocab_size),
             labels.reshape(-1),
             ignore_index=-100,
         )
+
+    def _invalid_mass_loss(
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        legal_token_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        constrained_positions = labels.ne(-100)
+        constrained_positions[:, 0] = False
+        if not constrained_positions.any():
+            return logits.new_zeros(())
+
+        all_logsumexp = torch.logsumexp(logits, dim=-1)
+        legal_logsumexp = torch.logsumexp(
+            logits.masked_fill(~legal_token_mask, float('-inf')),
+            dim=-1,
+        )
+        return (all_logsumexp - legal_logsumexp).masked_select(
+            constrained_positions
+        ).mean()
     
     @property
     def n_parameters(self):
@@ -178,12 +210,25 @@ class TIGER(nn.Module):
       )
       target_hidden_states = outputs.decoder_hidden_states[-1]
       self.last_target_hidden_states = target_hidden_states.detach()
+      needs_legal_mask = (
+          labels is not None
+          and (
+              self.constrained_ce
+              or (self.training and self.invalid_mass_loss_weight > 0)
+          )
+      )
+      legal_token_mask = (
+          self._legal_token_mask(outputs.logits, labels)
+          if needs_legal_mask
+          else None
+      )
       ce_loss = (
-          self._constrained_ce_loss(outputs.logits, labels)
+          self._constrained_ce_loss(outputs.logits, labels, legal_token_mask)
           if self.constrained_ce and labels is not None
           else outputs.loss
       )
       align_loss = target_hidden_states.new_zeros(())
+      invalid_mass_loss = target_hidden_states.new_zeros(())
       if (
           self.training
           and target_item_emb is not None
@@ -194,11 +239,26 @@ class TIGER(nn.Module):
               target_hidden_states,
               target_item_emb,
           )
-      loss = ce_loss + self.mse_loss_weight * align_loss
+      if (
+          self.training
+          and self.invalid_mass_loss_weight > 0
+          and legal_token_mask is not None
+      ):
+          invalid_mass_loss = self._invalid_mass_loss(
+              outputs.logits,
+              labels,
+              legal_token_mask,
+          )
+      loss = (
+          ce_loss
+          + self.mse_loss_weight * align_loss
+          + self.invalid_mass_loss_weight * invalid_mass_loss
+      )
       self.last_loss_dict = {
           'total': loss.detach(),
           'ce': ce_loss.detach(),
           'align': align_loss.detach(),
+          'invalid_mass': invalid_mass_loss.detach(),
       }
       return loss, outputs.logits
     
@@ -263,7 +323,12 @@ def ndcg_at_k(pos_index, k):
 
 def train(model, train_loader, optimizer, device):
     model.train()
-    totals = {'total': 0.0, 'ce': 0.0, 'align': 0.0}
+    totals = {
+        'total': 0.0,
+        'ce': 0.0,
+        'align': 0.0,
+        'invalid_mass': 0.0,
+    }
     for batch in train_loader:
         input_ids = batch['history'].to(device)
         attention_mask = batch['attention_mask'].to(device)
@@ -293,12 +358,22 @@ def train(model, train_loader, optimizer, device):
             if loss_dict is not None and 'align' in loss_dict
             else 0.0
         )
+        totals['invalid_mass'] += (
+            loss_dict['invalid_mass'].item()
+            if loss_dict is not None and 'invalid_mass' in loss_dict
+            else 0.0
+        )
         
     return {k: v / len(train_loader) for k, v in totals.items()}
 
 def validate(model, valid_loader, device):
     model.eval()
-    totals = {'total': 0.0, 'ce': 0.0, 'align': 0.0}
+    totals = {
+        'total': 0.0,
+        'ce': 0.0,
+        'align': 0.0,
+        'invalid_mass': 0.0,
+    }
     with torch.no_grad():
         for batch in valid_loader:
             input_ids = batch['history'].to(device)
@@ -322,6 +397,11 @@ def validate(model, valid_loader, device):
             totals['align'] += (
                 loss_dict['align'].item()
                 if loss_dict is not None and 'align' in loss_dict
+                else 0.0
+            )
+            totals['invalid_mass'] += (
+                loss_dict['invalid_mass'].item()
+                if loss_dict is not None and 'invalid_mass' in loss_dict
                 else 0.0
             )
     return {k: v / len(valid_loader) for k, v in totals.items()}
@@ -395,6 +475,7 @@ if __name__ == "__main__":
     parser.add_argument('--align_target', type=str, default='quantized', choices=['item', 'latent', 'quantized'], help='Auxiliary alignment target source')
     parser.add_argument('--align_item', type=str, default='current', choices=['current', 'pre', 'next'], help='Use current/pre item or next target item embedding for alignment')
     parser.add_argument('--constrained_ce', type=int, default=1, choices=[0, 1], help='Restrict CE normalization to legal next SID tokens after the first token')
+    parser.add_argument('--invalid_mass_loss_weight', type=float, default=0.0, help='Weight for penalizing probability mass assigned to illegal tokens after the first SID token')
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'evaluation'], help='Mode of operation')
     parser.add_argument('--log_path', type=str, default='./logs/tiger.log', help='Path to the log file')
     parser.add_argument('--seed', type=int, default=2025, help='Random seed for reproducibility')
@@ -409,6 +490,8 @@ if __name__ == "__main__":
         raise ValueError('mse_loss_weight > 0 requires --item_emb_path')
     if config['mse_loss_weight'] > 0 and config['item_emb_dim'] <= 0:
         raise ValueError('mse_loss_weight > 0 requires --item_emb_dim > 0')
+    if config['invalid_mass_loss_weight'] < 0:
+        raise ValueError('invalid_mass_loss_weight must be non-negative')
     # Set up logging
     logging.basicConfig(
         filename=config['log_path'],
