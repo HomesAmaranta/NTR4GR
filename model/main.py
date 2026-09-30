@@ -44,6 +44,8 @@ class TIGER(nn.Module):
         self.align_loss_type = config.get('align_loss_type', 'mse')
         self.align_target = config.get('align_target', 'quantized')
         self.align_item = config.get('align_item', 'current')
+        self.constrained_ce = bool(config.get('constrained_ce', True))
+        self.item_trie = None
         if self.align_item == 'pre':
             self.align_item = 'current'
         if self.mse_loss_mode != 'mean':
@@ -62,6 +64,55 @@ class TIGER(nn.Module):
             )
             if self.item_emb_dim > 0
             else None
+        )
+
+    def set_item_trie(self, item_trie: Trie) -> None:
+        self.item_trie = item_trie
+
+    def _constrained_ce_loss(
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.item_trie is None:
+            raise RuntimeError("constrained_ce requires an item trie")
+
+        batch_size, sequence_length, vocab_size = logits.shape
+        labels_list = labels.detach().cpu().tolist()
+        allowed_mask = torch.zeros(
+            (batch_size, sequence_length, vocab_size),
+            dtype=torch.bool,
+        )
+
+        for batch_index, target_sequence in enumerate(labels_list):
+            for position, target_token in enumerate(target_sequence):
+                if target_token == -100:
+                    allowed_mask[batch_index, position] = True
+                    continue
+
+                if position == 0:
+                    allowed_mask[batch_index, position] = True
+                    continue
+
+                prefix = [self.model.config.decoder_start_token_id]
+                prefix.extend(target_sequence[:position])
+                allowed_tokens = [int(token) for token in self.item_trie.get(prefix)]
+                if not allowed_tokens:
+                    raise ValueError(
+                        f"No legal next token for target prefix {prefix}"
+                    )
+                if target_token not in allowed_tokens:
+                    raise ValueError(
+                        f"Target token {target_token} is illegal after prefix {prefix}"
+                    )
+                allowed_mask[batch_index, position, allowed_tokens] = True
+
+        allowed_mask = allowed_mask.to(logits.device)
+        masked_logits = logits.masked_fill(~allowed_mask, float('-inf'))
+        return F.cross_entropy(
+            masked_logits.reshape(-1, vocab_size),
+            labels.reshape(-1),
+            ignore_index=-100,
         )
     
     @property
@@ -127,6 +178,11 @@ class TIGER(nn.Module):
       )
       target_hidden_states = outputs.decoder_hidden_states[-1]
       self.last_target_hidden_states = target_hidden_states.detach()
+      ce_loss = (
+          self._constrained_ce_loss(outputs.logits, labels)
+          if self.constrained_ce and labels is not None
+          else outputs.loss
+      )
       align_loss = target_hidden_states.new_zeros(())
       if (
           self.training
@@ -138,10 +194,10 @@ class TIGER(nn.Module):
               target_hidden_states,
               target_item_emb,
           )
-      loss = outputs.loss + self.mse_loss_weight * align_loss
+      loss = ce_loss + self.mse_loss_weight * align_loss
       self.last_loss_dict = {
           'total': loss.detach(),
-          'ce': outputs.loss.detach(),
+          'ce': ce_loss.detach(),
           'align': align_loss.detach(),
       }
       return loss, outputs.logits
@@ -338,6 +394,7 @@ if __name__ == "__main__":
     parser.add_argument('--align_loss_type', type=str, default='mse', choices=['mse', 'cos'], help='Auxiliary alignment loss type')
     parser.add_argument('--align_target', type=str, default='quantized', choices=['item', 'latent', 'quantized'], help='Auxiliary alignment target source')
     parser.add_argument('--align_item', type=str, default='current', choices=['current', 'pre', 'next'], help='Use current/pre item or next target item embedding for alignment')
+    parser.add_argument('--constrained_ce', type=int, default=1, choices=[0, 1], help='Restrict CE normalization to legal next SID tokens after the first token')
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'evaluation'], help='Mode of operation')
     parser.add_argument('--log_path', type=str, default='./logs/tiger.log', help='Path to the log file')
     parser.add_argument('--seed', type=int, default=2025, help='Random seed for reproducibility')
@@ -405,6 +462,7 @@ if __name__ == "__main__":
         code_list = list(code) if isinstance(code, (np.ndarray, list)) else list(code)
         trie_sequences.append([config['pad_token_id']] + code_list + [config['eos_token_id']])
     item_trie = Trie(trie_sequences)
+    model.set_item_trie(item_trie)
     print("Trie built.")
     
     # print(f"Train dataset size: {len(train_dataset)}")
