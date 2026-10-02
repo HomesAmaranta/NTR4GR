@@ -1,0 +1,69 @@
+# 在 NTR4GR Beauty 数据上运行 MiniOneRec
+
+该目录是一个独立的 MiniOneRec 适配版本，直接使用 NTR4GR 的 Beauty
+数据划分、ItemID 映射、商品属性和四层 RQ-VAE SID，不会修改原始
+`MiniOneRec` 仓库。
+
+## 目录结构
+
+- `sft/`：监督微调及约束解码评测
+- `rl/`：面向推荐任务的强化学习
+- `scripts/prepare_beauty.py`：确定性数据转换脚本
+- `data/Beauty/`：生成的 MiniOneRec 输入数据
+
+转换脚本读取 `../../data/Beauty`，并生成以下文件：
+
+- `data/Beauty/train/Beauty.csv`
+- `data/Beauty/valid/Beauty.csv`
+- `data/Beauty/test/Beauty.csv`
+- `data/Beauty/index/Beauty.index.json`
+- `data/Beauty/index/Beauty.item.json`
+- `data/Beauty/info/Beauty.txt`
+
+每行四层码字按照以下规则转换：
+
+```text
+[c0, c1, c2, c3] -> <a_c0><b_c1><c_c2><d_c3>
+```
+
+训练数据按照 NTR4GR 的方式进行前缀滑窗展开，并只保留最近 20 个历史物品。
+验证集和测试集保持原有的 leave-one-out 目标不变。
+
+## 准备数据
+
+```bash
+python scripts/prepare_beauty.py
+```
+
+默认会对训练序列进行滑窗展开。只有明确需要“每个用户仅保留一条训练样本”时，
+才使用 `--no-expand-train`：
+
+```bash
+python scripts/prepare_beauty.py --no-expand-train
+```
+
+## 监督微调
+
+```bash
+BASE_MODEL=/path/to/model bash sft/sft.sh
+```
+
+## 约束解码评测
+
+```bash
+MODEL_PATH=/path/to/sft/checkpoint GPU_LIST=0 bash sft/evaluate.sh
+```
+
+使用多张 GPU 时，通过逗号分隔 GPU 编号：
+
+```bash
+MODEL_PATH=/path/to/sft/checkpoint GPU_LIST=0,1,2,3 bash sft/evaluate.sh
+```
+
+## 强化学习
+
+```bash
+MODEL_PATH=/path/to/sft/checkpoint bash rl/rl.sh
+```
+
+批大小、进程数、输出目录及常用超参数均可通过各 shell 脚本中定义的环境变量覆盖。
