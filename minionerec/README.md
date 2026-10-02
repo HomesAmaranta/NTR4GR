@@ -45,8 +45,11 @@ python scripts/prepare_beauty.py --no-expand-train
 ## 监督微调
 
 ```bash
-BASE_MODEL=/path/to/model bash sft/sft.sh
+bash sft.sh
 ```
+
+Python 环境、基础模型路径、GPU 数量和输出目录直接配置在根目录的 `sft.sh` 中，
+无需通过命令行传入模型路径。
 
 ## 约束解码评测
 
@@ -63,7 +66,8 @@ MODEL_PATH=/path/to/sft/checkpoint GPU_LIST=0,1,2,3 bash sft/evaluate.sh
 ## 强化学习
 
 ```bash
-MODEL_PATH=/path/to/sft/checkpoint bash rl/rl.sh
+bash rl.sh
 ```
 
-批大小、进程数、输出目录及常用超参数均可通过各 shell 脚本中定义的环境变量覆盖。
+RL 使用的 SFT checkpoint 路径、Python 环境、GPU 数量和输出目录直接配置在
+根目录的 `rl.sh` 中。
