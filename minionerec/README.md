@@ -54,14 +54,11 @@ Python 环境、基础模型路径、GPU 数量和输出目录直接配置在根
 ## 约束解码评测
 
 ```bash
-MODEL_PATH=/path/to/sft/checkpoint GPU_LIST=0 bash sft/evaluate.sh
+bash eval.sh
 ```
 
-使用多张 GPU 时，通过逗号分隔 GPU 编号：
-
-```bash
-MODEL_PATH=/path/to/sft/checkpoint GPU_LIST=0,1,2,3 bash sft/evaluate.sh
-```
+待评估模型路径、Python 环境和 GPU 列表直接配置在根目录的 `eval.sh` 中。
+当前默认评估 RL 输出的 `final_checkpoint`，并使用 GPU `0,1,2,3`。
 
 ## 强化学习
 
