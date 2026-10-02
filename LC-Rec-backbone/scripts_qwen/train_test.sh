@@ -26,7 +26,7 @@ mse_loss_weight=${MSE_LOSS_WEIGHT:-5}
 model_class=Qwen3-1.7B
 lr=5e-4
 lora_r=16
-lora_alpha=64
+lora_alpha=32
 
 cd /mlx_devbox/users/fengyuebo/playground/TIGER/LC-Rec-backbone/scripts_qwen
 
@@ -57,7 +57,7 @@ do
         --per_device_batch_size 128 \
         --gradient_accumulation_steps 1 \
         --learning_rate $lr \
-        --epochs 7 \
+        --epochs 5 \
         --lora_r $lora_r \
         --lora_alpha $lora_alpha \
         --lora_target_modules "q_proj,v_proj,o_proj,up_proj,down_proj" \

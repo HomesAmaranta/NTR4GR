@@ -22,7 +22,6 @@ echo "GPU_COUNT=${GPU_COUNT}"
 
 cd "${SCRIPT_DIR}"
 TORCH_DISTRIBUTED_DEBUG=DETAIL \
-NCCL_DEBUG=INFO \
 NCCL_NET=Socket \
 NCCL_NET_PLUGIN=none \
 NCCL_IB_DISABLE=1 \
@@ -36,7 +35,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 \
     --base_model "${BASE_MODEL}" \
     --batch_size 1024 \
     --micro_batch_size 16 \
-    --num_epochs 10 \
+    --num_epochs 5 \
+    --learning_rate 5e-4 \
     --cutoff_len 512 \
     --train_file "${DATA_DIR}/train/Beauty.csv" \
     --eval_file "${DATA_DIR}/valid/Beauty.csv" \

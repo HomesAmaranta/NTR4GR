@@ -12,8 +12,8 @@ seeds=(1 42 2025)
 mse_loss_weights=(0)
 align_targets=(latent )
 align_items=(current)
-constrained_ces=(1)
-invalid_mass_loss_weights=(0)
+constrained_ces=(0)
+invalid_mass_loss_weights=(1)
 
 for seed in "${seeds[@]}"; do
   for align_target in "${align_targets[@]}"; do
