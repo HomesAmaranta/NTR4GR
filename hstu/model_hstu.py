@@ -38,11 +38,15 @@ class HSTUBlock(nn.Module):
         dv,
         dropout_rate,
         max_seq_len,
+        code_length,
+        max_history_items,
     ):
         super().__init__()
         self.num_heads = num_heads
         self.dqk = dqk
         self.dv = dv
+        self.code_length = code_length
+        self.max_history_items = max_history_items
         self.norm = nn.LayerNorm(embedding_dim, eps=1e-6)
         self.uvqk = nn.Linear(
             embedding_dim,
@@ -77,8 +81,13 @@ class HSTUBlock(nn.Module):
         scores = scores + self.relative_bias(seq_len)[None, None, :, :]
         scores = F.silu(scores) / seq_len
 
-        causal_mask = torch.tril(
-            torch.ones(seq_len, seq_len, device=x.device, dtype=torch.bool)
+        positions = torch.arange(seq_len, device=x.device)
+        item_positions = positions // self.code_length
+        item_distances = item_positions[:, None] - item_positions[None, :]
+        causal_mask = (
+            positions[:, None] >= positions[None, :]
+        ) & (
+            item_distances < self.max_history_items
         )
         valid_mask = (
             causal_mask[None, None, :, :]
@@ -110,6 +119,7 @@ class HSTURec(nn.Module):
         vocab_size,
         max_seq_len,
         code_length=4,
+        max_history_items=20,
         embedding_dim=64,
         num_blocks=2,
         num_heads=4,
@@ -122,6 +132,7 @@ class HSTURec(nn.Module):
         self.vocab_size = vocab_size
         self.max_seq_len = max_seq_len
         self.code_length = code_length
+        self.max_history_items = max_history_items
         self.pad_token_id = pad_token_id
         self.sid_emb = nn.Embedding(
             vocab_size, embedding_dim, padding_idx=pad_token_id
@@ -136,6 +147,8 @@ class HSTURec(nn.Module):
                     dv=dv,
                     dropout_rate=dropout_rate,
                     max_seq_len=max_seq_len,
+                    code_length=code_length,
+                    max_history_items=max_history_items,
                 )
                 for _ in range(num_blocks)
             ]

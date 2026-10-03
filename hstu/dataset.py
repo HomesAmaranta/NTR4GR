@@ -55,15 +55,16 @@ def process_data(file_path, mode, max_len):
 
     processed_data = []
     for row in data.itertuples(index=False):
-        history = [int(item_id) for item_id in row.history][-max_len:]
+        history = [int(item_id) for item_id in row.history]
         target = int(row.target)
 
         if mode == "train":
-            sequence = (history + [target])[-max_len:]
+            sequence = history + [target]
             if len(sequence) < 2:
                 continue
             processed_data.append({"sequence": sequence})
         else:
+            history = history[-max_len:]
             if not history:
                 continue
             processed_data.append({"history": history, "target": target})

@@ -133,7 +133,10 @@ def main():
         "--max_len",
         type=int,
         default=20,
-        help="Maximum number of items in one history/training sequence",
+        help=(
+            "Maximum item-level attention history; validation and test "
+            "histories are also capped to this length"
+        ),
     )
     parser.add_argument("--codebook_size", type=int, default=256)
     parser.add_argument("--pad_token_id", type=int, default=0)
@@ -186,10 +189,16 @@ def main():
     device = torch.device(
         args.device if torch.cuda.is_available() else "cpu"
     )
+    max_seq_len = max(
+        len(sample["input_ids"])
+        for dataset in (train_ds, valid_ds, test_ds)
+        for sample in dataset.data
+    )
     model = HSTURec(
         vocab_size=train_ds.vocab_size,
-        max_seq_len=(args.max_len + 1) * train_ds.code_length,
+        max_seq_len=max_seq_len,
         code_length=train_ds.code_length,
+        max_history_items=args.max_len,
         embedding_dim=args.embedding_dim,
         num_blocks=args.num_blocks,
         num_heads=args.num_heads,

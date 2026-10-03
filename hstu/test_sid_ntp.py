@@ -50,6 +50,33 @@ def test_train_keeps_one_sequence_and_supervises_b_c_d(tmp_path, monkeypatch):
     assert sum(label != IGNORE_INDEX for label in sample["labels"]) == 12
 
 
+def test_train_keeps_all_80_items_and_supervises_after_first(
+    tmp_path, monkeypatch
+):
+    codes = np.asarray(
+        [[item_id % 4] * 4 for item_id in range(80)],
+        dtype=np.int64,
+    )
+    code_path = tmp_path / "long_codes.npy"
+    np.save(code_path, codes)
+    frame = pd.DataFrame(
+        [{"user": 1, "history": list(range(1, 80)), "target": 80}]
+    )
+    monkeypatch.setattr(pd, "read_parquet", lambda _: frame)
+
+    dataset = GenRecDataset(
+        "unused.parquet",
+        code_path,
+        mode="train",
+        max_len=20,
+        codebook_size=4,
+    )
+    sample = dataset[0]
+    assert len(sample["input_ids"]) == 80 * 4
+    assert sample["labels"][:4] == [IGNORE_INDEX] * 4
+    assert sum(label != IGNORE_INDEX for label in sample["labels"]) == 79 * 4
+
+
 def test_validation_only_supervises_final_item(tmp_path, monkeypatch):
     dataset = _dataset(tmp_path, monkeypatch, mode="valid")
     sample = dataset[0]
@@ -96,6 +123,29 @@ def test_model_is_causal_and_lm_head_is_tied():
         second_hidden = model.encode(second, mask)
     torch.testing.assert_close(first_hidden[:, :-1], second_hidden[:, :-1])
     assert model.lm_head.weight.data_ptr() == model.sid_emb.weight.data_ptr()
+
+
+def test_attention_is_limited_to_item_history_window():
+    torch.manual_seed(0)
+    model = HSTURec(
+        vocab_size=17,
+        max_seq_len=4,
+        code_length=1,
+        max_history_items=2,
+        embedding_dim=8,
+        num_blocks=1,
+        num_heads=2,
+        dqk=4,
+        dv=4,
+        dropout_rate=0.0,
+    ).eval()
+    first = torch.tensor([[1, 2, 3]])
+    changed_outside_window = torch.tensor([[4, 2, 3]])
+    mask = torch.ones_like(first)
+    with torch.no_grad():
+        first_hidden = model.encode(first, mask)
+        changed_hidden = model.encode(changed_outside_window, mask)
+    torch.testing.assert_close(first_hidden[:, -1], changed_hidden[:, -1])
 
 
 def test_ntp_loss_and_trie_generation():
