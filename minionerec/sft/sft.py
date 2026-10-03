@@ -254,6 +254,7 @@ def train(
             save_steps=eval_step,
             output_dir=output_dir,
             save_total_limit=1,
+            save_only_model=True,
             load_best_model_at_end=True,
             ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
