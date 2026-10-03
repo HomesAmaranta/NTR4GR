@@ -8,3 +8,4 @@ debug/
 *.log
 
 ckpt/
+temp/

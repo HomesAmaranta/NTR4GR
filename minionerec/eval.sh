@@ -3,10 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
-MODEL_PATH=/mnt/local/localcache00/fyb/minionerec/rl/beauty-qwen3-1.7b/final_checkpoint
+MODEL_PATH=/mnt/local/localcache00/fyb/minionerec/sft/beauty-qwen3-1.7b/final_checkpoint
 DATA_DIR="${SCRIPT_DIR}/data/Beauty"
 GPU_LIST=0,1,2,3
-RUN_NAME=beauty-qwen3-1.7b-rl
+RUN_NAME=beauty-qwen3-1.7b-sft
 TEMP_DIR="${SCRIPT_DIR}/temp/Beauty-${RUN_NAME}"
 OUTPUT_DIR="${SCRIPT_DIR}/results/${RUN_NAME}"
 
@@ -40,7 +40,7 @@ for gpu in ${GPU_LIST//,/ }; do
         --test_data_path "${TEMP_DIR}/${gpu}.csv" \
         --result_json_data "${TEMP_DIR}/${gpu}.json" \
         --batch_size 8 \
-        --num_beams 50 \
+        --num_beams 20 \
         --max_new_tokens 8 \
         --length_penalty 0.0 &
 done

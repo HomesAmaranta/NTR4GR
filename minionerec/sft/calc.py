@@ -32,7 +32,7 @@ def gao(path, item_path):
     
 
     result_dict = dict()
-    topk_list = [1, 3, 5, 10, 20, 50]
+    topk_list = [1, 3, 5, 10, 20]
     n_beam = -1
     for p in path:
         result_dict[p] = {
