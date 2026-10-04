@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR=/mlx_devbox/users/fengyuebo/playground/TIGER/minionerec
 PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
-MODEL_PATH=/mnt/local/localcache00/fyb/minionerec/sft/beauty-qwen3-1.7b/final_checkpoint
+MODEL_PATH=/mlx_devbox/users/fengyuebo/playground/TIGER/minionerec/ckpt/sft/beauty-qwen3-4b/checkpoint-1128
 DATA_DIR="${SCRIPT_DIR}/data/Beauty"
 GPU_LIST=0,1,2,3
 RUN_NAME=beauty-qwen3-1.7b-sft

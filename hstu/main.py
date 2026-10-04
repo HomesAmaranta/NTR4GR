@@ -209,6 +209,7 @@ def main():
     ).to(device)
     logging.info(model.n_parameters)
     print(model.n_parameters)
+    print(args.lr)
 
     checkpoint_path = (
         args.save_path

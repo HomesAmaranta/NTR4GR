@@ -76,8 +76,8 @@ def gao(path, item_path):
         print(n_beam)
         valid_topk = [k for k in topk_list if k <= n_beam]
         print(valid_topk)
-        print(f"NDCG:\t{ALLNDCG / len(text) / (1.0 / math.log(2))}")
         print(f"HR\t{ALLHR / len(text)}")
+        print(f"NDCG:\t{ALLNDCG / len(text) / (1.0 / math.log(2))}")
         print(CC)
 
 if __name__=='__main__':

@@ -15,15 +15,15 @@ log_path="./logs/hstu_sid_ntp_${dataset}.log"
   --log_path $log_path \
   --batch_size 128 \
   --infer_size 128 \
-  --num_epochs 1000 \
+  --num_epochs 120 \
   --max_len 20 \
   --embedding_dim 64 \
-  --num_blocks 2 \
+  --num_blocks 4 \
   --num_heads 4 \
   --dqk 32 \
   --dv 32 \
   --dropout_rate 0.1 \
-  --lr 1e-3 \
+  --lr 5e-2 \
   --weight_decay 0 \
   --codebook_size 256 \
   --beam_size 20 \

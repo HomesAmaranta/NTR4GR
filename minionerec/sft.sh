@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR=/mlx_devbox/users/fengyuebo/playground/TIGER/minionerec
 PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
-BASE_MODEL=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-1.7B
-OUTPUT_DIR=/mlx_devbox/users/fengyuebo/playground/TIGER/minionerec/ckpt/sft/beauty-qwen3-1.7b
+BASE_MODEL=/mlx_devbox/users/fengyuebo/playground/hf_models/Qwen3-4B
+OUTPUT_DIR=/mlx_devbox/users/fengyuebo/playground/TIGER/minionerec/ckpt/sft/beauty-qwen3-4b
 DATA_DIR=/mlx_devbox/users/fengyuebo/playground/TIGER/minionerec/data/Beauty
-GPU_COUNT=4
+GPU_COUNT=8
 
 export WANDB_MODE=disabled
 export WANDB_DISABLED=true
@@ -26,7 +26,7 @@ NCCL_NET=Socket \
 NCCL_NET_PLUGIN=none \
 NCCL_IB_DISABLE=1 \
 NCCL_SOCKET_FAMILY=AF_INET \
-CUDA_VISIBLE_DEVICES=0,1,2,3 \
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
 "${PYTHON}" -m torch.distributed.run \
     --standalone \
     --nproc-per-node="${GPU_COUNT}" \
@@ -34,7 +34,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 \
     sft/sft.py \
     --base_model "${BASE_MODEL}" \
     --batch_size 1024 \
-    --micro_batch_size 16 \
+    --micro_batch_size 8 \
     --num_epochs 10 \
     --learning_rate 3e-4 \
     --cutoff_len 512 \
