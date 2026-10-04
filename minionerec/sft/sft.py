@@ -1,5 +1,7 @@
 import os
 import sys
+import glob
+import shutil
 from typing import List
 import numpy as np 
 import fire
@@ -53,6 +55,18 @@ class TokenExtender:
         self.new_tokens = sorted(list(self.new_tokens))
         
         return self.new_tokens
+
+
+class KeepBestCheckpointOnlyCallback(transformers.TrainerCallback):
+    def on_save(self, args, state, control, **kwargs):
+        if not state.is_world_process_zero or not state.best_model_checkpoint:
+            return control
+
+        best_checkpoint = os.path.realpath(state.best_model_checkpoint)
+        for checkpoint_dir in glob.glob(os.path.join(args.output_dir, "checkpoint-*")):
+            if os.path.realpath(checkpoint_dir) != best_checkpoint:
+                shutil.rmtree(checkpoint_dir)
+        return control
 
 
 def set_seed(seed):
@@ -256,6 +270,8 @@ def train(
             save_total_limit=1,
             save_only_model=True,
             load_best_model_at_end=True,
+            metric_for_best_model="eval_loss",
+            greater_is_better=False,
             ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
             report_to=None,
@@ -263,17 +279,21 @@ def train(
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
         ),
-        callbacks = [EarlyStoppingCallback(early_stopping_patience=3)],
+        callbacks=[
+            EarlyStoppingCallback(early_stopping_patience=3),
+            KeepBestCheckpointOnlyCallback(),
+        ],
         # optimizers=(optimizer, lr_scheduler) 
     )
     model.config.use_cache = False
     
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
-    trainer.save_model(output_dir)
-    
-    output_dir = os.path.join(output_dir, "final_checkpoint")
-    trainer.model.save_pretrained(output_dir)
-    tokenizer.save_pretrained(output_dir)
+    final_output_dir = os.path.join(output_dir, "final_checkpoint")
+    trainer.save_model(final_output_dir)
+    if trainer.is_world_process_zero():
+        tokenizer.save_pretrained(final_output_dir)
+        for checkpoint_dir in glob.glob(os.path.join(output_dir, "checkpoint-*")):
+            shutil.rmtree(checkpoint_dir)
 
 
 

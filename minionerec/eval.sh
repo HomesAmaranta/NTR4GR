@@ -3,10 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR=/mlx_devbox/users/fengyuebo/playground/TIGER/minionerec
 PYTHON=/home/tiger/miniconda3/envs/MiniOneRec/bin/python
-MODEL_PATH=/mlx_devbox/users/fengyuebo/playground/TIGER/minionerec/ckpt/sft/beauty-qwen3-4b/checkpoint-1128
+MODEL_PATH="${SCRIPT_DIR}/ckpt/sft/beauty-qwen3-4b/final_checkpoint"
 DATA_DIR="${SCRIPT_DIR}/data/Beauty"
 GPU_LIST=0,1,2,3
-RUN_NAME=beauty-qwen3-1.7b-sft
+RUN_NAME=beauty-qwen3-4b-sft
 TEMP_DIR="${SCRIPT_DIR}/temp/Beauty-${RUN_NAME}"
 OUTPUT_DIR="${SCRIPT_DIR}/results/${RUN_NAME}"
 
